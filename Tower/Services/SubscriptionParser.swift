@@ -616,6 +616,7 @@ struct SubscriptionParser {
             password: password,
             obfs: options["obfs"],
             obfsParam: options["obfs-host"],
+            udpRelayEnabled: boolString(options["udp-relay"] ?? options["udp"]),
             rawURI: raw
         )
     }
@@ -745,8 +746,11 @@ struct SubscriptionParser {
         var pluginPath: String?
         var pluginTLS = false
         var pluginMux: Bool?
+        var udpRelayEnabled: Bool?
         if let queryIndex = payload.firstIndex(of: "?") {
             let query = String(payload[payload.index(after: queryIndex)...])
+            let parameters = queryDictionary(query)
+            udpRelayEnabled = (parameters["udp-relay"] ?? parameters["udp"]).map { boolString($0) }
             // A SIP003 plugin changes how the node is dialled. simple-obfs is
             // carried over because every target format can express it; any
             // other plugin would import as a node that looks healthy and never
@@ -804,6 +808,7 @@ struct SubscriptionParser {
             path: pluginPath,
             obfs: obfsMode,
             obfsParam: sip003Plugin == nil ? obfsHost : nil,
+            udpRelayEnabled: udpRelayEnabled,
             rawURI: raw
         )
     }
@@ -871,7 +876,11 @@ struct SubscriptionParser {
         let encoded = String(raw.dropFirst("ssr://".count))
         guard let decoded = decodeBase64String(encoded) else { return nil }
         let sections = decoded.components(separatedBy: "/?")
-        let main = sections[0].split(separator: ":", maxSplits: 5, omittingEmptySubsequences: false).map(String.init)
+        // SSR has five colon-delimited fields after the host. Split from the
+        // right so a bare or bracketed IPv6 address remains a single field.
+        let main = String(sections[0].reversed())
+            .split(separator: ":", maxSplits: 5, omittingEmptySubsequences: false)
+            .reversed().map { String($0.reversed()) }
         guard main.count == 6, let port = Int(main[1]), let password = decodeBase64String(main[5]) else { return nil }
 
         let query = sections.count > 1 ? queryDictionary(sections[1]) : [:]
@@ -880,7 +889,7 @@ struct SubscriptionParser {
             sourceID: sourceID,
             kind: .shadowsocksR,
             name: normalizedName(remarks, fallback: main[0]),
-            server: main[0],
+            server: normalizedHost(main[0]),
             port: port,
             cipher: main[3],
             password: password,
@@ -1581,7 +1590,8 @@ struct SubscriptionParser {
                 realityShortID: hasRealityOptions
                     ? clashYAMLScalar(dictionary["short-id"] ?? dictionary["sid"])
                     : nil,
-                certificateFingerprint: dictionary["tls-fingerprint"]
+                certificateFingerprint: dictionary["server-cert-fingerprint"]
+                    ?? dictionary["tls-fingerprint"]
                     ?? dictionary["fingerprint"],
                 fingerprint: dictionary["client-fingerprint"]
                     ?? dictionary["fp"],
@@ -1596,6 +1606,7 @@ struct SubscriptionParser {
                 congestionControl: dictionary["congestion-controller"]
                     ?? dictionary["congestion_control"],
                 udpRelayMode: dictionary["udp-relay-mode"],
+                udpRelayEnabled: kind == .shadowsocks ? dictionary["udp"].map { boolString($0) } : nil,
                 portHopping: dictionary["ports"]
                     ?? dictionary["mport"]
                     ?? dictionary["server-ports"]

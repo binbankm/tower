@@ -1753,7 +1753,7 @@ struct ConfigurationGenerator {
         ]
         switch node.kind {
         case .shadowsocks:
-            values += ["    cipher: \(yaml(node.cipher ?? "aes-256-gcm"))", "    password: \(yaml(node.password ?? ""))", "    udp: true"]
+            values += ["    cipher: \(yaml(node.cipher ?? "aes-256-gcm"))", "    password: \(yaml(node.password ?? ""))", "    udp: \(node.udpRelayEnabled ?? true)"]
             if node.plugin == "v2ray-plugin" {
                 values.append("    plugin: v2ray-plugin")
                 values.append("    plugin-opts:")
@@ -1809,11 +1809,7 @@ struct ConfigurationGenerator {
             if let sni = node.sni, !sni.isEmpty { values.append("    sni: \(yaml(sni))") }
             if let ports = node.portHopping, !ports.isEmpty { values.append("    ports: \(yaml(ports))") }
             appendClashALPN(node, to: &values)
-            // Hysteria 2 calls this value `fingerprint`: it is the SHA-256
-            // certificate pin, not a browser-style uTLS ClientHello name.
-            if let fingerprint = node.certificateFingerprint, !fingerprint.isEmpty {
-                values.append("    fingerprint: \(yaml(fingerprint))")
-            }
+            appendClashCertificateFingerprint(node, target: target, to: &values)
             if let obfs = hysteria2Obfs(node) {
                 values.append("    obfs: \(yaml(obfs.type))")
                 values.append("    obfs-password: \(yaml(obfs.password))")
@@ -1829,7 +1825,7 @@ struct ConfigurationGenerator {
                 "    skip-cert-verify: \(node.skipCertificateVerification)"
             ]
             if let sni = node.sni, !sni.isEmpty { values.append("    sni: \(yaml(sni))") }
-            appendClashCertificateFingerprint(node, to: &values)
+            appendClashCertificateFingerprint(node, target: target, to: &values)
             if let obfs = node.obfs, !obfs.isEmpty, obfs.lowercased() != "none" {
                 values.append("    obfs: \(yaml(obfs))")
             }
@@ -1851,7 +1847,7 @@ struct ConfigurationGenerator {
             }
             if let ports = node.portHopping, !ports.isEmpty { values.append("    ports: \(yaml(ports))") }
             appendClashALPN(node, to: &values)
-            appendClashCertificateFingerprint(node, to: &values)
+            appendClashCertificateFingerprint(node, target: target, to: &values)
             appendClashClientFingerprint(node, to: &values)
         case .wireguard:
             values += [
@@ -1886,7 +1882,7 @@ struct ConfigurationGenerator {
             if let value = node.idleSessionTimeout { values.append("    idle-session-timeout: \(value)") }
             if let value = node.minIdleSession { values.append("    min-idle-session: \(value)") }
             appendClashALPN(node, to: &values)
-            appendClashCertificateFingerprint(node, to: &values)
+            appendClashCertificateFingerprint(node, target: target, to: &values)
             if [.shadowrocket, .karing].contains(target) {
                 values.append("    tls: true")
                 appendClashReality(node, to: &values)
@@ -1912,7 +1908,7 @@ struct ConfigurationGenerator {
                 if let sni = node.sni, !sni.isEmpty { values.append("    sni: \(yaml(sni))") }
                 values.append("    skip-cert-verify: \(node.skipCertificateVerification)")
                 appendClashALPN(node, to: &values)
-                appendClashCertificateFingerprint(node, to: &values)
+                appendClashCertificateFingerprint(node, target: target, to: &values)
                 if [.shadowrocket, .karing].contains(target) { appendClashReality(node, to: &values) }
                 appendClashClientFingerprint(node, to: &values)
             }
@@ -1958,10 +1954,12 @@ struct ConfigurationGenerator {
         values.append("    client-fingerprint: \(yaml(fingerprint))")
     }
 
-    private func appendClashCertificateFingerprint(_ node: ProxyNode, to values: inout [String]) {
+    private func appendClashCertificateFingerprint(_ node: ProxyNode, target: ClientTarget, to values: inout [String]) {
         guard let fingerprint = node.certificateFingerprint,
               !fingerprint.isEmpty else { return }
-        values.append("    fingerprint: \(yaml(fingerprint))")
+        // Stash has its own certificate-pin key despite sharing Clash YAML.
+        let key = target == .clash ? "server-cert-fingerprint" : "fingerprint"
+        values.append("    \(key): \(yaml(fingerprint))")
     }
 
     private func appendClashTransport(_ node: ProxyNode, target: ClientTarget, to values: inout [String]) {
@@ -1971,7 +1969,7 @@ struct ConfigurationGenerator {
             let key = target == .clash && node.kind == .trojan ? "sni" : "servername"
             values.append("    \(key): \(yaml(sni))")
         }
-        appendClashCertificateFingerprint(node, to: &values)
+        appendClashCertificateFingerprint(node, target: target, to: &values)
         appendClashReality(node, to: &values)
         if node.kind == .vless, let flow = node.flow, !flow.isEmpty {
             values.append("    flow: \(yaml(flow))")
@@ -2233,7 +2231,7 @@ struct ConfigurationGenerator {
         var components: [String] = []
         switch node.kind {
         case .shadowsocks:
-            components = ["ss", node.server, "\(node.port)", "encrypt-method=\(node.cipher ?? "aes-256-gcm")", "password=\(confValue(node.password ?? ""))", "udp-relay=true"]
+            components = ["ss", node.server, "\(node.port)", "encrypt-method=\(node.cipher ?? "aes-256-gcm")", "password=\(confValue(node.password ?? ""))", "udp-relay=\(node.udpRelayEnabled ?? true)"]
             if shadowrocket, node.plugin == "v2ray-plugin" {
                 components.append("obfs=\(node.tls ? "wss" : "ws")")
                 appendValue(node.hostHeader, key: "obfs-host", to: &components)
@@ -2670,7 +2668,7 @@ struct ConfigurationGenerator {
                 values.append("obfs-name=\(mode)")
                 appendValue(node.obfsParam, key: "obfs-host", to: &values)
             }
-            values.append("udp=true")
+            values.append("udp=\(node.udpRelayEnabled ?? true)")
         case .shadowsocksR:
             values = ["ShadowsocksR", node.server, "\(node.port)", node.cipher ?? "aes-256-cfb", loonQuoted(node.password ?? ""), "protocol=\(node.protocolName ?? "origin")", "obfs=\(node.obfs ?? "plain")"]
             appendValue(node.protocolParam, key: "protocol-param", to: &values)
@@ -2929,7 +2927,7 @@ struct ConfigurationGenerator {
         switch node.kind {
         case .shadowsocks:
             prefix = "shadowsocks"
-            values += ["method=\(node.cipher ?? "aes-256-gcm")", "password=\(confValue(node.password ?? ""))", "udp-relay=true"]
+            values += ["method=\(node.cipher ?? "aes-256-gcm")", "password=\(confValue(node.password ?? ""))", "udp-relay=\(node.udpRelayEnabled ?? true)"]
             if node.plugin == "v2ray-plugin" {
                 values.append("obfs=\(node.tls ? "wss" : "ws")")
                 appendValue(node.hostHeader, key: "obfs-host", to: &values)
@@ -3774,6 +3772,7 @@ extension ConfigurationGenerator {
         switch node.kind {
         case .shadowsocks:
             outbound["type"] = "shadowsocks"
+            if node.udpRelayEnabled == false { outbound["network"] = "tcp" }
             outbound["method"] = node.cipher ?? "aes-256-gcm"
             outbound["password"] = node.password ?? ""
             if node.plugin == "v2ray-plugin" {
@@ -4526,7 +4525,7 @@ extension ConfigurationGenerator {
             return nil
         }
 
-        body.append("      udp_relay: true")
+        body.append("      udp_relay: \(node.kind == .shadowsocks ? node.udpRelayEnabled ?? true : true)")
         if node.usesReality, ![.vmess, .vless].contains(node.kind) {
             body.append("      reality:")
             body.append("        public_key: \(yaml(node.realityPublicKey ?? ""))")

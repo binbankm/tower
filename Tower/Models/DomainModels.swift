@@ -544,6 +544,8 @@ struct ProxyNode: Identifiable, Codable, Hashable {
     /// airport makes, so a wrong guess costs UDP or throughput.
     var congestionControl: String?
     var udpRelayMode: String?
+    /// Explicit SS UDP preference; nil preserves the historical export default.
+    var udpRelayEnabled: Bool?
     /// Alternate QUIC destination ports used by Hysteria 2 (and, where a
     /// producer supports it, TUIC). Providers call this `ports`, `mport`,
     /// `server-ports`, or `port-hopping`; using only the display `port` makes
@@ -612,6 +614,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         version: Int? = nil,
         congestionControl: String? = nil,
         udpRelayMode: String? = nil,
+        udpRelayEnabled: Bool? = nil,
         portHopping: String? = nil,
         upMbps: Int? = nil,
         downMbps: Int? = nil,
@@ -664,6 +667,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         self.version = version
         self.congestionControl = congestionControl
         self.udpRelayMode = udpRelayMode
+        self.udpRelayEnabled = udpRelayEnabled
         self.portHopping = portHopping
         self.upMbps = upMbps
         self.downMbps = downMbps
@@ -714,6 +718,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         fields.append(contentsOf: [certificateFingerprint ?? "", idleCheck, idleTimeout, minimumIdle, protocolVersion])
         fields.append(contentsOf: [
             congestionControl ?? "", udpRelayMode ?? "", portHopping ?? "",
+            udpRelayEnabled.map { $0 ? "1" : "0" } ?? "",
             upMbps.map(String.init) ?? "", downMbps.map(String.init) ?? ""
         ])
         fields.append(contentsOf: [

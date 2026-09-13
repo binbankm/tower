@@ -10,6 +10,29 @@ final class CertificatePinExportTests: XCTestCase {
                   tls: tls, sni: "pin.example.com", certificateFingerprint: pin, rawURI: "")
     }
 
+    func testStashUsesItsOwnCertificatePinFieldInBothModes() {
+        for kind: ProxyKind in [.trojan, .vmess, .hysteria2, .tuic, .http, .socks5] {
+            let proxy = node(kind)
+            let generator = ConfigurationGenerator()
+            for result in [generator.generate(nodes: [proxy], preset: RulePreset.builtIns[0], target: .clash),
+                           generator.generateNodeSubscription(nodes: [proxy], target: .clash)] {
+                guard result.supportedNodeCount > 0 else { continue }
+                XCTAssertTrue(result.content.contains("    server-cert-fingerprint: \"\(pin)\""), "\(kind)")
+                XCTAssertFalse(result.content.contains("\n    fingerprint:"), "\(kind)")
+                XCTAssertFalse(result.content.contains("skip-cert-verify: true"))
+            }
+        }
+    }
+
+    func testStashCertificatePinImportsAndConvertsToOtherDialects() throws {
+        let source = "proxies:\n  - {name: Stash, type: trojan, server: example.com, port: 443, password: password, server-cert-fingerprint: \"\(pin)\"}"
+        let proxy = try XCTUnwrap(SubscriptionParser().parse(data: Data(source.utf8)).nodes.first)
+        XCTAssertEqual(proxy.certificateFingerprint, pin)
+        let output = ConfigurationGenerator().generate(nodes: [proxy], preset: RulePreset.builtIns[0], target: .clashMi)
+        XCTAssertTrue(output.content.contains("    fingerprint: \"\(pin)\""))
+        XCTAssertFalse(output.content.contains("server-cert-fingerprint:"))
+    }
+
     func testSurgePinsEverySupportedTLSProtocolInBothExportModes() {
         for target: ClientTarget in [.surge, .surgeMac] {
             for kind: ProxyKind in [.trojan, .hysteria2, .tuic, .anytls, .vmess, .http, .socks5] {

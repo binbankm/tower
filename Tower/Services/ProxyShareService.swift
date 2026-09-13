@@ -117,6 +117,9 @@ struct ProxyNodeShareLinkGenerator {
             ) ?? plugin
             link += "?plugin=\(encoded)"
         }
+        if let enabled = node.udpRelayEnabled {
+            link += (link.contains("?") ? "&" : "?") + "udp-relay=\(enabled)"
+        }
         return link + "#\(fragment(node.name))"
     }
 
@@ -175,7 +178,7 @@ struct ProxyNodeShareLinkGenerator {
         case .http: node.tls ? "https" : "http"
         default: nil
         }
-        components.host = node.server
+        components.host = formattedHost(node.server)
         components.port = node.port
         components.fragment = node.name
 
@@ -317,7 +320,7 @@ struct ProxyNodeShareLinkGenerator {
         var components = URLComponents()
         components.scheme = "wireguard"
         components.user = privateKey
-        components.host = node.server
+        components.host = formattedHost(node.server)
         components.port = node.port
         components.fragment = node.name
         var addresses: [String] = []

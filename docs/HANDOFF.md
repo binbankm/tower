@@ -1,5 +1,35 @@
 # 当前交接
 
+## 1.0.18（56）源码发布（2026-09-13）
+
+- 本版纳入下方 IPv6 分享链接 / SSR 解析、SS UDP 开关保留、Stash 证书指纹字段修复。导出页面布局尚未修改。更新日志见 `docs/RELEASE-NOTES-1.0.18-56.md`。
+- 版本号和构建号统一为 1.0.18（56）。本次发布源码和 GitHub 版本；TestFlight 由用户自行处理，不上传或分发；不提供新的 Mac 安装包，现有 Mac 下载入口保持有效。
+- 内置 ACL4SSR 已是上游最新版本，77 个已发布远程产物验证通过；将更新脚本的默认固定版本同步为现有资源版本，防止默认更新回退。发布脚本测试、20 项规则脚本测试通过。
+- 修复代码全量 Mac Catalyst XCTest 1119 项（34 跳过，0 失败），另 85 项 Swift Testing 通过。iOS 发布回归 XCTest 1119 项（4 跳过，0 失败），另 85 项 Swift Testing 通过。
+- 1.0.18（56）已覆盖安装到实体 iPhone；启动被锁屏阻止，待解锁后核对。Stash 修复此前已获用户真机确认；Clash / Clash Mi IPv6 连通性仍未完整验收，不宣称全部解决。
+
+## 2026-09-13 Stash 证书指纹字段修复（未发布）
+
+- 用户实机反馈：Stash 的 IPv4/IPv6 SS 可用但两个带 pin 的 Trojan 超时；Surge iOS 的 IPv6 可用、IPv4 握手超时；未确定具体 App/版本的 Clash 全红。这三种表现不能合并判定为同一个问题。
+- 已定位并修复 Stash 字段错误：Stash 目标（`.clash`）输出 `server-cert-fingerprint`，其他 Clash 系目标保留 `fingerprint`；解析器支持导入 Stash 的字段并转成其他方言。没有放宽证书验证。依据：https://stash.wiki/proxy-protocols/proxy-types 。
+- 复现测试修复前 26 处失败，修复后通过。全量 Mac Catalyst XCTest 1119 项、34 跳过、0 失败，另 85 Swift Testing 通过。
+- 实测当前同一份测试订阅：Surge Mac 三个 IPv4 节点完成 HTTP 延迟测试；Clash 与 Clash Mi 目标的完整配置经 Mihomo 实测三个 IPv4 节点全部通过（仅隔离监听和 TUN，保留生成的 DNS、代理与策略组）。Surge 原配置和环境均已恢复。
+- 用户已确认 Stash 修复后可用。手机截图也证明公网 IPv6 SS 及 Surge IPv6 Trojan 可用；开发机自身仍无 IPv6 路由。用户继续反馈 Clash / Clash Mi 的 IPv6 失败，尚未记为解决。
+- 安装脚本重新建立设备连接后，最终修复版 1.0.17 (55) 已覆盖安装并启动到 iPhone；现场证据见本机 `.artifacts/client-pin-followup/`。未推送、未上传或发布。
+
+- Clash Mi 最新源码 `a034641c4fb6157bd1f9a92562b5df0f508eba2a`：核心设置 IPv6 默认 false，`defaultConfigNoOverwrite()` 仍把该字段放入补丁，`getPatchContent()` 同步 DNS/TUN 的 IPv6 设置。Tower 实际导出的 Clash / Clash Mi 配置顶层均为 `ipv6: true`；需用户检查“核心设置 → IPv6 → 启用”并重连，不能把源码默认值当成已确认的用户设置。另一款 Clash 实际 App/版本尚未确认。
+
+
+## 2026-09-13 IPv6 / SS UDP 修复（未发布）
+
+- IPv6 标准节点/WireGuard URI 输出重新添加主机方括号，避免退回 `clash://local/...`；SSR 从右解析固定字段，保留 IPv6 主机。
+- SS 保存 Clash `udp`、Surge/URI `udp-relay` 开关；同步结构化输出、分享、持久化和节点身份。普通 UDP relay 与 UOT 是不同功能，本次没有扩展 UOT。
+- 全量 Mac Catalyst TowerTests：XCTest 1116 项、34 跳过、0 失败，另 85 Swift Testing 通过；随后补充的 6 项 IPv6/UDP 测试（含 17 个目标受支持模式矩阵）通过。
+- 真实导出节点经 sing-box / Mihomo 验证 IPv4 TCP 和 UDP 开关；服务器上 sing-box 连接同机公网 IPv6 地址通过 TCP/UDP。开发机到公网 IPv6 无路由，外部 IPv6 网络端到端尚未验收。Surge 仅完成配置语法检查。
+- 最终代码已用 M4 规定的 Xcode Beta 在连接的 iPhone 覆盖安装并启动；未逐一完成目标客户端真机导入及流量验收，版本号未递增、未上传或发布。
+- 本机详细报告：`.artifacts/ipv6-ss-udp-report/测试报告.md`。测试地址和凭据不入库；使用修复版时先刷新订阅再导出，以恢复旧存档丢失的字段。
+
+
 ## 1.0.17（55）已发布 GitHub，已上传 App Store Connect（2026-09-12）
 
 - 汇总首页订阅与自有节点双向删除、订阅测速菜单、长按整卡预览、展开长列表预览边界及勾选按钮布局修复；包含已提交的 Clash 系仅节点导出、证书指纹兼容修复和 Mac 引导调整。
