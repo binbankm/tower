@@ -1,12 +1,14 @@
 # 当前交接
 
-## 1.0.18（56）源码发布（2026-09-13）
+## 1.0.18（56）源码与 Mac 发布（2026-09-13）
 
 - 本版纳入下方 IPv6 分享链接 / SSR 解析、SS UDP 开关保留、Stash 证书指纹字段修复。导出页面布局尚未修改。更新日志见 `docs/RELEASE-NOTES-1.0.18-56.md`。
-- 版本号和构建号统一为 1.0.18（56）。本次发布源码和 GitHub 版本；TestFlight 由用户自行处理，不上传或分发；不提供新的 Mac 安装包，现有 Mac 下载入口保持有效。
+- 版本号和构建号统一为 1.0.18（56）。本次发布源码、GitHub 版本及 Mac 通用 DMG；TestFlight 由用户自行处理，不上传或分发。
 - 内置 ACL4SSR 已是上游最新版本，77 个已发布远程产物验证通过；将更新脚本的默认固定版本同步为现有资源版本，防止默认更新回退。发布脚本测试、20 项规则脚本测试通过。
 - 修复代码全量 Mac Catalyst XCTest 1119 项（34 跳过，0 失败），另 85 项 Swift Testing 通过。iOS 发布回归 XCTest 1119 项（4 跳过，0 失败），另 85 项 Swift Testing 通过。
 - 1.0.18（56）已覆盖安装到实体 iPhone；启动被锁屏阻止，待解锁后核对。Stash 修复此前已获用户真机确认；Clash / Clash Mi IPv6 连通性仍未完整验收，不宣称全部解决。
+
+- Mac mini M2 正式版 Xcode 26.6 从 `05fc874` 完成 Release 通用归档及 Developer ID 公证；已取回公证版，通过严格签名、stapler、Gatekeeper、DMG 校验与本机实际启动。DMG SHA-256：`d1cd2c342b0abbf6f4a15ff3a295a93c7c48272bce7a7ae33bf298cd89485667`。README 与 Homebrew 入口同步到 1.0.18（56）；同时将 cask 的系统约束从“仅 Sonoma”纠正为“Sonoma 及以上”，避免新系统被拒绝。GitHub 下载回验哈希一致；发布机 Homebrew style、audit 与安装验证通过，安装后的版本为 1.0.18（56）。
 
 ## 2026-09-13 Stash 证书指纹字段修复（未发布）
 

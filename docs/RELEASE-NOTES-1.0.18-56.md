@@ -11,4 +11,4 @@
 
 Stash 修复已获用户真机确认。Clash / Clash Mi 的 IPv6 连接反馈仍在排查；Clash Mi 的核心 IPv6 设置可能覆盖订阅配置，本版不宣称已解决所有客户端的 IPv6 连通性问题。SS UDP 指普通 UDP 转发，本次不新增 UDP-over-TCP 支持。
 
-此发布提供源码。TestFlight 由开发者后续自行处理，未附新的 Mac 安装包。
+提供经 Developer ID 签名及 Apple 公证的 Intel / Apple 芯片通用 Mac 安装包。TestFlight 由开发者后续自行处理。
