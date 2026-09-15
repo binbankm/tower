@@ -288,7 +288,7 @@ private struct WelcomePageContent: View {
         }
         return [.surge, .clash, .shadowrocket, .loon,
                 .quanx, .hiddify, .egern, .v2box,
-                .clashApple, .singBox, .clashMi, .karing]
+                .clashApple, .anywhere, .singBox, .clashMi, .karing]
     }
 
     private var overview: some View {

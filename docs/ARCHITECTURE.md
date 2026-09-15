@@ -26,7 +26,9 @@ SubscriptionService / SubscriptionParser 负责请求和解析；SourceUpdateCoo
 
 ### iCloud
 
-CloudSnapshotSyncing 为可注入依赖，CloudSyncStore 实现下载/上传/删除，CloudSyncResolution 保留整份配置按更新时间决胜的产品策略。
+CloudSnapshotSyncing 为可注入依赖。CloudSnapshotMerge 按上次共同快照做三路合并；首次同步缺少的项目不代表删除，同字段并发修改或删除与编辑冲突时暂停，要求用户选择备份。
+
+CloudSyncStore 使用只追加的 `state-versions-v2` 版本图保存快照和父版本，防止不同设备并发写入互相覆盖。原 `state.json` 仅作迁移输入和恢复副本；所有设备需升级后才能继续互相同步。云端文件未下载完整时请求下载并等待后续重试，不当成空配置。应用远端结果前保留本地备份，设置提供恢复入口；明确重置清除本地恢复数据，删除云端副本同时清除云端历史。
 
 - 下载返回后读取当前本地快照，不能使用 await 前的版本。
 - 核对同步开关代次和取消状态；关闭后旧下载不写入。
@@ -60,7 +62,7 @@ ConfigurationGenerator 按 ClientTarget 与能力矩阵输出 INI / YAML / JSON 
 - Hiddify、sing-box MT 各有协议矩阵和导入身份；Egern 使用独立 YAML 结构。
 - SingBoxDNSPolicy 仅处理官方 sing-box MT 的「规则判定 / 全局代理 / 直接连接」与 DNS 联动。全局 selector 默认自动选择全部节点，也可手选，DNS 通过独立 detour 跟随。递归检查代理组是否可能到达 DIRECT，必要时创建无直连候选的自动组；DNS 域名规则从同一份本机缓存投影，保持优先级，不依赖远端 SRS 是否启用。普通目标先经 DNS 规则解析，节点启动解析继续独立；严格保护不回退直连。Hiddify 不套用该适配层。
 - Surge / Surge Mac 的仅节点模式输出 `policy-path` 纯策略列表，主操作复制聚合订阅链接；WireGuard 需要独立配置节，继续使用完整配置。节点模式能力与 URL Scheme 导入能力分开建模。
-- V2Box 仅节点订阅；QuanX 分享完整文件，不假装远程资源 API 能导入策略组。
+- Anywhere / V2Box 仅节点订阅；AnywhereExport 负责独立 URI 参数映射和无法保真节点过滤，规则由目标客户端管理。QuanX 分享完整文件，不假装远程资源 API 能导入策略组。
 - 名称必须转义，不能让不可信 remark 注入规则。
 - 代理集合仅为明确支持的完整配置传入 RemoteSubscriptionLink，自有节点内联。
 - supported/skipped 统计本地输出，remoteSourceCount 单列远端来源；hasExportableProxies 决定能否导出。远端节点不受本地筛选控制。

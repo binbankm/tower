@@ -198,7 +198,7 @@ final class ExportPresentationTests: XCTestCase {
         XCTAssertEqual(target.supportedContentModes, [.fullConfiguration])
         XCTAssertTrue(target.supportsDirectImport(mode: .fullConfiguration))
         XCTAssertFalse(target.supportsDirectImport(mode: .nodesOnly))
-        XCTAssertEqual(ClientTargetOrder.defaultOrder.firstIndex(of: target), 7)
+        XCTAssertEqual(ClientTargetOrder.defaultOrder.firstIndex(of: target), 8)
     }
 
     func testClashMiAndKaringKeepTheirPositionsWhenDesktopClientsAreAdded() throws {

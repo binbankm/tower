@@ -114,6 +114,10 @@ struct ClientImportURLBuilder {
             // Official sing-box clients document remote-profile import using
             // the URL as a query item and the display name as a fragment.
             value = "sing-box://import-remote-profile?url=\(encodedURL)#\(encodedName)"
+        case .anywhere:
+            guard contentMode == .nodesOnly else { throw DirectImportError.unsupportedTarget(target) }
+            // Anywhere extracts the whole suffix, then percent-decodes it once.
+            value = "anywhere://add-proxy?link=\(encodedURL)"
         case .v2box:
             guard contentMode == .nodesOnly else {
                 throw DirectImportError.unsupportedTarget(target)

@@ -127,7 +127,7 @@ enum LANSubscriptionFormat: String, CaseIterable, Identifiable, Equatable {
         case .hiddify: self = .hiddify
         case .singBox: self = .singBox
         case .egern: self = .egern
-        case .v2box: return nil
+        case .v2box, .anywhere: return nil
         }
     }
 }

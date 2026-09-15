@@ -8,7 +8,7 @@
 
 在 iPhone 和 Mac 上管理订阅与节点，选择规则，生成常用客户端配置。
 
-<a href="https://github.com/pengchujin/tower/releases/download/v1.0.18/Tower-1.0.18-56-macOS-universal.dmg"><img src="docs/images/download-mac.svg" width="210" height="48" alt="免费下载 Mac 版"></a>
+<a href="https://github.com/pengchujin/tower/releases/download/v1.0.19/Tower-1.0.19-57-macOS-universal.dmg"><img src="docs/images/download-mac.svg" width="210" height="48" alt="免费下载 Mac 版"></a>
 &nbsp;
 <a href="https://apps.apple.com/app/id6797458927"><img src="docs/images/download-ios.svg" width="210" height="48" alt="App Store 支持"></a>
 
@@ -57,7 +57,9 @@ brew install --cask pengchujin/tap/tower
 
 **Mac**：Surge Mac、Clash Verge、ClashMac、FlClash、Mihomo Party 等。
 
-**移动端及其他客户端**：Shadowrocket、Surge、Stash、Loon、Quantumult X、Egern、sing-box、Hiddify、V2Box、Clash Mi、Karing 等。
+**移动端及其他客户端**：Shadowrocket、Surge、Stash、Loon、Quantumult X、Egern、sing-box、Hiddify、V2Box、Clash、Anywhere、Clash Mi、Karing 等。
+
+Anywhere 支持仅节点订阅与本机一键导入，规则在 Anywhere 内设置。
 
 按客户端能力提供一键导入、复制订阅或文件导出。[查看兼容说明](docs/CLIENT-COMPATIBILITY.md)
 

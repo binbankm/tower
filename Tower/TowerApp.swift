@@ -28,11 +28,11 @@ struct TowerApp: App {
                 // Settings and tapped a button, which is not sync.
                 .task(id: hasSeenWelcome) {
                     guard hasSeenWelcome else { return }
-                    await model.synchronizeWithCloud()
-                    await model.refreshOnOpenIfEnabled()
+                    await model.performForegroundOpenWork()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else {
+                        if phase == .background { model.didEnterBackground() }
                         // Leaving the foreground is the last reliable moment to
                         // close the coalescing window: iOS may stop the process
                         // from here without another chance to write.
@@ -44,8 +44,7 @@ struct TowerApp: App {
                     model.lanSharingDidBecomeActive()
                     guard hasSeenWelcome else { return }
                     Task {
-                        await model.synchronizeWithCloud()
-                        await model.refreshOnOpenIfEnabled()
+                        await model.performForegroundOpenWork()
                     }
                 }
         }

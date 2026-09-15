@@ -2,6 +2,30 @@ import XCTest
 
 @MainActor
 final class ClientPickerInteractionTests: XCTestCase {
+    func testAnywhereShowsNodeSubscriptionImport() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--tab=export", "-hasSeenWelcome", "YES", "-AppleLanguages", "(zh-Hans)"]
+        app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString
+        app.launch()
+        let first = app.buttons["client-shadowrocket"]
+        XCTAssertTrue(first.waitForExistence(timeout: 15))
+        let y = first.frame.midY
+        let anywhere = app.buttons["client-anywhere"]
+        for _ in 0..<8 {
+            if anywhere.exists && anywhere.frame.minX >= 0 && anywhere.frame.maxX <= app.frame.width { break }
+            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 330, dy: y))
+                .press(forDuration: 0.01, thenDragTo: app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 100, dy: y)))
+        }
+        XCTAssertTrue(anywhere.exists)
+        anywhere.tap()
+        assertExportTarget("Anywhere", in: app)
+        XCTAssertFalse(app.segmentedControls["export-content-mode"].exists)
+        XCTAssertTrue(app.buttons["export-config"].label.contains("仅导出节点到 Anywhere"))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testSurgeNodeModeOffersCopyAndFullModeRestoresImport() {
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--tab=export", "-hasSeenWelcome", "YES", "-AppleLanguages", "(zh-Hans)"]

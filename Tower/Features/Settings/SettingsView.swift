@@ -151,6 +151,7 @@ private struct CloudSyncControls: View {
     @State private var isConfirming = false
     @State private var isConfirmingDisable = false
     @State private var isConfirmingRemoval = false
+    @State private var showsRecovery = false
 
     private var binding: Binding<Bool> {
         Binding(
@@ -216,12 +217,19 @@ private struct CloudSyncControls: View {
             .padding(17)
             .towerCard()
 
-            Text("开启后，订阅地址和节点密码会存进您的 iCloud 账户。两台设备都改过时，以最后保存的那份为准。")
+            if let issue = model.cloudSyncIssue {
+                Text(issue).font(.caption).foregroundStyle(.orange)
+            }
+            Button("恢复同步备份") { showsRecovery = true }
+                .disabled(model.isCloudSyncing || model.isRemovingCloudSnapshot)
+
+            Text("同步会合并各设备的改动。发生冲突时暂停同步并保留备份；所有设备请更新到支持此机制的版本。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 4)
         }
+        .navigationDestination(isPresented: $showsRecovery) { CloudRecoveryView() }
         .alert("删除 iCloud 上的副本？", isPresented: $isConfirmingRemoval) {
             Button("删除", role: .destructive) { Task { await model.removeCloudSnapshot() } }
             Button("取消", role: .cancel) {}
@@ -1070,6 +1078,51 @@ private struct GuideRow: View {
             Text(text)
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+
+/// A navigation destination avoids nesting another sheet under Settings:
+/// rebuilding a nested presentation can discard its confirmation action.
+private struct CloudRecoveryView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedCopy: CloudRecoveryCopy?
+    @State private var confirmsRestore = false
+    @State private var didLoad = false
+
+    var body: some View {
+        List(model.cloudRecoveryCopies) { copy in
+            Button {
+                selectedCopy = copy
+                confirmsRestore = true
+            } label: {
+                VStack(alignment: .leading) {
+                    if let date = copy.snapshot.updatedAt, date > .distantPast {
+                        Text(date, style: .date)
+                        Text(date, style: .time)
+                    }
+                    Text("\(copy.snapshot.nodes.count) 个节点 · \(copy.snapshot.importedSchemes?.count ?? 0) 个规则方案")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("恢复同步备份")
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
+        .overlay { if model.cloudRecoveryCopies.isEmpty { Text("暂无同步备份") } }
+        .alert("恢复这份配置？", isPresented: $confirmsRestore, presenting: selectedCopy) { copy in
+            Button("恢复", role: .destructive) {
+                Task { await model.restoreCloudCopy(copy); await model.loadCloudRecoveryCopies() }
+            }
+            Button("取消", role: .cancel) { }
+        } message: { _ in
+            Text("恢复前会保留当前配置。开启同步时，所选版本也会成为云端版本，其他设备下次同步时会检查并合并。")
+        }
+        .task {
+            guard !didLoad else { return }
+            didLoad = true
+            await model.loadCloudRecoveryCopies()
         }
     }
 }

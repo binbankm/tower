@@ -51,6 +51,42 @@ final class NodeNameFilterTests: XCTestCase {
         XCTAssertThrowsError(try NodeNameFilterMatcher.preview("(a+)+$", candidates: [[String(repeating: "a", count: 10_000) + "!"]], caseInsensitive: true, timeLimit: 0.05))
     }
 
+    func testPreviewHonorsPerPatternSourceEligibility() async {
+        let input = NodeNameFilterPreviewInput(patterns: [".*", "US"],
+            candidates: [["HK allowed"], ["HK excluded"], ["US inline"]], insensitive: false,
+            eligibleCandidateIndices: [[0], [0, 1, 2]])
+        let result = await input.evaluate()
+        XCTAssertEqual(result.matches, [0, 2])
+    }
+
+    func testSourceScopedPreviewAgreesWithExport() async throws {
+        let source = SubscriptionSource(name: "A", urlString: "https://example.invalid/a")
+        let other = SubscriptionSource(name: "B", urlString: "https://example.invalid/b")
+        let nodes = [
+            ProxyNode(sourceID: source.id, kind: .trojan, name: "HK keep", server: "example.invalid", port: 443, password: "test", rawURI: ""),
+            ProxyNode(sourceID: source.id, kind: .trojan, name: "HK drop", server: "example.invalid", port: 443, password: "test", rawURI: ""),
+            ProxyNode(sourceID: other.id, kind: .trojan, name: "HK other", server: "example.invalid", port: 443, password: "test", rawURI: "")
+        ]
+        let scheme = try RuleSchemeParser().parse(text: """
+        proxy-providers:
+          A: {type: http, url: 'https://example.invalid/a'}
+        proxy-groups:
+          - {name: Region, type: select, use: [A], filter: '.*', exclude-filter: drop}
+        rules: ['MATCH,Region']
+        """, id: "scoped", name: "Scoped", summary: "")
+        let group = try XCTUnwrap(scheme.groups.first)
+        let hashes = [source.id: RuleSchemeParser.sourceURLHash(source.urlString), other.id: RuleSchemeParser.sourceURLHash(other.urlString)]
+        let input = NodeNameFilterPreviewInput(patterns: [".*"], candidates: nodes.map { [$0.name] }, insensitive: false,
+            sourceScope: .init(group: group, nodes: nodes, sourceURLHashes: hashes, boundPatterns: [".*"]))
+        let preview = await input.evaluate()
+        XCTAssertEqual(preview.matches, [0])
+        let output = ConfigurationGenerator().generate(nodes: nodes, scheme: scheme, target: .clashMi, sourceURLHashes: hashes)
+        let members = try exportedMembers(output.content, target: .clashMi, groupName: "Region")
+        XCTAssertTrue(members.contains("HK keep"))
+        XCTAssertFalse(members.contains("HK drop"))
+        XCTAssertFalse(members.contains("HK other"))
+    }
+
     func testCombinedPreviewDeduplicatesAndRejectsInvalidExpressions() async {
         let names = [["HKG 01"], ["JP 01"], ["US 01"]]
         let input = NodeNameFilterPreviewInput(patterns: ["HK", "HKG|JP"], candidates: names, insensitive: true)

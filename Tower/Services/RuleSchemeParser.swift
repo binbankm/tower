@@ -39,20 +39,42 @@ struct RuleSchemeParser {
     /// User graph overrides are stored separately and remain untouched.
     func restoringLegacySmartGroups(in scheme: RuleScheme) -> RuleScheme {
         guard !scheme.isBundled,
-              scheme.groups.contains(where: { $0.sourceType == nil }),
+              scheme.groups.contains(where: { group in
+                  group.sourceType == nil || (group.sourceFormat == "clash"
+                    && group.parameters?["use"] != nil
+                    && group.parameters?["tower-source-bindings"] == nil
+                    && group.parameters?["tower-source-tags"] == nil)
+              }),
               let source = scheme.rawConfigurationText,
               let reparsed = try? parse(text: source, id: scheme.id, name: scheme.name,
                                        summary: scheme.summary) else { return scheme }
         let existing = Dictionary(scheme.groups.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
         var restored = scheme
-        restored.groups = reparsed.groups.map { parsed in
-            if let old = existing[parsed.name], old.sourceType != nil { return old }
-            return parsed
+        if scheme.groups.contains(where: { $0.sourceType == nil }) {
+            restored.groups = reparsed.groups.map { parsed in
+                if let old = existing[parsed.name], old.sourceType != nil { return old }
+                return parsed
+            }
+            // Preserve groups created after the retained source was captured.
+            let parsedNames = Set(reparsed.groups.map(\.name))
+            restored.groups += scheme.groups.filter { !parsedNames.contains($0.name) }
+            restored.rulesets = reparsed.rulesets
         }
-        // Preserve groups created after the retained source was captured.
-        let parsedNames = Set(reparsed.groups.map(\.name))
-        restored.groups += scheme.groups.filter { !parsedNames.contains($0.name) }
-        restored.rulesets = reparsed.rulesets
+        // Persisted rule templates deliberately omit proxy-providers. Reparsing
+        // that sanitized text must not turn a placeholder into a source binding.
+        // Also repair groups already migrated by a previous build. Real URL-hash
+        // bindings remain authoritative and are never broadened to all nodes.
+        restored.groups = restored.groups.map { group in
+            guard group.sourceFormat == "clash", var parameters = group.parameters,
+                  parameters["use"] != nil,
+                  parameters["tower-source-bindings"] == nil,
+                  parameters["tower-source-tags"] == nil else { return group }
+            parameters.removeValue(forKey: "use")
+            return RuleSchemeGroup(name: group.name, kind: group.kind, members: group.members,
+                testURLString: group.testURLString, interval: group.interval, tolerance: group.tolerance,
+                algorithm: group.algorithm, sourceType: group.sourceType, sourceFormat: group.sourceFormat,
+                parameters: parameters, isCustomNodeFilter: group.isCustomNodeFilter)
+        }
         return restored
     }
 

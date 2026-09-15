@@ -338,7 +338,7 @@ final class PolicyGroupGeneratorTests: XCTestCase {
 
 extension PolicyGroupGeneratorTests {
     func testUnsupportedPoliciesDowngradeAcrossConfigurationTargets() {
-        for target in ClientTarget.allCases where target != .v2box {
+        for target in ClientTarget.allCases where target.supportsFullConfigurationExport {
             for kind in [RuleSchemeGroup.Kind.fallback, .loadBalance, .relay, .unsupported] {
                 let output = result(kind, target: target, algorithm: "unknown-algorithm",
                                     parameters: ["unknown-option": "true"])

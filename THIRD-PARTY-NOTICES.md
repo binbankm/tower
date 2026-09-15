@@ -68,6 +68,7 @@ App 和本仓库不再包含 Self-Configuration 的配置、规则列表或图�
 | `ClientLoon` | Loon | Lin Zhang |
 | `ClientQuantumultX` | Quantumult X | Cross Utility |
 | `ClientHiddify` | Hiddify Proxy & VPN | Holistic Resilience |
+| `ClientAnywhere` | Anywhere | NodePassProject / respective rights holders |
 | `ClientEgern` | Egern | BYTE CROSSING LTD |
 | `ClientClashMi` | Clash Mi | Supernova Nebula LLC |
 | `ClientKaring` | Karing | Supernova Nebula LLC |
@@ -85,3 +86,5 @@ App 和本仓库不再包含 Self-Configuration 的配置、规则列表或图�
 FlClash 图标取自 [官方项目 assets/images/icon.png](https://github.com/chen08209/FlClash/blob/main/assets/images/icon.png)，仅用于标识对应客户端。
 
 Mihomo Party 图标取自本机已安装的官方应用，仅将 ICNS 转成 PNG，用于标识导出客户端。
+
+Anywhere 图标来自上游 README 的官方资源 https://storage.argsment.com/Anywhere-AppIcon-iOS.png ，2026-09-14 获取，对应源码参考版本 `9ae49a73a0cf15317712545f9ead679da43cd308`。仅用于识别目标客户端，权利保留；来源说明见该 imageset 的 NOTICE.txt，未打包上游 GPL 源码。

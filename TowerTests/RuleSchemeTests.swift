@@ -61,7 +61,7 @@ final class RuleSchemeTests: XCTestCase {
         FINAL,Smart
         """
         let scheme = try parser.parse(text: source, id: "clients", name: "Smart", summary: "")
-        for target in ClientTarget.allCases where target != .v2box {
+        for target in ClientTarget.allCases where target.supportsFullConfigurationExport {
             let result = ConfigurationGenerator().generate(nodes: nodes, scheme: scheme, target: target)
             let supportsSmart = target == .surge || target == .surgeMac || target == .egern
             XCTAssertFalse(result.content.isEmpty, target.rawValue)

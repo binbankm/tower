@@ -124,7 +124,7 @@ struct ConfigurationGenerator {
                 preset: preset,
                 regionGroups: regionGroups
             )
-        case .v2box:
+        case .v2box, .anywhere:
             content = ""
         }
 
@@ -372,7 +372,7 @@ struct ConfigurationGenerator {
                 remoteSubscriptions: remoteEntries,
                 rulePlan: rulePlan
             )
-        case .v2box:
+        case .v2box, .anywhere:
             content = ""
         }
 
@@ -684,6 +684,9 @@ struct ConfigurationGenerator {
             let generator = ProxyNodeShareLinkGenerator()
             content = supported.map { generator.canonicalLink(for: $0) }.joined(separator: "\n")
                 + (supported.isEmpty ? "" : "\n")
+        case .anywhere:
+            content = supported.map { AnywhereExport.link(for: $0) }.joined(separator: "\n")
+                + (supported.isEmpty ? "" : "\n")
         case .v2box:
             let generator = ProxyNodeShareLinkGenerator()
             let links = supported.map { generator.canonicalLink(for: $0) }
@@ -717,6 +720,7 @@ struct ConfigurationGenerator {
     ) -> Bool {
         let supportsKind = supportedKindsOverride?.contains(node.kind) ?? target.supports(node.kind)
         guard supportsKind, !excludedKinds.contains(node.kind) else { return false }
+        if target == .anywhere, !AnywhereExport.supports(node) { return false }
         // sing-box supports SPKI/public-key hashes, not leaf-certificate hashes.
         // Never silently discard a pin or relabel it as a public-key digest.
         if [.singBox, .hiddify].contains(target), certificatePin(node) != nil { return false }
@@ -829,6 +833,8 @@ struct ConfigurationGenerator {
         case .egern:
             if node.kind == .trojan { return ["ws", "http"].contains(transport) }
             return ["ws", "http", "h2", "grpc"].contains(transport)
+        case .anywhere:
+            return node.kind == .vless && ["ws", "grpc", "httpupgrade", "xhttp"].contains(transport)
         case .v2box:
             return ["ws", "http", "h2", "grpc", "httpupgrade", "xhttp"].contains(transport)
                 && (transport != "xhttp" || node.kind == .vless)
@@ -942,6 +948,16 @@ struct ConfigurationGenerator {
         return Set(sourceURLHashes.compactMap { hashes.contains($0.value) ? $0.key : nil })
     }
 
+    /// Shared by export and the asynchronous node-matching preview.
+    func sourceEligibleNodes(for group: RuleSchemeGroup, nodes: [ProxyNode], sourceURLHashes: [UUID: String]) -> [ProxyNode] {
+        let sourceIDs = boundSourceIDs(group, sourceURLHashes: sourceURLHashes)
+        return nodes.filter { node in
+            (sourceIDs == nil || node.sourceID.map { sourceIDs!.contains($0) } == true)
+                && sourceNodeAllowed(node, parameters: group.parameters ?? [:],
+                    caseInsensitive: group.sourceFormat == nil || group.sourceFormat == "subconverter")
+        }
+    }
+
     private func sourceNodeAllowed(_ node: ProxyNode, parameters: [String: String], caseInsensitive: Bool) -> Bool {
         if let exclude = parameters["tower-source-exclude-filter"] ?? parameters["exclude-filter"],
            let expression = try? NSRegularExpression(pattern: exclude, options: caseInsensitive ? [.caseInsensitive] : []),
@@ -977,11 +993,7 @@ struct ConfigurationGenerator {
             var inlineNodeNames: Set<String> = []
             let sourceIDs = boundSourceIDs(group, sourceURLHashes: sourceURLHashes)
             let sourcePatterns = Set(stringArray(group.parameters?["tower-source-patterns"]) ?? [])
-            let dynamicSourceNodes = nodes.filter { node in
-                (sourceIDs == nil || node.sourceID.map { sourceIDs!.contains($0) } == true)
-                    && sourceNodeAllowed(node, parameters: group.parameters ?? [:],
-                        caseInsensitive: group.sourceFormat == nil || group.sourceFormat == "subconverter")
-            }
+            let dynamicSourceNodes = sourceEligibleNodes(for: group, nodes: nodes, sourceURLHashes: sourceURLHashes)
 
             for member in group.members {
                 switch member {

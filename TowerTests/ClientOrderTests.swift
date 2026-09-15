@@ -66,6 +66,7 @@ final class ClientOrderTests: XCTestCase {
             .client(.loon),
             .client(.quanx),
             .client(.clashApple),
+            .client(.anywhere),
             .client(.v2box),
             .client(.singBox),
             .client(.hiddify),
@@ -103,7 +104,7 @@ final class ClientOrderTests: XCTestCase {
         let order = ClientTargetOrder.normalized(rawValues: existingOrder)
 
         XCTAssertEqual(order, ClientTargetOrder.defaultOrder)
-        XCTAssertEqual(order[7], .singBox)
+        XCTAssertEqual(order[8], .singBox)
     }
 
     func testFreshAndPreClashOrdersUseCurrentDefault() {
@@ -113,7 +114,7 @@ final class ClientOrderTests: XCTestCase {
 
         XCTAssertEqual(ClientTargetOrder.normalized(rawValues: nil), ClientTargetOrder.defaultOrder)
         XCTAssertEqual(ClientTargetOrder.normalized(rawValues: preClashOrder), ClientTargetOrder.defaultOrder)
-        XCTAssertEqual(ClientTargetOrder.defaultOrder[7], .singBox)
+        XCTAssertEqual(ClientTargetOrder.defaultOrder[8], .singBox)
     }
 
     func testMissingSingBoxIsInsertedAtCurrentDefaultSlotWithoutReorderingExistingClients() {
@@ -123,9 +124,9 @@ final class ClientOrderTests: XCTestCase {
 
         let order = ClientTargetOrder.normalized(rawValues: customOrder)
 
-        XCTAssertEqual(order[7], .singBox)
+        XCTAssertEqual(order[8], .singBox)
         XCTAssertEqual(
-            order.filter { $0 != .singBox }.map(\.rawValue),
+            order.filter { $0 != .singBox && $0 != .anywhere }.map(\.rawValue),
             customOrder + ["clash-mi", "karing", "clash-verge", "clashmac", "flclash", "mihomo-party", "surge-mac"]
         )
     }
@@ -146,7 +147,7 @@ final class ClientOrderTests: XCTestCase {
 
         XCTAssertEqual(
             ClientTargetOrder.normalized(rawValues: customOrder).map(\.rawValue),
-            customOrder + ["clash-mi", "karing", "clash-verge", "clashmac", "flclash", "mihomo-party", "surge-mac"]
+            Array(customOrder.prefix(3)) + ["anywhere"] + Array(customOrder.dropFirst(3)) + ["clash-mi", "karing", "clash-verge", "clashmac", "flclash", "mihomo-party", "surge-mac"]
         )
     }
 
@@ -162,7 +163,7 @@ final class ClientOrderTests: XCTestCase {
 
         XCTAssertEqual(migrated[4], .singBox)
         XCTAssertEqual(
-            migrated.filter { $0 != .singBox }.map(\.rawValue),
+            migrated.filter { $0 != .singBox && $0 != .anywhere }.map(\.rawValue),
             customOrder.filter { $0 != "sing-box" } + ["clash-mi", "karing", "clash-verge", "clashmac", "flclash", "mihomo-party", "surge-mac"]
         )
     }
@@ -249,7 +250,7 @@ final class ClientOrderTests: XCTestCase {
         XCTAssertEqual(model.exportDestinationOrder[2], .lanSharing)
         XCTAssertEqual(
             model.clientOrder.map(\.rawValue),
-            customOrder + ["clash-mi", "karing", "clash-verge", "clashmac", "flclash", "mihomo-party", "surge-mac"]
+            Array(customOrder.prefix(9)) + ["anywhere"] + Array(customOrder.dropFirst(9)) + ["clash-mi", "karing", "clash-verge", "clashmac", "flclash", "mihomo-party", "surge-mac"]
         )
     }
 
@@ -281,6 +282,7 @@ final class ClientOrderTests: XCTestCase {
             .client(.loon),
             .client(.quanx),
             .client(.clashApple),
+            .client(.anywhere),
             .client(.v2box),
             .client(.singBox),
             .client(.hiddify),

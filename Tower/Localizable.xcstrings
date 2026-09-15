@@ -93663,6 +93663,852 @@
           }
         }
       }
+    },
+    "%lld 个节点 · %lld 个规则方案": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld العقد · %2$lld مخططات القاعدة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld Knoten · %2$lld Regelschemata"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld nodes · %lld rule schemes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld nodos · %2$lld esquemas de reglas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld nœuds · %2$lld schémas de règles"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld node · %2$lld skema aturan"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld ノード · %2$lld ルールスキーム"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 노드 · %2$lld 규칙 체계"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld nós · %2$lld esquemas de regras"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld узлы · %2$lld схемы правил"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld โหนด · %2$lld โครงร่างกฎ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld düğümler · %2$lld kural şemaları"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nút %1$lld · sơ đồ quy tắc %2$lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 个节点 · %2$lld 个规则方案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 個節點 · %2$lld 個規則方案"
+          }
+        }
+      }
+    },
+    "iCloud 配置尚未下载完成，请稍后重试": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم تنزيل تكوين iCloud بعد، يرجى المحاولة مرة أخرى لاحقًا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die iCloud-Konfiguration wurde noch nicht heruntergeladen. Bitte versuchen Sie es später erneut"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The iCloud configuration is still downloading. Try again shortly."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configuración de iCloud aún no se ha descargado. Vuelve a intentarlo más tarde."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configuration iCloud n'a pas encore été téléchargée, veuillez réessayer plus tard"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konfigurasi iCloud belum diunduh, coba lagi nanti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 設定がまだダウンロードされていません。後でもう一度試してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 구성이 아직 다운로드되지 않았습니다. 나중에 다시 시도하십시오."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A configuração do iCloud ainda não foi baixada, tente novamente mais tarde"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Конфигурация iCloud еще не загружена, повторите попытку позже."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ยังไม่ได้ดาวน์โหลดการกำหนดค่า iCloud โปรดลองอีกครั้งในภายหลัง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud yapılandırması henüz indirilmedi, lütfen daha sonra tekrar deneyin"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cấu hình iCloud chưa được tải xuống, vui lòng thử lại sau"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 配置尚未下载完成，请稍后重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 設定尚未下載完成，請稍後重試"
+          }
+        }
+      }
+    },
+    "同步会合并各设备的改动。发生冲突时暂停同步并保留备份；所有设备请更新到支持此机制的版本。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعمل المزامنة على دمج التغييرات عبر الأجهزة. إيقاف المزامنة مؤقتًا والاحتفاظ بالنسخ الاحتياطية عند حدوث تعارضات؛ يرجى التحديث إلى إصدار يدعم هذه الآلية على جميع الأجهزة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durch die Synchronisierung werden Änderungen geräteübergreifend zusammengeführt. Unterbrechen Sie die Synchronisierung und behalten Sie Backups bei, wenn Konflikte auftreten. Bitte aktualisieren Sie auf eine Version, die diesen Mechanismus auf allen Geräten unterstützt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync merges changes across devices. If changes conflict, sync pauses and keeps backups. Update Tower on all your devices to use this sync method."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronización fusiona cambios entre dispositivos. Pausar la sincronización y conservar las copias de seguridad cuando se produzcan conflictos; actualice a una versión que admita este mecanismo en todos los dispositivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La synchronisation fusionne les modifications sur tous les appareils. Suspendez la synchronisation et conservez les sauvegardes en cas de conflits ; veuillez mettre à jour vers une version prenant en charge ce mécanisme sur tous les appareils."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinkronisasi menggabungkan perubahan antar perangkat. Jeda sinkronisasi dan simpan cadangan ketika terjadi konflik; harap perbarui ke versi yang mendukung mekanisme ini di semua perangkat."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期により、デバイス間の変更がマージされます。競合が発生した場合は同期を一時停止し、バックアップを保持します。すべてのデバイスでこのメカニズムをサポートするバージョンに更新してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화는 여러 장치의 변경 사항을 병합합니다. 충돌이 발생할 경우 동기화를 일시 중지하고 백업을 유지합니다. 모든 장치에서 이 메커니즘을 지원하는 버전으로 업데이트하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sincronização mescla alterações entre dispositivos. Pause a sincronização e retenha backups quando ocorrerem conflitos; atualize para uma versão que suporte esse mecanismo em todos os dispositivos."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизация объединяет изменения на разных устройствах. Приостановить синхронизацию и сохранить резервные копии при возникновении конфликтов; пожалуйста, обновите версию, которая поддерживает этот механизм на всех устройствах."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การซิงโครไนซ์จะรวมการเปลี่ยนแปลงระหว่างอุปกรณ์ต่างๆ หยุดการซิงโครไนซ์ชั่วคราวและเก็บข้อมูลสำรองไว้เมื่อมีข้อขัดแย้งเกิดขึ้น โปรดอัปเดตเป็นเวอร์ชันที่รองรับกลไกนี้ในทุกอุปกรณ์"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senkronizasyon, cihazlar arasındaki değişiklikleri birleştirir. Çakışma meydana geldiğinde senkronizasyonu duraklatın ve yedeklemeleri koruyun; lütfen tüm cihazlarda bu mekanizmayı destekleyen bir sürüme güncelleyin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đồng bộ hóa hợp nhất các thay đổi trên các thiết bị. Tạm dừng đồng bộ hóa và giữ lại bản sao lưu khi xảy ra xung đột; vui lòng cập nhật lên phiên bản hỗ trợ cơ chế này trên tất cả các thiết bị."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步会合并各设备的改动。发生冲突时暂停同步并保留备份；所有设备请更新到支持此机制的版本。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步會合併各設備的改動。發生衝突時暫停同步並保留備份；所有裝置請更新至支援此機制的版本。"
+          }
+        }
+      }
+    },
+    "同步冲突，已保留双方配置。请从备份中选择要恢复的版本。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعارض المزامنة، تم الاحتفاظ بتكوينات كلا الطرفين. الرجاء تحديد الإصدار لاستعادته من النسخة الاحتياطية."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisationskonflikt, Konfigurationen beider Parteien wurden beibehalten. Bitte wählen Sie die Version aus, die aus dem Backup wiederhergestellt werden soll."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync conflict. Both configurations have been kept. Choose a backup to restore."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conflicto de sincronización, se han mantenido las configuraciones de ambas partes. Seleccione la versión para restaurar desde la copia de seguridad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conflit de synchronisation, les configurations des deux parties ont été conservées. Veuillez sélectionner la version à restaurer à partir de la sauvegarde."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konflik sinkronisasi, konfigurasi kedua belah pihak tetap dipertahankan. Silakan pilih versi yang akan dipulihkan dari cadangan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期の競合、両方の構成は保持されています。バックアップから復元するバージョンを選択してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화 충돌, 두 당사자의 구성이 유지되었습니다. 백업에서 복원할 버전을 선택하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conflito de sincronização, as configurações de ambas as partes foram mantidas. Selecione a versão a ser restaurada do backup."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Конфликт синхронизации, конфигурации обеих сторон сохранены. Пожалуйста, выберите версию для восстановления из резервной копии."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ข้อขัดแย้งในการซิงโครไนซ์ การกำหนดค่าของทั้งสองฝ่ายยังคงอยู่ โปรดเลือกเวอร์ชันที่จะกู้คืนจากข้อมูลสำรอง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senkronizasyon çakışması, her iki tarafın yapılandırmaları korundu. Lütfen yedekten geri yüklenecek sürümü seçin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xung đột đồng bộ, cấu hình của 2 bên vẫn được giữ nguyên. Vui lòng chọn phiên bản để khôi phục từ bản sao lưu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步冲突，已保留双方配置。请从备份中选择要恢复的版本。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步衝突，已保留雙方配置。請從備份中選擇要還原的版本。"
+          }
+        }
+      }
+    },
+    "恢复": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استعادة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wiederherstellen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "restaurar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "restaurer"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "memulihkan"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元する"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "복원"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "restaurar"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "восстановить"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "คืนค่า"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "geri yükleme"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "khôi phục"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復"
+          }
+        }
+      }
+    },
+    "恢复前会保留当前配置。开启同步时，所选版本也会成为云端版本，其他设备下次同步时会检查并合并。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سيتم الاحتفاظ بالتكوين الحالي قبل استعادته. عند تشغيل المزامنة، سيصبح الإصدار المحدد أيضًا هو الإصدار السحابي، وستقوم الأجهزة الأخرى بفحصه ودمجه في المرة التالية التي تقوم فيها بالمزامنة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die aktuelle Konfiguration bleibt vor der Wiederherstellung erhalten. Wenn die Synchronisierung aktiviert ist, wird die ausgewählte Version auch zur Cloud-Version und andere Geräte prüfen und führen sie bei der nächsten Synchronisierung zusammen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your current configuration will be backed up first. If sync is enabled, the selected version will also be saved to iCloud for other devices to check and merge on their next sync."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configuración actual se conservará antes de restaurar. Cuando la sincronización está activada, la versión seleccionada también se convertirá en la versión en la nube y otros dispositivos la comprobarán y fusionarán la próxima vez que se sincronicen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configuration actuelle sera conservée avant la restauration. Lorsque la synchronisation est activée, la version sélectionnée deviendra également la version cloud, et les autres appareils la vérifieront et la fusionneront lors de leur prochaine synchronisation."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konfigurasi saat ini akan dipertahankan sebelum dipulihkan. Saat sinkronisasi diaktifkan, versi yang dipilih juga akan menjadi versi cloud, dan perangkat lain akan memeriksa dan menggabungkannya saat sinkronisasi berikutnya."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の構成は復元前に保持されます。同期がオンになると、選択したバージョンもクラウド バージョンになり、他のデバイスは次回同期するときにそれを確認してマージします。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "복원하기 전에 현재 구성이 유지됩니다. 동기화를 켜면 선택한 버전도 클라우드 버전이 되며, 다른 기기에서는 다음에 동기화할 때 이를 확인하고 병합합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A configuração atual será mantida antes da restauração. Quando a sincronização estiver ativada, a versão selecionada também se tornará a versão da nuvem e outros dispositivos irão verificá-la e mesclá-la na próxima vez que sincronizarem."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текущая конфигурация будет сохранена до восстановления. Если синхронизация включена, выбранная версия также станет облачной версией, и другие устройства проверят и объединят ее при следующей синхронизации."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การกำหนดค่าปัจจุบันจะยังคงอยู่ก่อนที่จะกู้คืน เมื่อเปิดการซิงโครไนซ์ เวอร์ชันที่เลือกจะกลายเป็นเวอร์ชันคลาวด์ด้วย และอุปกรณ์อื่นๆ จะตรวจสอบและรวมเข้าด้วยกันในครั้งถัดไปที่ซิงค์"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geri yüklemeden önce mevcut yapılandırma korunacaktır. Senkronizasyon açıldığında, seçilen sürüm aynı zamanda bulut sürümü haline gelecek ve diğer cihazlar bir sonraki senkronizasyonda bu sürümü kontrol edip birleştirecek."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cấu hình hiện tại sẽ được giữ lại trước khi khôi phục. Khi đồng bộ hóa được bật, phiên bản đã chọn cũng sẽ trở thành phiên bản đám mây và các thiết bị khác sẽ kiểm tra và hợp nhất phiên bản đó vào lần đồng bộ hóa tiếp theo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复前会保留当前配置。开启同步时，所选版本也会成为云端版本，其他设备下次同步时会检查并合并。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復前會保留目前配置。開啟同步時，所選版本也會成為雲端版本，其他裝置下次同步時會檢查並合併。"
+          }
+        }
+      }
+    },
+    "恢复同步备份": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استعادة النسخة الاحتياطية للمزامنة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierungssicherung wiederherstellen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Sync Backup"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar copia de seguridad de sincronización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurer la sauvegarde de synchronisation"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulihkan cadangan sinkronisasi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期バックアップを復元する"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화 백업 복원"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar backup de sincronização"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановить резервную копию синхронизации"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "คืนค่าการสำรองข้อมูลการซิงค์"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senkronizasyon yedeklemesini geri yükle"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khôi phục bản sao lưu đồng bộ hóa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复同步备份"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還原同步備份"
+          }
+        }
+      }
+    },
+    "恢复这份配置？": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استعادة هذا التكوين؟"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Konfiguration wiederherstellen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore this configuration?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Restaurar esta configuración?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurer cette configuration ?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulihkan konfigurasi ini?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この設定を復元しますか?"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 구성을 복원하시겠습니까?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar esta configuração?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановить эту конфигурацию?"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "คืนค่าการกำหนดค่านี้หรือไม่"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu yapılandırma geri yüklensin mi?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khôi phục cấu hình này?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复这份配置？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復這份配置？"
+          }
+        }
+      }
+    },
+    "暂无同步备份": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد نسخة احتياطية متزامنة حتى الآن"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch kein synchronisiertes Backup"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sync backups yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay copia de seguridad sincronizada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas encore de sauvegarde synchronisée"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belum ada cadangan yang disinkronkan"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期されたバックアップはまだありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아직 동기화된 백업이 없습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum backup sincronizado ainda"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизированной резервной копии пока нет."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ยังไม่มีการสำรองข้อมูลที่ซิงโครไนซ์"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Henüz senkronize yedekleme yok"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có bản sao lưu được đồng bộ hóa nào"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无同步备份"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫無同步備份"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

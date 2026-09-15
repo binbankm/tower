@@ -469,7 +469,7 @@ extension DirectImportServiceTests {
 
     func testFileOnlyClientsDoNotAdvertiseAFullConfigurationScheme() {
         let withoutScheme = ClientTarget.allCases.filter { !$0.supportsDirectConfigurationImport }
-        XCTAssertEqual(withoutScheme, [.quanx, .v2box, .clashMac])
+        XCTAssertEqual(withoutScheme, [.quanx, .v2box, .anywhere, .clashMac])
     }
 }
 

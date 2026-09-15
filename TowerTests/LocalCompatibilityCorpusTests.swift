@@ -52,16 +52,10 @@ final class LocalCompatibilityCorpusTests: XCTestCase {
 
     func testPrivateCompatibilityCorpus() throws {
         let environment = ProcessInfo.processInfo.environment
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let defaultCorpus = repositoryRoot
-            .appendingPathComponent(".codex_work/subscription-compat", isDirectory: true)
-        let corpusPath = environment["TOWER_COMPAT_CORPUS_DIR"] ?? defaultCorpus.path
-        let defaultRuleConfig = defaultCorpus.appendingPathComponent(
-            "tools/acl4ssr/Clash/config/ACL4SSR_Online_Full.ini"
-        ).path
-        let ruleConfigPath = environment["TOWER_COMPAT_RULE_CONFIG"] ?? defaultRuleConfig
+        guard let corpusPath = environment["TOWER_COMPAT_CORPUS_DIR"],
+              let ruleConfigPath = environment["TOWER_COMPAT_RULE_CONFIG"] else {
+            throw XCTSkip("Set TOWER_COMPAT_CORPUS_DIR and TOWER_COMPAT_RULE_CONFIG to run the private corpus")
+        }
         guard FileManager.default.fileExists(atPath: corpusPath),
               FileManager.default.fileExists(atPath: ruleConfigPath) else {
             throw XCTSkip("Set TOWER_COMPAT_CORPUS_DIR and TOWER_COMPAT_RULE_CONFIG to run the private corpus")

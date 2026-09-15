@@ -281,17 +281,39 @@ struct NodeNameFilterPreviewInput: Hashable, Sendable {
     let patterns: [String]
     let candidates: [[String]]
     let insensitive: Bool
+    var eligibleCandidateIndices: [[Int]]? = nil
+    var sourceScope: SourceScope? = nil
+
+    struct SourceScope: Hashable, Sendable {
+        let group: RuleSchemeGroup
+        let nodes: [ProxyNode]
+        let sourceURLHashes: [UUID: String]
+        let boundPatterns: Set<String>
+    }
 
     func evaluate() async -> NodeNameFilterPreviewResult {
         await Task.detached(priority: .userInitiated) {
             do {
                 var selected = Set<Int>()
                 let deadline = ProcessInfo.processInfo.systemUptime + 1
-                for pattern in patterns {
+                let scopedIDs = sourceScope.map { scope in
+                    Set(ConfigurationGenerator().sourceEligibleNodes(for: scope.group, nodes: scope.nodes,
+                        sourceURLHashes: scope.sourceURLHashes).map(\.id))
+                }
+                for (offset, pattern) in patterns.enumerated() {
                     let remaining = deadline - ProcessInfo.processInfo.systemUptime
                     guard remaining > 0 else { throw NodeNameFilterMatcher.Failure.timedOut }
-                    selected.formUnion(try NodeNameFilterMatcher.preview(pattern, candidates: candidates,
+                    var matches = Set(try NodeNameFilterMatcher.preview(pattern, candidates: candidates,
                         caseInsensitive: insensitive, timeLimit: remaining))
+                    if let eligibleCandidateIndices, offset < eligibleCandidateIndices.count {
+                        matches.formIntersection(eligibleCandidateIndices[offset])
+                    }
+                    if let scope = sourceScope, scope.boundPatterns.contains(pattern), let scopedIDs {
+                        matches = Set(matches.filter { index in
+                            scope.nodes.indices.contains(index) && scopedIDs.contains(scope.nodes[index].id)
+                        })
+                    }
+                    selected.formUnion(matches)
                 }
                 return NodeNameFilterPreviewResult(input: self, matches: selected.sorted(), error: nil)
             } catch {

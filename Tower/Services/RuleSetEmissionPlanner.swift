@@ -258,7 +258,7 @@ struct RuleSetEmissionPlanner {
             guard linesAreClassical(lines, allowedTypes: Self.clashRuleTypes) else { return nil }
             return isClashProviderYAML ? .clashProviderYAML : .classicalText
         case .surge, .surgeMac:
-            return !isClashProviderYAML && linesAreClassical(lines, allowedTypes: Self.surgeRuleTypes)
+            return !isClashProviderYAML && linesAreClassical(lines, allowedTypes: Self.surgeRuleTypes, allowExtendedMatching: true)
                 ? .classicalText
                 : nil
         case .shadowrocket:
@@ -277,7 +277,7 @@ struct RuleSetEmissionPlanner {
             return isSingBoxSource(url: url, lines: lines) ? .singBoxSource : nil
         case .egern:
             return isEgernRuleSet(lines) ? .egernYAML : nil
-        case .v2box:
+        case .v2box, .anywhere:
             return nil
         }
     }
@@ -285,14 +285,25 @@ struct RuleSetEmissionPlanner {
     /// Classical remote lists contain only the matcher and its value. A list
     /// that already embeds policies is a complete rule file, not a reusable
     /// rule set, so Tower keeps mapping it locally.
-    private func linesAreClassical(_ lines: [String], allowedTypes: Set<String>) -> Bool {
+    private func linesAreClassical(
+        _ lines: [String],
+        allowedTypes: Set<String>,
+        allowExtendedMatching: Bool = false
+    ) -> Bool {
         guard !lines.isEmpty else { return false }
         return lines.allSatisfy { line in
             let parts = fields(in: line)
             guard parts.count >= 2,
                   parts.count <= 3,
                   allowedTypes.contains(parts[0].uppercased()) else { return false }
-            return parts.count == 2 || parts[2].lowercased() == "no-resolve"
+            guard parts.count == 3 else { return true }
+            if parts[2].lowercased() == "no-resolve" { return true }
+            // Surge permits this flag inside external rule sets. Do not apply
+            // it to the RULE-SET reference or assume other dialects support it.
+            return allowExtendedMatching
+                && parts[2].lowercased() == "extended-matching"
+                && ["DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "DOMAIN-WILDCARD", "URL-REGEX"]
+                    .contains(parts[0].uppercased())
         }
     }
 

@@ -1085,6 +1085,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
     case hiddify
     case egern
     case v2box
+    case anywhere
     case clashApple = "clash-apple"
     case singBox = "sing-box"
     case clashMi = "clash-mi"
@@ -1111,6 +1112,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .quanx: "QuanX"
         case .hiddify: "Hiddify"
         case .egern: "Egern"
+        case .anywhere: "Anywhere"
         case .v2box: "V2Box"
         case .singBox: "sing-box MT"
         case .clashMi: "Clash Mi"
@@ -1128,6 +1130,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .quanx: "Quantumult X"
         case .hiddify: String(localized: "sing-box 内核")
         case .egern: "Egern YAML"
+        case .anywhere: "VLESS / Hysteria 2 / Trojan / AnyTLS / SS / SOCKS5"
         case .v2box: "V2Ray / Xray"
         case .singBox: "sing-box JSON"
         case .clashMi: "Mihomo YAML"
@@ -1145,6 +1148,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .quanx: "q.circle.fill"
         case .hiddify: "eye.slash.circle.fill"
         case .egern: "e.circle.fill"
+        case .anywhere: "globe"
         case .v2box: "shippingbox.circle.fill"
         case .singBox: "shippingbox.fill"
         case .clashMi: "cat.circle.fill"
@@ -1169,6 +1173,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .quanx: "ClientQuantumultX"
         case .hiddify: "ClientHiddify"
         case .egern: "ClientEgern"
+        case .anywhere: "ClientAnywhere"
         case .v2box: "ClientV2Box"
         case .singBox: "ClientSingBox"
         case .clashMi: "ClientClashMi"
@@ -1186,6 +1191,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .quanx: "q.circle.fill"
         case .hiddify: "shield.lefthalf.filled"
         case .egern: "e.circle.fill"
+        case .anywhere: "globe"
         case .v2box: "shippingbox.fill"
         case .singBox: "shippingbox.fill"
         case .clashMi: "cat.fill"
@@ -1203,6 +1209,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .quanx: "14A69A"
         case .hiddify: "6047D9"
         case .egern: "F08A2B"
+        case .anywhere: "286BF5"
         case .v2box: "246BFD"
         case .singBox: "334854"
         case .clashMi: "224D7A"
@@ -1240,7 +1247,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .clash, .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi, .karing, .surge, .surgeMac, .loon, .quanx, .egern:
             true
-        case .shadowrocket, .hiddify, .v2box, .singBox:
+        case .shadowrocket, .hiddify, .v2box, .singBox, .anywhere:
             false
         }
     }
@@ -1249,7 +1256,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .clash, .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi, .karing, .egern: "yaml"
         case .hiddify, .singBox: "json"
-        case .v2box: "txt"
+        case .v2box, .anywhere: "txt"
         default: "conf"
         }
     }
@@ -1259,13 +1266,13 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         // publishes only a node-subscription route, not a complete profile
         // schema with Tower's rules and policy groups.
         switch self {
-        case .quanx, .v2box, .clashMac: false
+        case .quanx, .v2box, .clashMac, .anywhere: false
         default: true
         }
     }
 
     var supportsNodesOnlyImport: Bool {
-        [.shadowrocket, .loon, .quanx, .hiddify, .v2box].contains(self)
+        [.shadowrocket, .loon, .quanx, .hiddify, .v2box, .anywhere].contains(self)
     }
 
     var supportsNodesOnlyExport: Bool {
@@ -1284,7 +1291,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
     }
 
     var supportedContentModes: [ExportContentMode] {
-        if self == .v2box { return [.nodesOnly] }
+        if self == .v2box || self == .anywhere { return [.nodesOnly] }
         guard supportsNodesOnlyExport else { return [.fullConfiguration] }
         return [.fullConfiguration, .nodesOnly]
     }
@@ -1337,6 +1344,8 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .egern:
             // Egern's own producer lists tuic but no hysteria 1.
             [.shadowsocks, .vmess, .vless, .trojan, .hysteria2, .tuic, .wireguard, .anytls, .snell, .socks5, .http].contains(kind)
+        case .anywhere:
+            [.vless, .hysteria2, .trojan, .anytls, .shadowsocks, .socks5].contains(kind)
         case .v2box:
             // V2Box's native protocol picker also exposes WireGuard,
             // Hysteria 2 and HTTP. Tower can preserve each of those as a
@@ -1476,7 +1485,7 @@ enum ClientPlatform {
     static var current: Self { TowerPlatform.isMac ? .mac : .phone }
 
     var defaultOrder: [ClientTarget] {
-        let front: [ClientTarget] = self == .mac ? [.shadowrocket, .surgeMac, .clashVerge, .clashMac, .flClash, .mihomoParty, .singBox, .clashApple] : []
+        let front: [ClientTarget] = self == .mac ? [.shadowrocket, .surgeMac, .clashVerge, .clashMac, .flClash, .mihomoParty, .singBox, .clashApple, .anywhere] : []
         return front + ClientTargetOrder.defaultOrder.filter { !front.contains($0) }
     }
 
@@ -1503,6 +1512,7 @@ enum ClientTargetOrder {
         .loon,
         .quanx,
         .clashApple,
+        .anywhere,
         .v2box,
         .singBox,
         .hiddify,
@@ -1571,13 +1581,19 @@ enum ClientTargetOrder {
             result.insert(.clashApple, at: min(defaultClashIndex, result.endIndex))
         }
 
+        let needsAnywhereInsertion = seen.insert(.anywhere).inserted
         let needsSingBoxInsertion = seen.insert(.singBox).inserted
-        for target in defaultOrder where target != .singBox && seen.insert(target).inserted {
+        for target in defaultOrder where target != .singBox && target != .anywhere && seen.insert(target).inserted {
             result.append(target)
         }
         if needsSingBoxInsertion {
             let defaultSingBoxIndex = defaultOrder.firstIndex(of: .singBox) ?? result.endIndex
             result.insert(.singBox, at: min(defaultSingBoxIndex, result.endIndex))
+        }
+
+        if needsAnywhereInsertion {
+            let index = result.firstIndex(of: .clashApple).map { $0 + 1 } ?? result.endIndex
+            result.insert(.anywhere, at: index)
         }
 
         // Builds that first introduced sing-box preserved an explicit stored
@@ -1682,11 +1698,9 @@ struct AppSnapshot: Codable {
     /// Missing means disabled so existing users never disclose a URL merely by
     /// updating Tower.
     var embedRemoteSubscriptionLinks: Bool?
-    /// When this snapshot was written, used to decide which of two devices'
-    /// copies wins. Optional so every snapshot written before iCloud sync
-    /// existed still decodes; a missing value loses to any dated one, which is
-    /// the right way round — a snapshot from before sync cannot have been the
-    /// more recent edit on another device.
+    /// Last local edit, retained for display and legacy decoding. Sync uses a
+    /// shared baseline and immutable history rather than choosing a whole
+    /// snapshot by this timestamp.
     var updatedAt: Date?
     /// Per-client import mode. New or unsupported clients fall back to full.
     var exportContentModes: [String: String]?

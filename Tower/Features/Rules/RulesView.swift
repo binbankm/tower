@@ -1876,7 +1876,14 @@ private struct RuleGroupEditor: View {
     private var enabledPatterns: [String] { nodeFilters.filter(\.isEnabled).map(\.pattern) }
 
     private var previewInput: NodeNameFilterPreviewInput {
-        .init(patterns: enabledPatterns, candidates: previewCandidates, insensitive: caseInsensitiveDefault)
+        let scope: NodeNameFilterPreviewInput.SourceScope? = selectedKind == group.kind ? .init(
+            group: group, nodes: model.enabledNodes.map { model.nodeForPresentation($0) },
+            sourceURLHashes: Dictionary(model.subscriptions.filter(\.isEnabled).map {
+                ($0.id, RuleSchemeParser.sourceURLHash($0.urlString))
+            }, uniquingKeysWith: { first, _ in first }),
+            boundPatterns: Set(nodeFilters.filter { $0.isEnabled && $0.isSourceBound }.map(\.pattern))) : nil
+        return .init(patterns: enabledPatterns, candidates: previewCandidates,
+                     insensitive: caseInsensitiveDefault, sourceScope: scope)
     }
 
     private var saveIsDisabled: Bool {

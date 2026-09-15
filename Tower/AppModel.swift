@@ -160,6 +160,9 @@ final class AppModel {
     var excludedKinds: [ClientTarget: Set<ProxyKind>] = [:]
 
     private let persistence: PersistenceStore
+    var cloudSyncIssue: String?
+    var cloudRecoveryCopies: [CloudRecoveryCopy] = []
+    @ObservationIgnored private var performedForegroundOpenWork = false
     private let cloudSync: any CloudSnapshotSyncing
     @ObservationIgnored private var cloudSyncGeneration = UUID()
     /// Off until the user turns it on. Enabling it is the moment subscription
@@ -3048,6 +3051,14 @@ final class AppModel {
             return
         }
 
+        do { try persistence.clearRecoveryData() }
+        catch {
+            showToast(error.localizedDescription, symbol: "exclamationmark.icloud.fill")
+            return
+        }
+        cloudRecoveryCopies = []
+        cloudSyncIssue = nil
+
         let cachedRuleURLs = Set(
             importedSchemes.flatMap(\.remoteRulesetURLs)
                 + localRuleSets.compactMap(\.remoteRuleURL)
@@ -3165,6 +3176,9 @@ final class AppModel {
         defer { isRemovingCloudSnapshot = false }
         do {
             try await cloudSync.removeRemoteSnapshot()
+            try persistence.clearCloudBaseline()
+            cloudRecoveryCopies = []
+            cloudSyncIssue = nil
             lastCloudSyncAt = nil
             showToast(String(localized: "已删除 iCloud 上的副本"), symbol: "icloud.slash")
         } catch {
@@ -3172,11 +3186,26 @@ final class AppModel {
         }
     }
 
-    /// Pulls whichever copy is newer, then makes sure iCloud holds it.
+    /// Merge both devices against the last shared baseline, preserving conflicts.
+    /// Launch and scene activation can arrive sequentially. Claim the foreground
+    /// session before awaiting; reset only on background, not transient inactivity.
+    func performForegroundOpenWork() async {
+        guard !performedForegroundOpenWork else { return }
+        performedForegroundOpenWork = true
+        await synchronizeWithCloud()
+        guard !Task.isCancelled else { return }
+        await refreshOnOpenIfEnabled()
+    }
+
+    func didEnterBackground() {
+        performedForegroundOpenWork = false
+    }
+
     func synchronizeWithCloud(showResult: Bool = false) async {
         guard iCloudSyncEnabled, !isDemoMode, !isCloudSyncing else { return }
         let generation = cloudSyncGeneration
         var synchronizedEditAt = lastLocalEditAt
+        var needsAnotherSync = false
         isCloudSyncing = true
         defer {
             isCloudSyncing = false
@@ -3184,7 +3213,7 @@ final class AppModel {
                 // A new enable action arrived while the old download owned
                 // the sync slot. Retry under the new authorization generation.
                 Task { [weak self] in await self?.synchronizeWithCloud() }
-            } else if iCloudSyncEnabled, lastLocalEditAt != synchronizedEditAt {
+            } else if iCloudSyncEnabled, needsAnotherSync || lastLocalEditAt != synchronizedEditAt {
                 scheduleCloudUpload(currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast))
             }
         }
@@ -3202,28 +3231,29 @@ final class AppModel {
             // Downloading suspends the actor. Compare against the current
             // edits, not the snapshot from before the network request.
             let local = currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)
-            switch CloudSyncResolution.resolve(local: local.updatedAt, remote: remote?.updatedAt) {
-            case .takeRemote:
-                if let remote {
-                    discardPendingLocalWrite()
-                    apply(remote)
-                    lastLocalEditAt = remote.updatedAt
-                    synchronizedEditAt = remote.updatedAt
-                    try persistence.save(remote)
-                    if showResult {
-                        showToast(String(localized: "已从 iCloud 取回配置"), symbol: "icloud.and.arrow.down")
-                    }
-                }
-            case .keepLocal:
-                try await cloudSync.upload(local)
-                guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
-                synchronizedEditAt = local.updatedAt
-                if showResult {
-                    showToast(String(localized: "已同步到 iCloud"), symbol: "icloud.and.arrow.up")
-                }
-            }
+            let baseline = try persistence.cloudBaseline()
+            let merged = try remote.map { try CloudSnapshotMerge.merge(local: local, remote: $0, base: baseline) } ?? local
+            // A backup failure stops the transaction before either copy is replaced.
+            if !CloudSnapshotMerge.equal(local, merged) { try persistence.backup(local) }
+            try await cloudSync.commit(merged, replacing: remote)
+            guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
+            let latest = currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)
+            let adopted = try CloudSnapshotMerge.equal(latest, local) ? merged
+                : CloudSnapshotMerge.merge(local: latest, remote: merged, base: local)
+            if !CloudSnapshotMerge.equal(latest, adopted), !CloudSnapshotMerge.equal(latest, local) { try persistence.backup(latest) }
+            discardPendingLocalWrite()
+            try persistence.save(adopted)
+            try persistence.saveCloudBaseline(merged)
+            apply(adopted)
+            synchronizedEditAt = merged.updatedAt
+            needsAnotherSync = !CloudSnapshotMerge.equal(adopted, merged)
+            cloudSyncIssue = nil
+            if showResult { showToast(String(localized: "已同步到 iCloud"), symbol: "icloud") }
             lastCloudSyncAt = .now
         } catch {
+            if !Self.isCancellationError(error), iCloudSyncEnabled, cloudSyncGeneration == generation {
+                cloudSyncIssue = error.localizedDescription
+            }
             if showResult, !Self.isCancellationError(error), iCloudSyncEnabled, cloudSyncGeneration == generation {
                 showToast(error.localizedDescription, symbol: "exclamationmark.icloud.fill")
             }
@@ -3247,15 +3277,54 @@ final class AppModel {
             // A foreground sync owns the download/compare/upload transaction.
             // It will pick up edits made during its download itself.
             guard !self.isCloudSyncing else { return }
-            do {
-                try await self.cloudSync.upload(snapshot)
-                self.lastCloudSyncAt = .now
-            } catch {
-                // Silent: an edit should not raise an alert because iCloud was
-                // briefly unreachable. The next edit, or a foreground sync,
-                // retries with newer content anyway.
-            }
+            self.cloudUploadTask = nil
+            await self.synchronizeWithCloud()
         }
+    }
+
+    func loadCloudRecoveryCopies() async {
+        // A merge conflict can precede the first replacement backup. Keep the
+        // current local version selectable too, not only cloud history.
+        let current = CloudRecoveryCopy(id: "current-local", snapshot: currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast))
+        do {
+            let local = try persistence.recoveryCopies()
+            let history = local + (try await cloudSync.recoveryCopies())
+            cloudRecoveryCopies = CloudRecoveryCopy.unique(([current] + history.sorted {
+                ($0.snapshot.updatedAt ?? .distantPast) > ($1.snapshot.updatedAt ?? .distantPast)
+            })).prefix(CloudSnapshotJournal.retentionLimit).map { $0 }
+        } catch {
+            cloudSyncIssue = error.localizedDescription
+            cloudRecoveryCopies = Array(CloudRecoveryCopy.unique([current] + ((try? persistence.recoveryCopies()) ?? [])).prefix(CloudSnapshotJournal.retentionLimit))
+        }
+    }
+
+    /// Explicit selection is the only operation allowed to resolve conflicting
+    /// branches by replacing their content. All prior commits remain recoverable.
+    func restoreCloudCopy(_ copy: CloudRecoveryCopy) async {
+        guard !isCloudSyncing, !isRemovingCloudSnapshot else { return }
+        let generation = cloudSyncGeneration
+        let syncWasEnabled = iCloudSyncEnabled
+        isCloudSyncing = true
+        cloudUploadTask?.cancel(); cloudUploadTask = nil
+        defer { isCloudSyncing = false }
+        do {
+            let original = currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)
+            try persistence.backup(original)
+            var restored = copy.snapshot
+            restored.updatedAt = .now
+            if syncWasEnabled { try await cloudSync.resolveConflict(with: restored) }
+            guard cloudSyncGeneration == generation, !Task.isCancelled else { return }
+            // An edit while recovery was awaiting iCloud is kept, never discarded.
+            guard CloudSnapshotMerge.equal(original, currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)) else {
+                throw CloudSyncError.conflict
+            }
+            discardPendingLocalWrite()
+            try persistence.save(restored)
+            if iCloudSyncEnabled { try persistence.saveCloudBaseline(restored) }
+            else { try persistence.clearCloudBaseline() }
+            apply(restored)
+            cloudSyncIssue = nil
+        } catch { cloudSyncIssue = error.localizedDescription }
     }
 
     /// Puts a snapshot into effect, wherever it came from.
@@ -3330,6 +3399,12 @@ final class AppModel {
             rawValues: snapshot.visibleClientTargets ?? ClientPlatform.phone.defaultVisibleTargets.map(\.rawValue),
             clientOrder: clientOrder
         )
+        // Newly introduced iOS client is visible on upgrade; a later explicit
+        // hide stays authoritative once the saved order already contains it.
+        if clientPlatform == .phone, let savedOrder = snapshot.clientOrder,
+           !savedOrder.contains(ClientTarget.anywhere.rawValue) {
+            visibleClientTargets.insert(.anywhere)
+        }
         isLANSharingVisible = snapshot.isLANSharingVisible ?? true
         let usedPreviousOfficialOrder = snapshot.clientOrder == nil
             || ClientTargetOrder.matchesPreviousDefault(rawValues: snapshot.clientOrder)
