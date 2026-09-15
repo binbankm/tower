@@ -1,9 +1,11 @@
 # 当前交接
 
-## 1.0.19（57）发布准备（2026-09-15）
+## 1.0.19（57）已发布 GitHub 与 Mac 包（2026-09-15）
 
 - 本版汇总下方 Anywhere、Issue #30、Issue #33、iCloud 多设备合并与备份去重改动。版本统一为 1.0.19（57）；用户可见更新日志见 `docs/RELEASE-NOTES-1.0.19-57.md`。Hiddify 导入与 dead10cc 崩溃仍未确认修复，不列为已解决。
 - 用户仅要求推送源码并发布 GitHub / Mac 包；不上传 App Store Connect、不分发 TestFlight。
+- 源码 `09b79be` 已推送，GitHub Release `v1.0.19` 已公开。正式发布机完成 Intel / Apple 芯片通用 Developer ID 公证包；签名、stapler、Gatekeeper、DMG 挂载及公开下载回验均通过。DMG SHA-256：`8246aa56577ae7b8a0f9de93c86e23f991d223ebdf6e366c82d7b14d07d719b9`。
+- Homebrew tap 已更新至 1.0.19（57），补回下载来源 verified 声明与“Sonoma 及以上”的系统约束。发布机 style、audit 和真实升级验证通过，安装后的签名、公证及启动验证通过。M4 本机 audit 被另一份正式版 Xcode 版本诊断阻止，未更改全局 Xcode 配置；其 Homebrew Ruby json 依赖安装失败已修复。
 - 发布审查补充修复：订阅刷新改名时，以来源隔离且跨快照唯一的完整连接身份保留节点 ID，避免取消勾选或重新勾选被旧 ID 丢弃。新增双向和歧义保护测试，11 项合并测试通过；独立复审通过。最终 Mac 全量 1203 通过、35 跳过、0 失败；iOS 全量 1230 通过、5 跳过、0 失败，随后补充修复的 iOS 11 项定向测试通过。本地化 1004 条及 77 个远程规则产物检查通过。
 
 ## 未发布：前台同步与恢复备份去重（2026-09-15）
