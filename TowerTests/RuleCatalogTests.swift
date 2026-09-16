@@ -172,6 +172,48 @@ final class RuleCatalogTests: XCTestCase {
     }
 
     @MainActor
+    func testReaddingDeletedOriginalCatalogGroupRestoresExport() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tower-rule-catalog-install-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = RuleDownloadStore(folderURL: directory.appendingPathComponent("rules"))
+        let url = try XCTUnwrap(URL(string: "https://rules.example.com/ai.list"))
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RuleCatalogURLProtocol.self]
+        RuleCatalogURLProtocol.payloads = [url: Data("DOMAIN-SUFFIX,openai.com".utf8)]
+        let service = RuleSchemeImportService(
+            store: store,
+            session: URLSession(configuration: configuration)
+        )
+        let model = AppModel(
+            persistence: PersistenceStore(fileURL: directory.appendingPathComponent("state.json")),
+            schemeImportService: service,
+            downloadStore: store,
+            arguments: []
+        )
+        var scheme = makeScheme(includeAIGroup: false)
+        scheme.groups.append(RuleSchemeGroup(name: "AI 服务", kind: .select, members: [.reference("节点选择")]))
+        let entry = makeAIEntry()
+
+        let groupName = try entry.makeCustomization(for: scheme).policyName
+        model.deleteRuleGroup(named: groupName, for: scheme)
+        XCTAssertFalse(model.customizableRuleGroups(for: scheme).contains { $0.name == groupName })
+        try await model.installCatalogEntry(entry, for: scheme)
+        XCTAssertTrue(model.customizableRuleGroups(for: scheme).contains { $0.name == groupName })
+        XCTAssertFalse(model.ruleSchemeCustomizations[scheme.id]?.removedGroupNames?.contains(groupName) == true)
+        let effective = model.customizableScheme(for: scheme)
+        XCTAssertTrue(effective.rulesets.contains { $0.groupName == groupName })
+        let firstID = try XCTUnwrap(model.customRuleFlows(for: scheme).first?.id)
+        try await model.installCatalogEntry(entry, for: scheme)
+
+        let flows = model.customRuleFlows(for: scheme)
+        XCTAssertEqual(flows.count, 1)
+        XCTAssertEqual(flows.first?.id, firstID)
+        XCTAssertTrue(store.hasCachedRules(for: url))
+        XCTAssertEqual(model.toast?.tone, .success)
+    }
+
+    @MainActor
     func testInstallingCatalogEntryDownloadsAndUpsertsByCatalogID() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("tower-rule-catalog-install-\(UUID().uuidString)", isDirectory: true)
@@ -203,6 +245,12 @@ final class RuleCatalogTests: XCTestCase {
         XCTAssertEqual(flows.first?.id, firstID)
         XCTAssertTrue(store.hasCachedRules(for: url))
         XCTAssertEqual(model.toast?.tone, .success)
+        let groupName = try entry.makeCustomization(for: scheme).policyName
+        model.deleteRuleGroup(named: groupName, for: scheme)
+        XCTAssertFalse(model.customizableRuleGroups(for: scheme).contains { $0.name == groupName })
+        try await model.installCatalogEntry(entry, for: scheme)
+        XCTAssertTrue(model.customizableRuleGroups(for: scheme).contains { $0.name == groupName })
+        XCTAssertTrue(model.customizableScheme(for: scheme).rulesets.contains { $0.groupName == groupName })
     }
 
     @MainActor

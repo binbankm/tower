@@ -16,6 +16,7 @@ struct ExportView: View {
     @State private var macFileName = "Tower"
     @State private var isImporting = false
     @State private var isSettingsPresented = false
+    @State private var isProtocolFilterPresented = false
     @State private var isLANSharingSelected = false
     @State private var configurationNameDraft = ConfigurationNameDraft()
     @State private var previewPayload: ConfigurationPreviewPayload?
@@ -26,10 +27,16 @@ struct ExportView: View {
         // explicit target in the link. Avoid generating an unrelated client
         // profile while this destination is selected.
         let request = isLANSharingSelected ? nil : model.configurationRequest()
-        let configuration = preparedRequest == request ? preparedConfiguration : nil
+        let configuration = request.flatMap { model.cachedConfiguration(for: $0) }
+            ?? (preparedRequest == request ? preparedConfiguration : nil)
+        // The header describes the last completed conversion. Keep it mounted
+        // while the next result is prepared; a timer that replaces the seal with
+        // a spinner creates a visible ready/busy/ready flash on cold targets.
+        // Only `configuration` (the current request) may enable export/preview.
+        let statusConfiguration = configuration ?? preparedConfiguration
 
         ScrollView {
-            LazyVStack(spacing: 22) {
+            VStack(spacing: 22) {
                 ClientPicker(
                     isLANSharingSelected: $isLANSharingSelected,
                     activateLANSharing: activateLANSharing
@@ -42,58 +49,101 @@ struct ExportView: View {
                         LANSharingGuide()
                             .transition(.opacity.animation(TowerMotion.selection(reduceMotion: reduceMotion)))
                     } else {
-                        ExportContentModePicker()
-                            .transition(.opacity.animation(TowerMotion.selection(reduceMotion: reduceMotion)))
-                        if let displayedConfiguration = configuration ?? preparedConfiguration {
-                            ConversionSummary(configuration: displayedConfiguration)
-                                .transition(.opacity.animation(TowerMotion.selection(reduceMotion: reduceMotion)))
-                        } else {
-                            ProgressView()
-                                .frame(maxWidth: .infinity, minHeight: 160)
-                                .transition(.opacity.animation(TowerMotion.selection(reduceMotion: reduceMotion)))
+                        VStack(alignment: .leading, spacing: 0) {
+                            Group {
+                                HStack(alignment: .center, spacing: 12) {
+                                    Text(statusConfiguration == nil ? "正在转换…" : statusConfiguration!.hasExportableProxies ? "转换已就绪" : "暂时无法导出")
+                                        .font(.headline)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Spacer(minLength: 0)
+                                    Image(systemName: statusConfiguration?.hasExportableProxies == false
+                                          ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(statusConfiguration?.hasExportableProxies == false
+                                                         ? Color.orange : Color.green)
+                                        .frame(width: 28, height: 28)
+                                        .opacity(statusConfiguration == nil ? 0 : 1)
+                                        .accessibilityHidden(true)
+                                }
+                                .transaction { transaction in
+                                    transaction.animation = nil
+                                    transaction.disablesAnimations = true
+                                }
+                                .accessibilityIdentifier("conversion-status-header")
+                                .padding(.bottom, 18)
+                            }
+                            ExportContentModePicker()
+                                .padding(.bottom, model.selectedTarget.supportedContentModes.count > 1 ? 12 : 0)
+                            if model.exportContentMode(for: model.selectedTarget) == .fullConfiguration {
+                                Button { model.selectedTab = .rules } label: {
+                                    ExportOptionRow(title: "规则方案", value: model.activeRuleName, symbol: "list.bullet.rectangle", showsChevron: false)
+                                }
+                                .buttonStyle(.plain)
+                                Divider()
+                            }
+                            if ProtocolFilterPolicy.isVisible(compatibleKindCount: model.filterableKinds(for: model.selectedTarget).count) {
+                                Button { isProtocolFilterPresented = true } label: {
+                                    ExportOptionRow(title: "协议筛选", value: protocolSelectionSummary, symbol: "line.3.horizontal.decrease", showsChevron: false)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("open-protocol-filter")
+                                Divider()
+                            }
+                            if model.exportContentMode(for: model.selectedTarget) == .fullConfiguration {
+                                ExportAdvancedOptions()
+                                Divider()
+                            }
+                            if let displayedConfiguration = configuration ?? preparedConfiguration {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ConversionSummary(configuration: displayedConfiguration)
+                                        .padding(.vertical, 14)
+                                    ConfigurationPreview(configuration: displayedConfiguration) {
+                                        guard let configuration else { return }
+                                        previewPayload = ConfigurationPreviewPayload(configuration: configuration)
+                                    }
+                                }
+                                .redacted(reason: configuration == nil ? .placeholder : [])
+                                .disabled(configuration == nil)
+                                .accessibilityHidden(configuration == nil)
+                            } else {
+                                ProgressView().frame(maxWidth: .infinity, minHeight: 64)
+                            }
                         }
-                        ProtocolFilter()
-                            .transition(.opacity.animation(TowerMotion.selection(reduceMotion: reduceMotion)))
-                        if let displayedConfiguration = configuration ?? preparedConfiguration {
+                        .padding(18)
+                        .towerCard()
+                        Group {
                             ImportPrivacyNote(
                                 copiesSubscription: copiesSubscription,
-                                target: displayedConfiguration.target,
-                                contentMode: displayedConfiguration.contentMode,
+                                target: model.selectedTarget,
+                                contentMode: model.exportContentMode(for: model.selectedTarget),
                                 embedsRemoteSubscriptions: model.embedRemoteSubscriptionLinks
                                     && model.selectedTarget.supportsEmbeddedRemoteSubscriptions
                             )
-                            .transition(.opacity.animation(TowerMotion.selection(reduceMotion: reduceMotion)))
-                            ConfigurationPreview(configuration: displayedConfiguration) {
-                                guard let configuration else { return }
-                                previewPayload = ConfigurationPreviewPayload(configuration: configuration)
-                            }
-                            .disabled(configuration == nil)
-                            .transition(.opacity.animation(TowerMotion.selection(reduceMotion: reduceMotion)))
                         }
                     }
                 }
-                // Keep content changes local: client taps and horizontal scrolling
-                // must remain immediate, including while configuration work finishes.
-                .contentTransition(.opacity)
-                .animation(reduceMotion ? nil : TowerMotion.selection(reduceMotion: false), value: preparedRequest)
-                .animation(reduceMotion ? nil : TowerMotion.selection(reduceMotion: false), value: selectedDestinationID)
+                // Suppress only generation/target changes, not user disclosure.
+                .animation(nil, value: request)
+                .animation(nil, value: preparedRequest)
             }
             .frame(maxWidth: TowerPlatform.isMac ? TowerTheme.macContentMaxWidth : .infinity)
             .padding(.horizontal, TowerPlatform.isMac ? 28 : TowerTheme.pagePadding)
             .frame(maxWidth: .infinity)
             .padding(.top, 12)
-            .padding(.bottom, 18)
+            .padding(.bottom, 32)
         }
         .task(id: request) {
-            guard let request else {
-                preparedConfiguration = nil
-                preparedRequest = nil
-                return
-            }
+            // LAN sharing temporarily hides this card; keep the settled result
+            // for returning to it instead of resetting the header to busy.
+            guard let request else { return }
             let result = await model.configuration(for: request)
             guard !Task.isCancelled else { return }
-            preparedConfiguration = result
-            preparedRequest = request
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                preparedConfiguration = result
+                preparedRequest = request
+            }
         }
         .onAppear { surgeSchemeAvailable = MacClientImportCapability.surgeSchemeAvailable }
         .onChange(of: scenePhase) { _, phase in
@@ -119,7 +169,7 @@ struct ExportView: View {
                 .accessibilityIdentifier("open-settings")
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .safeAreaInset(edge: .bottom, spacing: 12) {
             VStack(spacing: 0) {
                 if !isLANSharingSelected {
                     ImportActionBar(
@@ -150,6 +200,19 @@ struct ExportView: View {
             ActivitySheet(items: [payload.url])
                 .presentationDetents([.medium, .large])
         }
+        .sheet(isPresented: $isProtocolFilterPresented) {
+            if TowerPlatform.isMac {
+                // Catalyst uses a desktop modal. iPhone detents/grabber can
+                // animate independently from that window during presentation.
+                protocolFilterPanel
+                    .frame(minWidth: 520, maxWidth: .infinity, minHeight: 480, maxHeight: .infinity)
+                    .presentationDragIndicator(.hidden)
+            } else {
+                protocolFilterPanel
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+        }
         .sheet(isPresented: $isSettingsPresented) {
             ExportSettingsSheet(
                 configurationNameDraft: $configurationNameDraft
@@ -172,6 +235,30 @@ struct ExportView: View {
         // — which killed the server before the client had fetched. Hiddify
         // reported it as `Connection refused`. The 3-minute timer and the
         // background-task expiry handler already bound the lifetime.
+    }
+
+    private var protocolFilterPanel: some View {
+        NavigationStack {
+            ScrollView { ProtocolFilter().padding(TowerTheme.pagePadding) }
+                .background(TowerTheme.background)
+                .navigationTitle("协议筛选")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("完成") {
+                            isProtocolFilterPresented = false
+                        }
+                    }
+                }
+        }
+    }
+
+    private var protocolSelectionSummary: String {
+        let kinds = model.filterableKinds(for: model.selectedTarget)
+        let selected = kinds.filter { !model.isExcluded($0.kind, for: model.selectedTarget) }
+        if selected.isEmpty { return String(localized: "未选择协议") }
+        if selected.count == kinds.count { return String(localized: "全部协议") }
+        return selected.map { $0.kind.title }.joined(separator: " · ")
     }
 
     private var selectedDestinationID: String {
@@ -282,13 +369,104 @@ struct ExportView: View {
     }
 }
 
+private struct ExportOptionRow: View {
+    let title: LocalizedStringKey
+    let value: String
+    var symbol: String? = nil
+    var showsChevron = true
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if let symbol { ExportOptionIcon(symbol: symbol) }
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text(title).foregroundStyle(.primary).fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 16)
+                    Text(value).font(.subheadline).foregroundStyle(.primary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).foregroundStyle(.primary)
+                    Text(value).font(.subheadline).foregroundStyle(.primary)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+        }
+        .font(.body)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct ExportOptionIcon: View {
+    let symbol: String
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.body.weight(.medium))
+            .foregroundStyle(Color.accentColor)
+            .frame(width: 22)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct ExportAdvancedOptions: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(reduceMotion ? nil : TowerMotion.disclosure(reduceMotion: false)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    ExportOptionIcon(symbol: "slider.horizontal.3")
+                    Text("高级选项")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("export-advanced-options")
+            .accessibilityValue(isExpanded ? Text("已展开") : Text("已收起"))
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 16) {
+                    Toggle("优先使用规则集", isOn: Binding(get: { model.preferRuleSets }, set: model.setPreferRuleSets))
+                        .accessibilityIdentifier("prefer-rule-sets-toggle")
+                    Text("兼容时引用远程规则集，不兼容的客户端会自动保留本地规则。")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    if model.selectedTarget.supportsEmbeddedRemoteSubscriptions {
+                        Toggle("代理集合", isOn: Binding(get: { model.embedRemoteSubscriptionLinks }, set: model.setEmbedRemoteSubscriptionLinks))
+                            .accessibilityIdentifier("embed-remote-subscription-links-toggle")
+                        Text("原始订阅链接直接写入配置文件，交由客户端更新。")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+                .padding(.vertical, 12)
+                .padding(.trailing, 4)
+                .transition(.opacity)
+            }
+        }
+    }
+}
+
 private struct ExportContentModePicker: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         if model.selectedTarget.supportedContentModes.count > 1 {
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeading(title: "导出内容", detail: model.selectedTarget.name)
                 Picker(
                     "导出内容",
                     selection: Binding(
@@ -303,24 +481,12 @@ private struct ExportContentModePicker: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("export-content-mode")
 
-                Text(modeExplanation)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(16)
-            .towerCard()
+
         }
     }
 
-    private var modeExplanation: String {
-        switch model.exportContentMode(for: model.selectedTarget) {
-        case .nodesOnly:
-            return String(localized: "只添加节点订阅，不替换客户端现有的规则和策略组。")
-        case .fullConfiguration:
-            return String(localized: "导出节点、规则和策略组组成的完整配置。")
-        }
-    }
+
 }
 
 private struct ExportSettingsSheet: View {
@@ -1081,57 +1247,128 @@ private struct ConversionSummary: View {
     let configuration: GeneratedConfiguration
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(configuration.hasExportableProxies ? "转换已就绪" : "暂时无法导出")
-                        .font(.title3.weight(.semibold))
-                        .contentTransition(.opacity)
-                        .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: configuration.hasExportableProxies)
-                    Text(summarySubtitle)
+        VStack(alignment: .leading, spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) { counts }
+                VStack(alignment: .leading, spacing: 6) { counts }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            if !configuration.hasExportableProxies {
+                if !model.hasExportableSources {
+                    Text("请先添加或启用订阅和节点，再生成配置。")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .contentTransition(.opacity)
-                        .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: summarySubtitle)
                 }
-                Spacer()
-                Image(systemName: configuration.hasExportableProxies ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
-                    .font(.title2)
-                    .foregroundStyle(configuration.hasExportableProxies ? .green : .orange)
             }
-            if !configuration.hasExportableProxies && !model.hasExportableSources {
-                Text("请先添加或启用订阅和节点，再生成配置。")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            HStack(spacing: 16) {
-                MetricPill(
-                    value: configuration.supportedNodeCount,
-                    label: "兼容节点"
-                )
-                Divider().frame(height: 38)
-                MetricPill(value: configuration.ruleCount, label: "本地规则")
-                Divider().frame(height: 38)
-                MetricPill(value: configuration.skippedNodeCount, label: "已跳过")
+            if configuration.skippedNodeCount > 0 || !configuration.diagnostics.isEmpty {
+                ExportResultDetails(configuration: configuration)
+                    .id(configuration.target)
             }
             if configuration.remoteSourceCount > 0 {
                 Label("\(configuration.remoteSourceCount) 个代理集合 · 节点由客户端更新，以上仅统计本地节点。", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .padding(20)
-        .towerCard()
     }
 
-    private var summarySubtitle: String {
-        switch configuration.contentMode {
-        case .nodesOnly:
-            String(localized: "仅节点 · \(model.selectedTarget.name)")
-        case .fullConfiguration:
-            "\(model.activeRuleName) · \(model.selectedTarget.name)"
+    @ViewBuilder private var counts: some View {
+        HStack(spacing: 5) {
+            Text(configuration.supportedNodeCount, format: .number).monospacedDigit()
+            Text("兼容节点")
         }
+        if configuration.contentMode == .fullConfiguration {
+            HStack(spacing: 5) {
+                Text(configuration.ruleCount, format: .number).monospacedDigit()
+                Text("本地规则")
+            }
+        }
+    }
+
+
+}
+
+private struct ExportResultDetails: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var selection: Detail?
+    let configuration: GeneratedConfiguration
+
+    private enum Detail { case skipped, compatibility }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(spacing: 0) {
+                if configuration.skippedNodeCount > 0 {
+                    disclosureRow(.skipped, title: "已跳过", count: configuration.skippedNodeCount, identifier: "export-skipped-nodes")
+                }
+                if !configuration.diagnostics.isEmpty {
+                    disclosureRow(.compatibility, title: "兼容性提示", count: configuration.diagnostics.count, identifier: "export-compatibility-notes")
+                }
+            }
+            if let selection {
+                VStack(alignment: .leading, spacing: 0) {
+                    if selection == .skipped {
+                        ForEach(Array(configuration.skippedNodes.enumerated()), id: \.offset) { index, node in
+                            if index > 0 { Divider() }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(verbatim: node.name).font(.subheadline.weight(.semibold))
+                                Text(verbatim: node.kind.title).font(.caption).foregroundStyle(.secondary)
+                                Text(verbatim: node.reason).font(.subheadline)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 12)
+                        }
+                    } else {
+                        ForEach(Array(configuration.diagnostics.enumerated()), id: \.offset) { index, diagnostic in
+                            if index > 0 { Divider() }
+                            HStack(alignment: .top, spacing: 10) {
+                                Text(index + 1, format: .number)
+                                    .font(.caption.monospacedDigit().weight(.medium))
+                                    .foregroundStyle(.secondary)
+                                    .frame(minWidth: 20, alignment: .leading)
+                                    .padding(.top, 3)
+                                Text(verbatim: diagnostic)
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(.vertical, 12)
+                        }
+                    }
+                }
+                .lineSpacing(4)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 12)
+                .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
+                .transition(.opacity)
+            }
+        }
+    }
+
+    private func disclosureRow(_ detail: Detail, title: LocalizedStringKey, count: Int, identifier: String) -> some View {
+        Button {
+            withAnimation(reduceMotion ? nil : TowerMotion.disclosure(reduceMotion: false)) {
+                selection = selection == detail ? nil : detail
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(title)
+                Text(count, format: .number).monospacedDigit()
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .rotationEffect(.degrees(selection == detail ? 90 : 0))
+                    .accessibilityHidden(true)
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
+        .accessibilityValue(selection == detail ? Text("已展开") : Text("已收起"))
     }
 }
 
@@ -1140,27 +1377,14 @@ private struct ConfigurationPreview: View {
     let configuration: GeneratedConfiguration
     let onOpen: () -> Void
 
-    private var preview: String {
-        ConfigurationPreviewFormatter.summary(from: configuration.content)
-    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeading(title: "配置预览", detail: configuration.fileName)
-            ConfigurationSummaryView(text: preview)
-                .contentTransition(.opacity)
-                .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: preview)
-                .frame(height: 220)
-                .background(Color.black.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-            Button(action: onOpen) {
-                Label("全屏预览", systemImage: "arrow.up.left.and.arrow.down.right")
-            }
-            .accessibilityIdentifier("preview-config")
-            .font(.subheadline.weight(.semibold))
+        Button(action: onOpen) {
+            ExportOptionRow(title: "配置预览", value: configuration.fileName)
         }
-        .padding(16)
-        .towerCard()
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.accentColor)
+        .accessibilityIdentifier("preview-config")
     }
 }
 
@@ -1227,42 +1451,14 @@ private struct ImportPrivacyNote: View {
     let embedsRemoteSubscriptions: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(spacing: 10) {
-                ClientAppIcon(target: target, size: 34)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundStyle(.green)
-                        .contentTransition(.opacity)
-                        .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: title)
-                    Text(target.name)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .contentTransition(.opacity)
-                        .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: target.name)
-                }
-            }
-            Text(detail)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .contentTransition(.opacity)
-                .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: detail)
-        }
-        .padding(16)
-        .background(.green.opacity(0.075), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        Text(detail)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 6)
     }
 
-    private var title: String {
-        if target.copiesAggregatedSubscription(mode: contentMode) {
-            return String(localized: "复制聚合的订阅链接")
-        }
-        if copiesSubscription { return String(localized: "复制订阅") }
-        return target.supportsDirectImport(mode: contentMode)
-            ? String(localized: "本机一键导出")
-            : String(localized: "使用本地文件导出")
-    }
 
     private var detail: String {
         if target.copiesAggregatedSubscription(mode: contentMode) {
@@ -1367,7 +1563,7 @@ private struct ImportActionBar: View {
         }
         .padding(.horizontal, TowerTheme.pagePadding)
         .padding(.top, 11)
-        .padding(.bottom, 9)
+        .padding(.bottom, 16)
         .background(.bar)
         .overlay(alignment: .top) {
             Divider().opacity(0.45)

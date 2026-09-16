@@ -431,20 +431,26 @@ final class AuditFlowInteractionTests: XCTestCase {
     func testEmptyExportRemainsDisabledUntilProtocolIsEnabled() {
         let app = launch()
         app.tabBars.buttons["导出"].tap()
+        app.buttons["open-protocol-filter"].tap()
         for id in ["filter-ss", "filter-trojan", "filter-vmess"] {
             let toggle = app.switches[id]
             XCTAssertTrue(toggle.waitForExistence(timeout: 5))
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
             XCTAssertEqual(toggle.value as? String, "0")
         }
-        app.swipeUp()
+        app.buttons["完成"].tap()
         XCTAssertTrue(app.staticTexts["暂时无法导出"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["export-config"].isEnabled)
-        app.swipeDown()
+        app.buttons["open-protocol-filter"].tap()
         let toggle = app.switches["filter-ss"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["完成"].tap()
         XCTAssertTrue(app.buttons["export-config"].isEnabled)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "compact-export-card"
+        shot.lifetime = .keepAlways
+        add(shot)
     }
 
     func testPreviewCopyShowsFeedbackAboveFullScreenCover() {

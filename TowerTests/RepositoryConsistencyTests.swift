@@ -978,7 +978,9 @@ final class RepositoryConsistencyTests: XCTestCase {
         XCTAssertFalse(theme.contains("AnyShapeStyle(.thinMaterial)"))
         XCTAssertTrue(export.contains("HStack(spacing: 12)"))
         XCTAssertFalse(export.contains("LazyHStack(spacing: 12)"))
-        XCTAssertTrue(export.contains("ConfigurationSummaryView(text: preview)"))
+        // The redesigned card opens preview on demand instead of rendering a
+        // text excerpt in the scrolling card.
+        XCTAssertTrue(export.contains(".accessibilityIdentifier(\"preview-config\")"))
         XCTAssertFalse(export.contains("ConfigurationTextView(text: preview, isScrollEnabled: false)"))
     }
 

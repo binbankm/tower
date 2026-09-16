@@ -44,13 +44,15 @@ struct RuleSchemeParser {
                     && group.parameters?["use"] != nil
                     && group.parameters?["tower-source-bindings"] == nil
                     && group.parameters?["tower-source-tags"] == nil)
-              }),
-              let source = scheme.rawConfigurationText,
-              let reparsed = try? parse(text: source, id: scheme.id, name: scheme.name,
-                                       summary: scheme.summary) else { return scheme }
+              }) else { return scheme }
         let existing = Dictionary(scheme.groups.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
         var restored = scheme
-        if scheme.groups.contains(where: { $0.sourceType == nil }) {
+        // Recover missing source semantics when possible. Old snapshots may lack
+        // readable source text; that must not bypass the independent repair below.
+        if scheme.groups.contains(where: { $0.sourceType == nil }),
+           let source = scheme.rawConfigurationText,
+           let reparsed = try? parse(text: source, id: scheme.id, name: scheme.name,
+                                    summary: scheme.summary) {
             restored.groups = reparsed.groups.map { parsed in
                 if let old = existing[parsed.name], old.sourceType != nil { return old }
                 return parsed

@@ -1002,10 +1002,16 @@ final class AppModel {
                 ?? customRuleFlows.endIndex
             customRuleFlows.insert(flow, at: insertion)
         }
-        if let groupName = flow.generatedPolicyGroup?.name {
+        // Catalog entries can reuse a group from the original scheme instead
+        // of generating one. Explicitly re-adding either kind restores that
+        // target only; unrelated deletion markers remain intact.
+        if let groupName = flow.generatedPolicyGroup?.name
+            ?? (flow.catalogID != nil ? flow.policyName : nil) {
             var customization = ruleSchemeCustomizations[flow.schemeID]
                 ?? RuleSchemeCustomization(schemeID: flow.schemeID)
+            let visibleName = customization.renamedGroupName(groupName)
             customization.removedGroupNames?.remove(groupName)
+            customization.removedGroupNames?.remove(visibleName)
             ruleSchemeCustomizations[flow.schemeID] = customization
         }
         persist()
@@ -2680,6 +2686,11 @@ final class AppModel {
         let result = request.generate()
         generationCache[request.key] = result
         return result.named(request.name)
+    }
+
+    /// Read an already generated result without starting work during view updates.
+    func cachedConfiguration(for request: ConfigurationRequest) -> GeneratedConfiguration? {
+        generationCache[request.key]?.named(request.name)
     }
 
     func configuration(for request: ConfigurationRequest) async -> GeneratedConfiguration {

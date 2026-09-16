@@ -135,7 +135,8 @@ struct ConfigurationGenerator {
             skippedNodeCount: nodes.filter { $0.sourceID.map(remoteSourceIDs.contains) != true }.count - inlineNodes.count,
             ruleCount: rules.count(for: preset),
             fileExtensionOverride: target == .shadowrocket ? "yaml" : nil,
-            remoteSourceCount: remoteEntries.count
+            remoteSourceCount: remoteEntries.count,
+            skippedNodes: skippedDetails(nodes: nodes, exported: inlineNodes, remoteSourceIDs: remoteSourceIDs, target: target, excludedKinds: excludedKinds, supportedKindsOverride: supportedKindsOverride)
         )
     }
 
@@ -385,7 +386,8 @@ struct ConfigurationGenerator {
             fileExtensionOverride: target == .shadowrocket ? "yaml" : nil,
             remoteSourceCount: remoteEntries.count,
             diagnostics: diagnostics,
-            hasInvalidPolicyReferences: !unknownPolicies.isEmpty || capabilityBlocked
+            hasInvalidPolicyReferences: !unknownPolicies.isEmpty || capabilityBlocked,
+            skippedNodes: skippedDetails(nodes: nodes, exported: inlineNodes, remoteSourceIDs: remoteSourceIDs, target: target, excludedKinds: excludedKinds, supportedKindsOverride: supportedKindsOverride)
         )
     }
 
@@ -641,7 +643,8 @@ struct ConfigurationGenerator {
                 ruleCount: 0,
                 profileName: profileName,
                 contentMode: .nodesOnly,
-                fileExtensionOverride: target.usesClashFormat ? "yaml" : "txt"
+                fileExtensionOverride: target.usesClashFormat ? "yaml" : "txt",
+                skippedNodes: skippedDetails(nodes: nodes, exported: [], target: target, excludedKinds: excludedKinds, nodesOnly: true)
             )
         }
 
@@ -705,8 +708,39 @@ struct ConfigurationGenerator {
             ruleCount: 0,
             profileName: profileName,
             contentMode: .nodesOnly,
-            fileExtensionOverride: target.usesClashFormat ? "yaml" : "txt"
+            fileExtensionOverride: target.usesClashFormat ? "yaml" : "txt",
+            skippedNodes: skippedDetails(nodes: nodes, exported: supported, target: target, excludedKinds: excludedKinds, nodesOnly: true)
         )
+    }
+
+    private func skippedDetails(
+        nodes: [ProxyNode], exported: [ProxyNode], remoteSourceIDs: Set<UUID> = [],
+        target: ClientTarget, excludedKinds: Set<ProxyKind>,
+        supportedKindsOverride: Set<ProxyKind>? = nil, nodesOnly: Bool = false
+    ) -> [SkippedExportNode] {
+        let exportedIDs = Set(exported.map(\.id))
+        return nodes.compactMap { node in
+            guard !exportedIDs.contains(node.id), node.sourceID.map(remoteSourceIDs.contains) != true else { return nil }
+            let reason: String
+            if excludedKinds.contains(node.kind) {
+                reason = String(localized: "已在协议筛选中排除。")
+            } else if !(supportedKindsOverride?.contains(node.kind) ?? target.supports(node.kind)) {
+                reason = String(localized: "当前客户端不支持此协议。")
+            } else if [.singBox, .hiddify].contains(target), certificatePin(node) != nil {
+                reason = String(localized: "当前客户端无法保留此节点的证书指纹校验。")
+            } else if [.vmess, .vless].contains(node.kind), node.exportableUUID == nil {
+                reason = String(localized: "节点认证信息无效或不完整。")
+            } else if nodesOnly && (!target.supportsNodesOnlyExport
+                || ([ClientTarget.surge, .surgeMac].contains(target) && node.kind == .wireguard)
+                || (target == .shadowrocket && [.snell, .wireguard].contains(node.kind))) {
+                reason = String(localized: "仅节点格式无法保留完整参数，请使用完整配置。")
+            } else if !canExpressTransport(of: node, on: target) {
+                reason = String(localized: "当前客户端不支持此节点的传输方式。")
+            } else {
+                reason = String(localized: "此节点的协议参数无法在当前客户端完整保留。")
+            }
+            return SkippedExportNode(name: node.name, kind: node.kind, reason: reason)
+        }
     }
 
     /// A node reaches the configuration when the client can express it and the

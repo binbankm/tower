@@ -54,6 +54,47 @@ final class ReviewFixTests: XCTestCase {
             .appendingPathComponent("tower-review-fix-\(UUID().uuidString).json")
     }
 
+    func testSkippedDetailsMatchFilteringAndSurviveRename() {
+        let node = makeNode(name: "Filtered node", server: "192.0.2.1")
+        let generator = ConfigurationGenerator()
+        let output = generator.generateNodeSubscription(nodes: [node], target: .clash, excludedKinds: [.shadowsocks])
+        XCTAssertEqual(output.skippedNodeCount, 1)
+        XCTAssertEqual(output.skippedNodes.map(\.name), [node.name])
+        XCTAssertEqual(output.skippedNodes.first?.reason, String(localized: "已在协议筛选中排除。"))
+        XCTAssertEqual(output.named("Renamed").skippedNodes.count, 1)
+    }
+
+    func testSkippedDetailsExplainCertificatePinsAndExcludeRemoteNodes() {
+        var pinned = makeNode(name: "Pinned node", server: "192.0.2.2")
+        pinned.tls = true
+        pinned.certificateFingerprint = String(repeating: "ab", count: 32)
+        let generator = ConfigurationGenerator()
+        let output = generator.generate(nodes: [pinned], preset: RulePreset.builtIns[0], target: .singBox)
+        XCTAssertEqual(output.skippedNodeCount, 1)
+        XCTAssertEqual(output.skippedNodes.count, 1)
+        XCTAssertEqual(output.skippedNodes.first?.reason, String(localized: "当前客户端无法保留此节点的证书指纹校验。"))
+        let source = SubscriptionSource(name: "Remote", urlString: "https://example.com/sub")
+        pinned.sourceID = source.id
+        let remote = generator.generate(nodes: [pinned], preset: RulePreset.builtIns[0], target: .clash,
+                                        remoteSubscriptions: [RemoteSubscriptionLink(source: source)])
+        XCTAssertEqual(remote.skippedNodeCount, 0)
+        XCTAssertTrue(remote.skippedNodes.isEmpty)
+    }
+
+    @MainActor
+    func testExportCacheLookupNeverGeneratesOrReturnsAnotherMode() async {
+        let model = AppModel(arguments: ["--demo"])
+        let full = model.configurationRequest(target: .surge, contentMode: .fullConfiguration)
+        let nodes = model.configurationRequest(target: .surge, contentMode: .nodesOnly)
+        let before = model.configurationGenerationCount
+        XCTAssertNil(model.cachedConfiguration(for: full))
+        XCTAssertEqual(model.configurationGenerationCount, before)
+        let result = await model.configuration(for: full)
+        XCTAssertEqual(model.cachedConfiguration(for: full)?.content, result.content)
+        XCTAssertNil(model.cachedConfiguration(for: nodes))
+        XCTAssertEqual(model.configurationGenerationCount, before + 1)
+    }
+
     @MainActor
     func testWarmConfigurationPerformanceAudit() {
         let model = AppModel(arguments: ["--demo"])

@@ -1894,6 +1894,12 @@ enum ExportFilePresentation {
     }
 }
 
+struct SkippedExportNode {
+    let name: String
+    let kind: ProxyKind
+    let reason: String
+}
+
 struct GeneratedConfiguration {
     let diagnostics: [String]
     let hasInvalidPolicyReferences: Bool
@@ -1901,6 +1907,7 @@ struct GeneratedConfiguration {
     let content: String
     let supportedNodeCount: Int
     let skippedNodeCount: Int
+    let skippedNodes: [SkippedExportNode]
     /// Remote node counts are unknown until the target client refreshes.
     let remoteSourceCount: Int
     var hasExportableProxies: Bool { !hasInvalidPolicyReferences && (supportedNodeCount > 0 || remoteSourceCount > 0) }
@@ -1920,13 +1927,15 @@ struct GeneratedConfiguration {
         fileExtensionOverride: String? = nil,
         remoteSourceCount: Int = 0,
         diagnostics: [String] = [],
-        hasInvalidPolicyReferences: Bool = false
+        hasInvalidPolicyReferences: Bool = false,
+        skippedNodes: [SkippedExportNode] = []
     ) {
         self.diagnostics = diagnostics
         self.hasInvalidPolicyReferences = hasInvalidPolicyReferences
         self.target = target
         self.content = content
         self.supportedNodeCount = supportedNodeCount
+        self.skippedNodes = skippedNodes
         self.skippedNodeCount = skippedNodeCount
         self.remoteSourceCount = remoteSourceCount
         self.ruleCount = ruleCount
@@ -1953,7 +1962,8 @@ struct GeneratedConfiguration {
             fileExtensionOverride: fileExtensionOverride,
             remoteSourceCount: remoteSourceCount,
             diagnostics: diagnostics,
-            hasInvalidPolicyReferences: hasInvalidPolicyReferences
+            hasInvalidPolicyReferences: hasInvalidPolicyReferences,
+            skippedNodes: skippedNodes
         )
     }
 }

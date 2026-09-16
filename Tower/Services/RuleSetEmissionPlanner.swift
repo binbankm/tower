@@ -254,7 +254,18 @@ struct RuleSetEmissionPlanner {
         isClashProviderYAML: Bool
     ) -> NativeFormat? {
         switch target {
-        case .clash, .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi, .karing:
+        case .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi:
+            // Mihomo accepts this Surge domain flag in classical HTTP providers
+            // and ignores it, just as for inline domain rules. This preserves
+            // ordinary domain matching; it does not enable Surge-style sniffing.
+            guard linesAreClassical(lines, allowedTypes: Self.clashRuleTypes, allowExtendedMatching: true) else { return nil }
+            return isClashProviderYAML ? .clashProviderYAML : .classicalText
+        case .clash:
+            // Stash supports classical text providers. Preserve this resource
+            // for client validation; do not claim Surge sniffing semantics.
+            guard linesAreClassical(lines, allowedTypes: Self.clashRuleTypes, allowExtendedMatching: true) else { return nil }
+            return isClashProviderYAML ? .clashProviderYAML : .classicalText
+        case .karing:
             guard linesAreClassical(lines, allowedTypes: Self.clashRuleTypes) else { return nil }
             return isClashProviderYAML ? .clashProviderYAML : .classicalText
         case .surge, .surgeMac:
