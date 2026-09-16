@@ -1,5 +1,13 @@
 # 当前交接
 
+## 1.0.20（58）已发布 GitHub、已上传 TestFlight（2026-09-16）
+
+- 源码35e2a8d已推送；GitHub v1.0.20已公开，含通用Mac DMG及SHA256SUMS。主要更新为导出页面与提示、Clash系列/Stash远程规则集、#33缺原文迁移及#36原有分组删除重加修复。
+- iOS完整测试1240通过、5跳过、0失败；本地化1019条通过，ACL4SSR上游新鲜度及77个远程产物校验通过，发布脚本测试通过。新版预览已改为独立入口，原布局文本断言同步更新。
+- M2正式Xcode归档通用Mac，Developer ID签名、公证、stapler、Gatekeeper通过；DMG挂载验证及GitHub公开下载回验通过。DMG SHA-256：52c36747e5a9ca5cceae09781e78037628ee73770fa025de6659c25af39b14c4。
+- Homebrew更新至1.0.20（58）；实测发现旧版Homebrew将符号系统限制当成精确版本，已按主版本选择最低系统表达式。M2 style/audit及真实升级、安装后签名、公证与启动验证通过；本机Homebrew7 style/info通过。两版均保留macOS14及以上要求。
+- iOS由M2正式Xcode归档并上传成功；App Store Connect已显示1.0.20（58）处理完成、准备提交，关联内部test测试组。未提交外部Beta审核，未发布App Store；未把上传等同于外部测试员可用。本轮未安装手机。
+
 ## 未发布：Issue #36 原方案分组删除后重加（2026-09-16）
 
 - 规则目录复用原方案已有分组时，`generatedPolicyGroup` 为空；旧 upsert 只为新建分组清除删除标记，造成目录已勾选但有效方案仍隐藏分组。用户已确认原方案自带 YouTube 的删除/重加路径可复现。
