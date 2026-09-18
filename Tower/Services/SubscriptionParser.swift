@@ -606,6 +606,16 @@ struct SubscriptionParser {
               let password = options["password"],
               !password.isEmpty else { return nil }
 
+        var shadowTLS: ShadowTLSOptions?
+        if options.keys.contains(where: { $0.hasPrefix("shadow-tls-") }) {
+            let keys = Set(options.keys.filter { $0.hasPrefix("shadow-tls-") })
+            guard keys.isSubset(of: ["shadow-tls-version", "shadow-tls-sni", "shadow-tls-password"]) else { return nil }
+            let fields = ["version": options["shadow-tls-version"] ?? "2",
+                          "host": options["shadow-tls-sni"] ?? "",
+                          "password": options["shadow-tls-password"] ?? ""]
+            guard let parsed = shadowTLSOptions(fields) else { return nil }
+            shadowTLS = parsed
+        }
         return ProxyNode(
             sourceID: sourceID,
             kind: .shadowsocks,
@@ -614,6 +624,8 @@ struct SubscriptionParser {
             port: port,
             cipher: cipher,
             password: password,
+            plugin: shadowTLS == nil ? nil : "shadow-tls",
+            shadowTLS: shadowTLS,
             obfs: options["obfs"],
             obfsParam: options["obfs-host"],
             udpRelayEnabled: boolString(options["udp-relay"] ?? options["udp"]),
@@ -632,17 +644,17 @@ struct SubscriptionParser {
                 else if quote == nil { quote = character }
                 current.append(character)
             } else if character == ",", quote == nil {
-                fields.append(surgeProxyScalar(current))
+                fields.append(surgeProxyScalar(current, decodePercent: false))
                 current = ""
             } else {
                 current.append(character)
             }
         }
-        fields.append(surgeProxyScalar(current))
+        fields.append(surgeProxyScalar(current, decodePercent: false))
         return fields
     }
 
-    private func surgeProxyScalar(_ value: String) -> String {
+    private func surgeProxyScalar(_ value: String, decodePercent: Bool = true) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         let unquoted: String
         if trimmed.count >= 2,
@@ -654,7 +666,7 @@ struct SubscriptionParser {
         } else {
             unquoted = trimmed
         }
-        return unquoted.removingPercentEncoding ?? unquoted
+        return decodePercent ? (unquoted.removingPercentEncoding ?? unquoted) : unquoted
     }
 
     func parseURI(_ rawValue: String, sourceID: UUID? = nil) -> ProxyNode? {
@@ -746,18 +758,24 @@ struct SubscriptionParser {
         var pluginPath: String?
         var pluginTLS = false
         var pluginMux: Bool?
+        var shadowTLS: ShadowTLSOptions?
+        var shadowTLSFingerprint: String?
         var udpRelayEnabled: Bool?
         if let queryIndex = payload.firstIndex(of: "?") {
             let query = String(payload[payload.index(after: queryIndex)...])
             let parameters = queryDictionary(query)
             udpRelayEnabled = (parameters["udp-relay"] ?? parameters["udp"]).map { boolString($0) }
-            // A SIP003 plugin changes how the node is dialled. simple-obfs is
-            // carried over because every target format can express it; any
-            // other plugin would import as a node that looks healthy and never
-            // connects, so it is rejected and counted instead.
+            // Plugins change the wire protocol. Parse only modelled options;
+            // unknown plugins must never turn into an ordinary SS node.
             if let plugin = queryDictionary(query)["plugin"]?.removingPercentEncoding,
                !plugin.isEmpty {
-                if let options = simpleObfsOptions(from: plugin) {
+                if plugin.lowercased().hasPrefix("shadow-tls;") {
+                    guard !boolString(parameters["udp-over-tcp"]),
+                          let options = shadowTLSPluginOptions(plugin) else { return nil }
+                    shadowTLS = options
+                    shadowTLSFingerprint = parameters["client-fingerprint"]?.removingPercentEncoding
+                    sip003Plugin = "shadow-tls"
+                } else if let options = simpleObfsOptions(from: plugin) {
                     obfsMode = options.mode
                     obfsHost = options.host
                 } else if let options = v2rayPluginOptions(from: plugin) {
@@ -803,14 +821,50 @@ struct SubscriptionParser {
             transport: pluginTransport,
             plugin: sip003Plugin,
             pluginMux: pluginMux,
+            shadowTLS: shadowTLS,
             tls: pluginTLS,
             hostHeader: obfsHost,
             path: pluginPath,
+            fingerprint: shadowTLSFingerprint,
             obfs: obfsMode,
             obfsParam: sip003Plugin == nil ? obfsHost : nil,
             udpRelayEnabled: udpRelayEnabled,
             rawURI: raw
         )
+    }
+
+    private func shadowTLSOptions(_ options: [String: String]) -> ShadowTLSOptions? {
+        let known: Set<String> = ["version", "host", "password", "skip-cert-verify"]
+        guard Set(options.keys).isSubset(of: known),
+              let version = Int(options["version"] ?? ""),
+              let host = options["host"] else { return nil }
+        let result = ShadowTLSOptions(version: version, host: host,
+                                      password: options["password"] ?? "",
+                                      skipCertificateVerification: boolString(options["skip-cert-verify"]))
+        return result.isValid ? result : nil
+    }
+
+    private func shadowTLSPluginOptions(_ plugin: String) -> ShadowTLSOptions? {
+        // SIP003 escapes semicolons and backslashes inside option values.
+        var parts = [String]()
+        var part = ""
+        var escaped = false
+        for character in plugin {
+            if escaped { part.append(character); escaped = false }
+            else if character == "\\" { escaped = true }
+            else if character == ";" { parts.append(part); part = "" }
+            else { part.append(character) }
+        }
+        guard !escaped else { return nil }
+        parts.append(part)
+        var options = [String: String]()
+        for field in parts.dropFirst() {
+            guard let equals = field.firstIndex(of: "=") else { return nil }
+            let key = String(field[..<equals]).lowercased()
+            guard options[key] == nil else { return nil }
+            options[key] = String(field[field.index(after: equals)...])
+        }
+        return shadowTLSOptions(options)
     }
 
     /// Reads a SIP003 plugin string such as
@@ -1433,6 +1487,7 @@ struct SubscriptionParser {
         var itemIndentation: Int?
         // The key a bare sequence element belongs to, for the same reason.
         var pendingSequenceKey: String?
+        var pluginIndentation: Int?
 
         for rawLine in lines.dropFirst(start + 1) {
             let trimmed = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1444,6 +1499,7 @@ struct SubscriptionParser {
                 itemIndentation = indentation
                 if !current.isEmpty { dictionaries.append(current) }
                 current = [:]
+                pluginIndentation = nil
                 inside = true
                 pendingSequenceKey = nil
                 let remainder = trimmed.dropFirst().trimmingCharacters(in: .whitespaces)
@@ -1451,7 +1507,10 @@ struct SubscriptionParser {
                     current.merge(parseInlineYAMLMap(String(remainder))) { _, new in new }
                 } else if let pair = parseYAMLPair(String(remainder)) {
                     current[pair.0] = pair.1
-                    if pair.1.isEmpty { pendingSequenceKey = pair.0 }
+                    if pair.1.isEmpty {
+                        pendingSequenceKey = pair.0
+                        if pair.0 == "plugin-opts" { pluginIndentation = indentation + 2 }
+                    }
                 }
             } else if inside, trimmed.hasPrefix("-") {
                 // A nested element. Collected comma-joined so a multi-value
@@ -1477,6 +1536,11 @@ struct SubscriptionParser {
                 let existing = current[key] ?? ""
                 current[key] = existing.isEmpty ? element : existing + "," + element
             } else if inside, let pair = parseYAMLPair(trimmed) {
+                if let parent = pluginIndentation, indentation > parent {
+                    current["plugin-opts." + pair.0] = pair.1
+                    continue
+                }
+                pluginIndentation = pair.0 == "plugin-opts" && pair.1.isEmpty ? indentation : nil
                 current[pair.0] = pair.1
                 pendingSequenceKey = pair.1.isEmpty ? pair.0 : nil
             }
@@ -1504,16 +1568,15 @@ struct SubscriptionParser {
                 continue
             }
 
-            // A SIP003 plugin changes how the node is dialled. simple-obfs is
-            // expressible in all five target formats and is carried over;
-            // anything else would import as a node that looks healthy and never
-            // connects, so it is rejected and counted instead.
+            // Keep the plugin and its independent credentials. Unsupported
+            // plugins are rejected instead of being flattened into plain SS.
             var obfsMode = dictionary["obfs"]
             var sip003Plugin: String?
             var pluginTransport: String?
             var pluginPath: String?
             var pluginTLS = false
             var pluginMux: Bool?
+            var shadowTLS: ShadowTLSOptions?
             // `obfs-param` is ShadowsocksR's key. Hysteria 2 spells the same
             // slot `obfs-password`, and reading only the SSR name left every
             // salamander node with a type and no password — which makes Mihomo
@@ -1523,12 +1586,20 @@ struct SubscriptionParser {
                 ?? dictionary["obfs_password"]
             if kind == .shadowsocks, let plugin = dictionary["plugin"]?.lowercased(), !plugin.isEmpty {
                 var options = parseInlineYAMLMap(dictionary["plugin-opts"] ?? "")
-                // The block YAML reader flattens nested scalar keys; inline
-                // plugin maps already have their own values and take priority.
-                for key in ["mode", "host", "path", "tls", "mux"] where options[key] == nil {
-                    options[key] = dictionary[key]
+                for (key, value) in dictionary where key.hasPrefix("plugin-opts.") {
+                    options[String(key.dropFirst("plugin-opts.".count))] = value
                 }
-                if plugin == "obfs" || plugin == "obfs-local" || plugin == "simple-obfs" {
+                if plugin == "shadow-tls" {
+                    // UDP-over-TCP is a separate server capability. Reject an
+                    // enabled, unmodelled mode rather than silently losing it.
+                    guard !boolString(dictionary["udp-over-tcp"]),
+                          let parsed = shadowTLSOptions(options) else {
+                        rejected += 1
+                        continue
+                    }
+                    sip003Plugin = "shadow-tls"
+                    shadowTLS = parsed
+                } else if plugin == "obfs" || plugin == "obfs-local" || plugin == "simple-obfs" {
                     obfsMode = options["mode"] ?? "http"
                     obfsHost = options["host"]
                 } else if plugin == "v2ray-plugin",
@@ -1572,13 +1643,14 @@ struct SubscriptionParser {
                     ? dictionary["mode"] : nil,
                 plugin: sip003Plugin,
                 pluginMux: pluginMux,
+                shadowTLS: shadowTLS,
                 // TLS is part of the Trojan protocol itself. Mihomo therefore
                 // omits the redundant `tls: true` field in valid Trojan nodes;
                 // treating that omission as plaintext breaks every strict
                 // target format derived from this shared model.
                 tls: kind == .trojan || pluginTLS || boolString(dictionary["tls"]),
                 sni: dictionary["servername"] ?? dictionary["sni"],
-                hostHeader: dictionary["authority"] ?? dictionary["host"],
+                hostHeader: sip003Plugin == "v2ray-plugin" ? obfsHost : dictionary["authority"] ?? dictionary["host"],
                 path: pluginPath
                     ?? (normalizedTransport(dictionary["network"]) == "grpc"
                         ? dictionary["grpc-service-name"] ?? dictionary["service-name"] ?? dictionary["path"]

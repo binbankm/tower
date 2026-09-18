@@ -53,4 +53,38 @@ Surge Mac 6.7+ 和 Clash Verge 支持一键导入；旧版 Surge Mac 找不到�
 
 自定义规则在本机生成，不即时编译 MRS/SRS。内置 ACL4SSR 的已验证二进制可供兼容客户端引用：Stash / Clash / Clash Mi 使用 MRS，sing-box MT 使用 SRS；其他目标沿用兼容文本或内联。内容与编译源不一致时回退，不复用旧二进制覆盖新规则。发布流程固定源版本、哈希和不可变产物 URL。
 
-SS 插件仅支持 simple-obfs；WireGuard 多 Peer 不做有损压缩；Snell 等协议按各目标能力判断。Surge 输入目前仅解析 `[Proxy]` 中的 SS 行，其他行计入跳过。客户端是否接收分享、重复导入是否覆盖，由客户端决定，不能由生成成功推断连通。
+SS 插件支持 simple-obfs、WebSocket 模式 v2ray-plugin，以及下述 ShadowTLS 组合；WireGuard 多 Peer 不做有损压缩；Snell 等协议按各目标能力判断。Surge 输入目前仅解析 `[Proxy]` 中的 SS 行，其他行计入跳过。客户端是否接收分享、重复导入是否覆盖，由客户端决定，不能由生成成功推断连通。
+
+
+### Shadowsocks + ShadowTLS
+
+导入支持 SIP003 `ss://…?plugin=shadow-tls;…`、Clash YAML 的 `plugin-opts`（行内及缩进格式），以及 Surge SS 行中的 `shadow-tls-*` 字段。ShadowTLS 的版本、SNI、密码独立保存；不会覆盖 SS 密码。支持保存重载、iCloud 数据序列化、节点分享及刷新身份匹配。当前要求显式版本与 SNI；未知参数或缺失必要字段的节点拒绝导入并计入跳过。
+
+| 导出目标 | 当前实现 |
+| --- | --- |
+| Stash | ShadowTLS v2/v3，保留 `plugin: shadow-tls` 与独立参数 |
+| Clash、Clash Verge、ClashMac、FlClash、Mihomo Party、Clash Mi | Mihomo 格式，ShadowTLS v1/v2/v3 |
+| Karing | 暂不支持：用户真机反馈无法连接，已撤回实验性导出；完整配置及仅节点均跳过 ShadowTLS |
+| Surge / Surge Mac | ShadowTLS v2/v3；SS2022 限 AES-128/256，独立 `shadow-tls-*` 参数 |
+| sing-box MT / Hiddify 完整配置 | SS outbound 经内部 ShadowTLS outbound 的 detour；辅助通道不进入策略组 |
+| Loon | ShadowTLS v2/v3，完整配置和仅节点均保留独立密码、SNI、版本 |
+| Shadowrocket | ShadowTLS v3；完整配置和包含 ShadowTLS 的仅节点订阅均使用 YAML plugin/plugin-opts |
+| Egern | ShadowTLS v3，完整配置使用独立 shadow_tls 对象；不将 v1/v2 冒充 v3 |
+| Hiddify 仅节点 | 包含 ShadowTLS 时使用仅含 outbounds 的 JSON，以 §hide§ 隐藏辅助通道；普通列表沿用 URI |
+| 其他目标 | 未验证表达方式，明确跳过，不降级为普通 SS |
+
+ShadowTLS 包装 TCP，不意味着支持 UDP。Mihomo、Stash、Surge 保留来源声明的普通 SS UDP 参数；sing-box detour 当前仅输出 TCP，源明确要求 UDP 的此类节点跳过。本轮不新增 UDP-over-TCP，来源显式启用该模式时拒绝导入。自定义 TLS 指纹与跳过证书校验仅在对应导出能保真时保留，否则跳过。已有证书 pin、复合传输等无法完整表达的组合仍跳过。
+
+依据：[Mihomo SS 插件](https://wiki.metacubex.one/en/config/proxies/ss/)、[Stash 协议说明](https://stash.wiki/en/proxy-protocols/proxy-types)、[Surge ShadowTLS](https://manual.nssurge.com/policies/tls.html)、[Surge SS2022](https://manual.nssurge.com/policies/shadowsocks.html)、[sing-box ShadowTLS](https://sing-box.sagernet.org/configuration/outbound/shadowtls/)。客户端实际接收和连通仍需按版本验收，不能将内核检查等同于每个客户端真机验证。
+
+
+ShadowTLS 补充适配依据（2026-09-17）：[Loon 官方节点格式](https://nsloon.app/en/docs/Node/)、[Egern 官方代理格式](https://egernapp.com/docs/configuration/proxies/)，并对照 [Sub-Store Loon producer](https://github.com/sub-store-org/Sub-Store/blob/07d94ef9e1970e98787dd0ab40dc3d454b06a5ba/backend/src/core/proxy-utils/producers/loon.js) 和 [Egern producer](https://github.com/sub-store-org/Sub-Store/blob/07d94ef9e1970e98787dd0ab40dc3d454b06a5ba/backend/src/core/proxy-utils/producers/egern.js)。独立实现字段映射，不引入转换器代码或联网转换服务。Loon 的 ShadowTLS 密码使用裸字段，不能套用 Surge 的百分号编码；无法安全表达的分隔符、空白和控制字符组合跳过。两种新目标暂不支持显式 TLS 指纹或跳过 ShadowTLS 证书校验，避免静默丢参数。普通 SS UDP 开关保留，未宣称 UDP 连通已验收。
+
+Sub-Store 该版本还提供 Surge、ClashMeta/Mihomo、sing-box、Shadowrocket 的 ShadowTLS 处理；是否生成并不代表每种客户端均已连通。原版 [tindy2013/subconverter](https://github.com/tindy2013/subconverter/tree/a0d4eab28cb8b6c782d4ce5c3a918de4829b4a72) 的 src 全文未找到 shadow-tls/shadowtls 处理，不能用其旧版通用 SS 支持推断 ShadowTLS 支持。该结论不涵盖社区 fork。
+
+
+Shadowrocket 补充（2026-09-17）：[官方 2.2.38 更新记录](https://t.me/s/ShadowrocketNews?before=484)明确包含 v3 解析与读取修复；[Sub-Store Shadowrocket producer](https://github.com/sub-store-org/Sub-Store/blob/07d94ef9e1970e98787dd0ab40dc3d454b06a5ba/backend/src/core/proxy-utils/producers/shadowrocket.js) 对 SS 保留 shadow-tls 插件结构。塔台据此开放完整 YAML 的 v3 基础组合，保留两层密码、SNI、版本及普通 UDP 开关；显式 TLS 指纹、跳过证书校验、v1/v2 等组合仍不扩大放行。仅节点 URI 是另一条导入路径，继续跳过并提示使用完整配置。用户已确认 Loon/Egern 手机连接可用；Shadowrocket 新输出需重新真机验收。
+
+ShadowTLS 仅节点补充（2026-09-18）：不直接开放未经证实的 SIP003 插件 URI。Shadowrocket 采用 [Sub-Store 的节点列表输出](https://github.com/sub-store-org/Sub-Store/blob/07d94ef9e1970e98787dd0ab40dc3d454b06a5ba/backend/src/core/proxy-utils/producers/shadowrocket.js) 对应的 proxies-only YAML。Hiddify 根据 [JSON 订阅解析入口](https://github.com/hiddify/hiddify-core/blob/db74dfc/v2/config/parser.go) 接收 outbounds-only JSON，使用 [selector 构建逻辑](https://github.com/hiddify/hiddify-core/blob/db74dfc/v2/config/builder.go) 的 §hide§ 标记隐藏 ShadowTLS 辅助通道。两者都不附带塔台的规则或策略组；混合订阅中的普通节点保留，无 ShadowTLS 的列表保持原格式。沿用版本、TLS 参数和 TCP/UDP 能力限制。手机上的实际订阅导入及连接仍待用户验收。
+
+Karing 验收结论（2026-09-18）：官方示例虽有 ShadowTLS 字段，但用户真机测试无法连接，因此撤回实验性导出。文档示例及生成测试不等于客户端连通验证。根因未定位，暂不重新开放；其他客户端能力不受影响。

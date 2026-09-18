@@ -1,5 +1,64 @@
 # 当前交接
 
+## 1.0.21（59）发布准备（2026-09-18）
+
+- 汇总 ShadowTLS 导入、分享及各目标客户端导出；Karing 按用户连接失败反馈保持跳过。
+- 版本更新后全量 TowerTests：1255 通过、5 跳过、0 失败；本地化检查及发布脚本测试通过。内置 ACL4SSR 最新，77 个远程产物校验通过。
+- GitHub 通用 Mac 包及 TestFlight 交由正式版 Xcode 发布机制作；发布状态以随后记录为准。
+
+## 当前结论：撤回 Karing ShadowTLS（2026-09-18）
+
+- 用户真机反馈 Karing 无法连接，并要求暂不支持。撤回刚添加的能力放行；完整配置（预设及自定义方案）和仅节点均跳过 ShadowTLS，不降级为普通 SS。Karing 普通 SS 及其他客户端的 ShadowTLS 支持保留。
+- 官方示例和生成器测试不足以证明客户端可用；失败根因未定位，不宣称是 Karing 本身不支持。重新开放需真实导入/连接验收。
+- 增补 v1/v2/v3 在三种导出路径下的跳过、计数和普通 SS 对照回归。ShadowTLS 专项测试通过，git diff --check 通过。已覆盖安装并启动 iPhone 1.0.20（58）；未推送或发布。
+
+
+## 已撤回的尝试：Karing ShadowTLS（2026-09-18）
+
+- 根据 Karing 官方 Clash 示例开放 SS + ShadowTLS v1/v2/v3，完整配置（含自定义方案）及仅节点 YAML 均保留两层密码、SNI、版本与 client-fingerprint。跳过证书校验尚无明确依据，继续跳过该组合；不扩大到其他客户端。
+- 全量 TowerTests 1255 通过、5 跳过、0 失败；覆盖所有目标能力矩阵及 Karing 三个版本的双模式、IPv6、指纹、独立密码、协议筛选和不兼容选项拒绝。git diff --check 通过。
+- 已覆盖安装并启动 iPhone 上的 1.0.20（58），保留用户数据。Karing 手机导入和实际连接待用户验收；未提交、推送或发布。
+
+
+## 未发布：ShadowTLS 仅节点订阅补齐（2026-09-18）
+
+- Shadowrocket 含 ShadowTLS 的列表输出 proxies-only YAML；Hiddify 输出 outbounds-only JSON，以 §hide§ 隐藏辅助 TLS 通道。没有 ShadowTLS 的订阅继续使用原来的 URI 格式。保留版本、指纹、证书校验和 UDP 限制，不静默降级普通 SS。
+- 用户此前已确认 Shadowrocket 完整配置连接可用；该结论不自动涵盖本次仅节点订阅，手机导入与连接待验。
+- 全量 TowerTests：1254 通过、5 跳过、0 失败。覆盖混合列表、独立密码、SNI、辅助通道隐藏、规则缺席、协议排除和原有 URI 路径。
+- 使用生成器实际导出的合成 Hiddify 节点文件通过 sing-box 1.14.0 check；这是配置校验，不是新路径实际连通验收。已覆盖安装并启动连接的 iPhone，版本保持 1.0.20（58）；未提交、推送或发布。
+
+
+## 未发布：Shadowrocket ShadowTLS v3 完整配置（2026-09-17）
+
+- 用户已确认 Loon/Egern 的手机导出连接可用；这是用户真机确认，不是此前单元测试或内核测试的推断。
+- 按官方 v3 更新记录与 Sub-Store 的 SS YAML 输出，开放 Shadowrocket 完整配置的基础 ShadowTLS v3 组合：保留 plugin/plugin-opts、SS 密码、ShadowTLS 密码、SNI 和版本。自定义规则方案同样生效。仅节点 URI 独立待验，仍跳过并提示使用完整配置。
+- 不扩大放行 v1/v2、显式 TLS 指纹及跳过证书校验；不将已有连接失败归因于客户端不支持，也不宣称新写法已连通。
+- 全量 TowerTests 1253 通过、5 跳过、0 失败；包括 YAML 导出重解析、原始两层密码保留、自定义方案、URI 跳过及不可表达参数拒绝。git diff --check 通过。iPhone 已覆盖安装并启动 1.0.20（58），客户端导入/连接待用户测试；未发布或推送。
+
+## 未发布：补充 Loon / Egern ShadowTLS 导出（2026-09-17）
+
+- 对照官方文档及 Sub-Store 07d94ef 的 producer，独立补充 Loon v2/v3（完整配置及仅节点）和 Egern v3（完整配置）；SS 与 ShadowTLS 密码分开保留。未引入第三方转换器代码或在线转换服务。
+- Loon ShadowTLS 密码为裸字段，保留原始百分号；会产生配置分隔歧义的字符拒绝输出并计入跳过。Egern 使用 shadow_tls.password/sni，版本不是 v3 时不导出。自定义 TLS 指纹、跳过 ShadowTLS 证书校验等未验证组合保持跳过。
+- Sub-Store 存在 Loon、Egern、Surge、Mihomo、sing-box、Shadowrocket 相关处理；原版 Subconverter a0d4eab 的 src 未发现 ShadowTLS 实现。完整证据链接见 CLIENT-COMPATIBILITY.md；未将原版结论推广到社区 fork。
+- 新测试在原实现下失败；修复后全量 TowerTests 1252 通过、5 跳过、0 失败，git diff --check 通过。实体 iPhone 已通过 Xcode 27.2 Beta 覆盖安装并成功启动，仍为 1.0.20（58），未推送/发布。Loon/Egern 手机导入和实际连接待用户验收，本轮未宣称通过内核连接实测。
+- Shadowrocket 保留原有限制：官方及 Sub-Store 有支持记录，但用户这组配置连接失败未定位；本轮不扩大支持范围。未变更 Karing 等尚未验证的导出路径。
+
+## 未发布：Shadowsocks + ShadowTLS（2026-09-17）
+
+- 用户授权使用其订阅与本地内核验证。原订阅的 58 个节点均为 SS2022 + ShadowTLS v3，旧解析器因不支持插件而拒绝。已新增独立 Codable 参数，隔离两层密码、版本、SNI，纳入节点身份键；旧无插件节点身份不变。
+- 导入 SIP003 URI、Clash YAML（缩进及行内 plugin-opts）、Surge SS ShadowTLS 参数；修正缩进插件字段污染外层密码，以及 Surge 标量重复百分号解码。分享保留插件、转义和显式客户端指纹。
+- 导出支持 Stash、Mihomo 系列、Surge，以及 sing-box MT/Hiddify 完整配置。sing-box 使用内部 detour，辅助通道不进入策略组。不支持的目标/参数组合跳过，具体边界见 CLIENT-COMPATIBILITY.md；没有往 App 内引入代理内核。
+- 原始 URI 和 YAML 均由实际解析/生成路径产生私有测试配置。Mihomo 1.19.29 校验 7 种 YAML 目标通过；sing-box 1.14.0 校验两种完整 JSON 通过；Surge Mac CLI 检查返回 OK。这不等同于 Stash、Hiddify 等图形客户端导入验收。
+- 3 个实际节点：上游原配置、塔台 Mihomo 导出和 sing-box 导出各返回 3 次 HTTP 204；替换 ShadowTLS 密码后两个内核均失败。仅使用回环 SOCKS 入口，没有启用 TUN、修改系统代理或替换用户客户端配置；没有对全部 58 个节点逐一测速，也未验证 UDP。
+- 全量 TowerTests 1250 通过、5 跳过、0 失败；最后补充指纹分享保留后，解析/分享/ShadowTLS 定向测试 33 通过、0 失败。手机已以 Xcode 27.2 Beta 构建并覆盖安装，自动启动被锁屏阻止，需解锁手动打开；版本仍为 1.0.20（58），未推送或发布。私有订阅、节点凭据和实际导出不入库。临时实订阅探针已移除，保留脱敏 ShadowTLSTests 回归。
+
+
+## 排查中：手机版 YouTube 重加后当前规则未显示（2026-09-16）
+
+- 用户报告手机显示添加成功，但“当前规则”没有 YouTube。尚未核实手机运行版本，以及关闭定制页再进入是否恢复。
+- 1.0.20 源码下新增手机 UI 回归：文本导入含原生 YouTube 分组的规则方案，搜索、长按删除、从 ACL4SSR 目录重新添加，验证“已添加”及原分组无需重开立即出现。iPhone 17 / iOS 26.5 模拟器 TowerInteraction 定向测试 1 项通过。
+- 该 UI 回归采用最小导入方案，不能替代用户已有 Self-Configuration 数据与真机验收。本轮没有修改生产逻辑、安装或发布，不宣称用户反馈已修复。
+
 ## 1.0.20（58）已发布 GitHub、已上传 TestFlight（2026-09-16）
 
 - 源码35e2a8d已推送；GitHub v1.0.20已公开，含通用Mac DMG及SHA256SUMS。主要更新为导出页面与提示、Clash系列/Stash远程规则集、#33缺原文迁移及#36原有分组删除重加修复。

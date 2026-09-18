@@ -664,14 +664,23 @@ struct ConfigurationGenerator {
         if target == .shadowrocket {
             supported.removeAll { $0.kind == .snell || $0.kind == .wireguard }
         }
+        // These clients accept structured node subscriptions. Keep the legacy
+        // URI path for ordinary lists; ShadowTLS needs both credential layers.
+        let structuredNodes = supported.contains { $0.shadowTLS != nil }
+        var fileExtension = target.usesClashFormat ? "yaml" : "txt"
 
         let content: String
         switch target {
         case .shadowrocket:
-            let generator = ProxyNodeShareLinkGenerator()
-            let links = supported.map { generator.canonicalLink(for: $0) }
-                .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            content = Data(links.joined(separator: "\n").utf8).base64EncodedString()
+            if structuredNodes {
+                content = "proxies:\n" + supported.map { clashNode($0, target: target) }.joined(separator: "\n") + "\n"
+                fileExtension = "yaml"
+            } else {
+                let generator = ProxyNodeShareLinkGenerator()
+                let links = supported.map { generator.canonicalLink(for: $0) }
+                    .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                content = Data(links.joined(separator: "\n").utf8).base64EncodedString()
+            }
         case .clash, .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi, .karing:
             content = "proxies:\n" + (supported.isEmpty
                 ? "  []\n"
@@ -684,9 +693,25 @@ struct ConfigurationGenerator {
         case .quanx:
             content = supported.map(quanXNode).joined(separator: "\n") + (supported.isEmpty ? "" : "\n")
         case .hiddify:
-            let generator = ProxyNodeShareLinkGenerator()
-            content = supported.map { generator.canonicalLink(for: $0) }.joined(separator: "\n")
-                + (supported.isEmpty ? "" : "\n")
+            if structuredNodes {
+                // Hiddify builds its own routing and selectors from outbounds.
+                // Its §hide§ convention keeps the TLS transport out of choices.
+                let payload: [String: Any] = ["outbounds": singBoxNodeOutbounds(
+                    supported, reservedTags: [], hideHelpers: true
+                )]
+                if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+                   let json = String(data: data, encoding: .utf8) {
+                    content = json
+                } else {
+                    content = ""
+                    supported = []
+                }
+                fileExtension = "json"
+            } else {
+                let generator = ProxyNodeShareLinkGenerator()
+                content = supported.map { generator.canonicalLink(for: $0) }.joined(separator: "\n")
+                    + (supported.isEmpty ? "" : "\n")
+            }
         case .anywhere:
             content = supported.map { AnywhereExport.link(for: $0) }.joined(separator: "\n")
                 + (supported.isEmpty ? "" : "\n")
@@ -708,7 +733,7 @@ struct ConfigurationGenerator {
             ruleCount: 0,
             profileName: profileName,
             contentMode: .nodesOnly,
-            fileExtensionOverride: target.usesClashFormat ? "yaml" : "txt",
+            fileExtensionOverride: fileExtension,
             skippedNodes: skippedDetails(nodes: nodes, exported: supported, target: target, excludedKinds: excludedKinds, nodesOnly: true)
         )
     }
@@ -828,6 +853,51 @@ struct ConfigurationGenerator {
         // counted instead.
         if node.kind == .hysteria2, [.surge, .surgeMac, .shadowrocket].contains(target),
            let obfs = hysteria2Obfs(node), obfs.type.lowercased() != "salamander" { return false }
+        if node.shadowTLS != nil || node.plugin == "shadow-tls" {
+            guard node.kind == .shadowsocks, node.plugin == "shadow-tls",
+                  let options = node.shadowTLS, options.isValid,
+                  node.obfs == nil, node.transport == nil, !node.tls,
+                  certificatePin(node) == nil else { return false }
+            switch target {
+            case .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi:
+                // Mihomo's ShadowTLS client does not offer skip-cert-verify.
+                guard !options.skipCertificateVerification else { return false }
+            case .clash:
+                guard options.version >= 2, node.fingerprint == nil else { return false }
+            case .surge, .surgeMac:
+                guard options.version >= 2, !options.skipCertificateVerification,
+                      node.fingerprint == nil else { return false }
+                if node.cipher == "2022-blake3-chacha20-poly1305" { return false }
+            case .shadowrocket:
+                // Official release notes confirm v3; Sub-Store retains the SS
+                // plugin object in YAML. Do not infer support for extra TLS
+                // options or the separate URI import path from that evidence.
+                guard options.version == 3, !options.skipCertificateVerification,
+                      node.fingerprint == nil else { return false }
+            case .loon:
+                // Loon uses v2/v3 and a bare ShadowTLS password (unlike its
+                // quoted positional SS password). Do not change the credential
+                // with percent escaping or let delimiters create extra fields.
+                let delimiters = CharacterSet.whitespacesAndNewlines
+                    .union(.controlCharacters)
+                    .union(CharacterSet(charactersIn: ",\"'\\#;"))
+                guard options.version >= 2, !options.skipCertificateVerification,
+                      node.fingerprint == nil,
+                      options.password.rangeOfCharacter(from: delimiters) == nil,
+                      options.host.rangeOfCharacter(from: delimiters) == nil else { return false }
+            case .egern:
+                // Egern's shadow_tls object has no version selector. Its
+                // documented fields and Sub-Store adapter describe v3 only.
+                guard options.version == 3, !options.skipCertificateVerification,
+                      node.fingerprint == nil else { return false }
+            case .singBox, .hiddify:
+                // A ShadowTLS detour only carries TCP. Explicit UDP support
+                // requires a separately modelled native UDP path or UoT.
+                guard node.udpRelayEnabled != true else { return false }
+            default:
+                return false
+            }
+        }
         if node.plugin == "v2ray-plugin" {
             // Quantumult X requires a confirmed non-multiplexed server.
             if target == .quanx, node.pluginMux != false { return false }
@@ -1800,7 +1870,15 @@ struct ConfigurationGenerator {
         switch node.kind {
         case .shadowsocks:
             values += ["    cipher: \(yaml(node.cipher ?? "aes-256-gcm"))", "    password: \(yaml(node.password ?? ""))", "    udp: \(node.udpRelayEnabled ?? true)"]
-            if node.plugin == "v2ray-plugin" {
+            if let shadowTLS = node.shadowTLS {
+                values.append("    plugin: shadow-tls")
+                if let fingerprint = node.fingerprint { values.append("    client-fingerprint: \(yaml(fingerprint))") }
+                values.append("    plugin-opts:")
+                values.append("      host: \(yaml(shadowTLS.host))")
+                values.append("      password: \(yaml(shadowTLS.password))")
+                values.append("      version: \(shadowTLS.version)")
+                if shadowTLS.skipCertificateVerification { values.append("      skip-cert-verify: true") }
+            } else if node.plugin == "v2ray-plugin" {
                 values.append("    plugin: v2ray-plugin")
                 values.append("    plugin-opts:")
                 values.append("      mode: websocket")
@@ -2278,6 +2356,11 @@ struct ConfigurationGenerator {
         switch node.kind {
         case .shadowsocks:
             components = ["ss", node.server, "\(node.port)", "encrypt-method=\(node.cipher ?? "aes-256-gcm")", "password=\(confValue(node.password ?? ""))", "udp-relay=\(node.udpRelayEnabled ?? true)"]
+            if let shadowTLS = node.shadowTLS {
+                components.append("shadow-tls-password=\(confValue(shadowTLS.password.replacingOccurrences(of: "%", with: "%25")))")
+                components.append("shadow-tls-sni=\(confValue(shadowTLS.host))")
+                components.append("shadow-tls-version=\(shadowTLS.version)")
+            }
             if shadowrocket, node.plugin == "v2ray-plugin" {
                 components.append("obfs=\(node.tls ? "wss" : "ws")")
                 appendValue(node.hostHeader, key: "obfs-host", to: &components)
@@ -2708,6 +2791,11 @@ struct ConfigurationGenerator {
         switch node.kind {
         case .shadowsocks:
             values = ["Shadowsocks", node.server, "\(node.port)", node.cipher ?? "aes-256-gcm", loonQuoted(node.password ?? "")]
+            if let shadowTLS = node.shadowTLS {
+                values.append("shadow-tls-password=\(confValue(shadowTLS.password))")
+                values.append("shadow-tls-sni=\(confValue(shadowTLS.host))")
+                values.append("shadow-tls-version=\(shadowTLS.version)")
+            }
             if let mode = simpleObfsMode(node) {
                 // Loon names the simple-obfs mode obfs-name; plain "obfs" is
                 // the ShadowsocksR field and means something else there.
@@ -3538,8 +3626,10 @@ extension ConfigurationGenerator {
             }
             return outbound
         }
-        outbounds += nodes.filter { target != .singBox || $0.kind != .wireguard }
-            .compactMap(singBoxOutbound)
+        outbounds += singBoxNodeOutbounds(
+            nodes.filter { target != .singBox || $0.kind != .wireguard },
+            reservedTags: Set(outbounds.compactMap { $0["tag"] as? String })
+        )
         outbounds.append(["tag": Self.singBoxDirectTag, "type": "direct"])
 
         var configuration: [String: Any] = [
@@ -3807,6 +3897,32 @@ extension ConfigurationGenerator {
         return endpoint
     }
 
+    private func singBoxNodeOutbounds(_ nodes: [ProxyNode], reservedTags: Set<String>, hideHelpers: Bool = false) -> [[String: Any]] {
+        var occupied = reservedTags.union(nodes.map { NodeRegionResolver.displayName(for: $0) })
+        occupied.formUnion([Self.singBoxDirectTag, Self.singBoxRejectTag])
+        var result = [[String: Any]]()
+        for node in nodes {
+            guard var outbound = singBoxOutbound(node) else { continue }
+            if let shadowTLS = node.shadowTLS {
+                var tag = (hideHelpers ? "§hide§" : "") + "tower-shadowtls-\(result.count)"
+                while occupied.contains(tag) { tag += "-" }
+                occupied.insert(tag)
+                outbound["detour"] = tag
+                outbound["network"] = "tcp"
+                var tls: [String: Any] = ["enabled": true, "server_name": shadowTLS.host,
+                                          "insecure": shadowTLS.skipCertificateVerification]
+                if let fingerprint = node.fingerprint {
+                    tls["utls"] = ["enabled": true, "fingerprint": fingerprint]
+                }
+                result.append(["type": "shadowtls", "tag": tag, "server": node.server,
+                               "server_port": node.port, "version": shadowTLS.version,
+                               "password": shadowTLS.password, "tls": tls])
+            }
+            result.append(outbound)
+        }
+        return result
+    }
+
     /// A protocol outbound; current WireGuard endpoints are emitted separately.
     func singBoxOutbound(_ node: ProxyNode) -> [String: Any]? {
         var outbound: [String: Any] = [
@@ -4028,8 +4144,10 @@ extension ConfigurationGenerator {
             }
             return outbound
         }
-        outbounds += nodes.filter { target != .singBox || $0.kind != .wireguard }
-            .compactMap(singBoxOutbound)
+        outbounds += singBoxNodeOutbounds(
+            nodes.filter { target != .singBox || $0.kind != .wireguard },
+            reservedTags: Set(outbounds.compactMap { $0["tag"] as? String })
+        )
 
         // A route-level `action: reject` is sufficient for direct blocking
         // rules, but selectors cannot reference an action. Imported schemes
@@ -4499,6 +4617,11 @@ extension ConfigurationGenerator {
             body.append("      method: \(yaml(cipher == "chacha20-ietf-poly1305" ? "chacha20-poly1305" : cipher))")
             body.append("      password: \(yaml(node.password ?? ""))")
             endpoint()
+            if let shadowTLS = node.shadowTLS {
+                body.append("      shadow_tls:")
+                body.append("        password: \(yaml(shadowTLS.password))")
+                body.append("        sni: \(yaml(shadowTLS.host))")
+            }
             if let mode = simpleObfsMode(node) {
                 body.append("      obfs: \(yaml(mode))")
                 if let host = node.obfsParam, !host.isEmpty {

@@ -89,6 +89,41 @@ final class RuleCustomizationInteractionTests: XCTestCase {
         app.terminate()
     }
 
+    func testReaddingOriginalYouTubeUpdatesVisibleCurrentRules() {
+        let app = XCUIApplication()
+        app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString
+        app.launchArguments = ["--tab=rules", "-hasSeenWelcome", "YES", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let importButton = app.buttons["import-rule-scheme"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 15)); importButton.tap()
+        app.buttons["scheme-import-source-text"].tap()
+        let text = app.textViews["scheme-text-field"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap()
+        text.typeText("proxy-groups:\n  - {name: 节点选择, type: select, proxies: [DIRECT]}\n  - {name: YouTube, type: select, proxies: [节点选择, DIRECT]}\nrules:\n  - DOMAIN-SUFFIX,youtube.com,YouTube\n  - MATCH,节点选择\n")
+        if app.buttons["收起键盘"].exists { app.buttons["收起键盘"].tap() }
+        app.buttons["save-scheme"].tap()
+        XCTAssertTrue(importButton.waitForExistence(timeout: 10))
+        let imported = app.buttons["编辑 导入的规则"]
+        for _ in 0..<10 { if imported.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(imported.isHittable); imported.tap()
+        let search = app.searchFields.firstMatch
+        search.tap(); search.typeText("YouTube")
+        let group = app.buttons["rule-group-identity-YouTube"]
+        XCTAssertTrue(group.waitForExistence(timeout: 5))
+        group.press(forDuration: 1.2)
+        app.buttons["删除"].firstMatch.tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        app.alerts.buttons["删除"].tap()
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: group)
+        waitForExpectations(timeout: 5)
+        let catalog = app.buttons["catalog-entry-acl4ssr-youtube"]
+        for _ in 0..<5 { if catalog.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(catalog.isHittable); catalog.tap()
+        expectation(for: NSPredicate(format: "value == %@", "已添加"), evaluatedWith: catalog)
+        waitForExpectations(timeout: 30)
+        XCTAssertTrue(group.waitForExistence(timeout: 5), "Re-added original group must be visible without reopening")
+    }
+
     func testImportFullConfigurationAsText() {
         let app = XCUIApplication()
         app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString

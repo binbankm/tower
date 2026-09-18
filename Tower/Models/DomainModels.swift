@@ -486,6 +486,21 @@ enum ProxyKind: String, Codable, CaseIterable, Identifiable {
     var symbol: String { iconDescriptor.systemFallback }
 }
 
+/// ShadowTLS wraps the SS TCP stream. Its credential and SNI are independent
+/// of the inner Shadowsocks password and must survive sync and sharing.
+struct ShadowTLSOptions: Codable, Hashable {
+    var version: Int
+    var host: String
+    var password: String
+    var skipCertificateVerification: Bool = false
+
+    var isValid: Bool {
+        (1...3).contains(version) && !host.isEmpty
+            && !host.contains(where: { $0.isWhitespace || $0 == "," })
+            && (version == 1 || !password.isEmpty)
+    }
+}
+
 struct ProxyNode: Identifiable, Codable, Hashable {
     let id: UUID
     var sourceID: UUID?
@@ -506,6 +521,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
     var plugin: String?
     /// nil means the source did not declare plugin multiplexing.
     var pluginMux: Bool?
+    var shadowTLS: ShadowTLSOptions?
     var tls: Bool
     var sni: String?
     var hostHeader: String?
@@ -592,6 +608,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         transportMode: String? = nil,
         plugin: String? = nil,
         pluginMux: Bool? = nil,
+        shadowTLS: ShadowTLSOptions? = nil,
         tls: Bool = false,
         sni: String? = nil,
         hostHeader: String? = nil,
@@ -645,6 +662,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         self.transportMode = transportMode
         self.plugin = plugin
         self.pluginMux = pluginMux
+        self.shadowTLS = shadowTLS
         self.tls = tls
         self.sni = sni
         self.hostHeader = hostHeader
@@ -727,6 +745,12 @@ struct ProxyNode: Identifiable, Codable, Hashable {
             wireGuardReserved ?? "", wireGuardMTU.map(String.init) ?? "",
             wireGuardPersistentKeepalive.map(String.init) ?? "", wireGuardDNS ?? ""
         ])
+        if let shadowTLS {
+            // Append only for wrapped nodes: existing persisted exclusion keys
+            // for ordinary nodes must not change when adding this feature.
+            fields.append(contentsOf: ["shadow-tls", String(shadowTLS.version), shadowTLS.host,
+                                      shadowTLS.password, String(shadowTLS.skipCertificateVerification)])
+        }
         return fields.joined(separator: "\u{1F}")
     }
 
@@ -831,6 +855,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
 
     var protocolSummary: String {
         var parts: [String] = [protocolDisplayName]
+        if let shadowTLS { parts.append("ShadowTLS v\(shadowTLS.version)") }
 
         if let transportDisplayName, !parts.contains(transportDisplayName) {
             parts.append(transportDisplayName)
@@ -898,7 +923,8 @@ struct ProxyNode: Identifiable, Codable, Hashable {
     }
 
     private var supportsUDP: Bool {
-        switch kind {
+        if shadowTLS != nil { return udpRelayEnabled == true }
+        return switch kind {
         case .http, .unknown: false
         // Snell only carries UDP from version 3 onwards.
         case .snell: (version ?? 4) >= 3

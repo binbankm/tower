@@ -99,7 +99,22 @@ struct ProxyNodeShareLinkGenerator {
 
         // Dropping the plugin would hand out a link that looks fine and cannot
         // connect, which is exactly what the importer refuses to accept.
-        if node.plugin == "v2ray-plugin" {
+        if let shadowTLS = node.shadowTLS {
+            func escape(_ value: String) -> String {
+                value.replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: ";", with: "\\;")
+            }
+            var plugin = "shadow-tls;host=\(escape(shadowTLS.host));password=\(escape(shadowTLS.password));version=\(shadowTLS.version)"
+            if shadowTLS.skipCertificateVerification { plugin += ";skip-cert-verify=true" }
+            let encoded = plugin.addingPercentEncoding(
+                withAllowedCharacters: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+            ) ?? plugin
+            link += "?plugin=\(encoded)"
+            if let fingerprint = node.fingerprint {
+                let encodedFingerprint = fingerprint.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? fingerprint
+                link += "&client-fingerprint=\(encodedFingerprint)"
+            }
+        } else if node.plugin == "v2ray-plugin" {
             var plugin = "v2ray-plugin;mode=websocket"
             if let mux = node.pluginMux { plugin += ";mux=\(mux ? "1" : "0")" }
             if node.tls { plugin += ";tls" }
