@@ -124,6 +124,27 @@ TOWER_RELEASE_HOST=用户名@另一台 Scripts/release_testflight.sh
 
 本机终端应处于 Aqua 会话；签名和上传用正式版 Xcode。普通真机安装另见 [DEVELOPMENT](DEVELOPMENT.md)。
 
+## M4 / Air 本机发布
+
+从当前已授权访问仓库的本机终端运行，不使用 SSH，也不切换全局 Xcode。避免通过新建 LaunchAgent 读取 Documents 下的仓库：独立后台进程可能没有该目录的隐私授权。签名失败时先检查当前用户会话和 Xcode 账号，不修改钥匙串访问控制。
+
+在私有配置中设置本机团队后，可复用归档脚本的本机入口：
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+xcodebuild -version
+source Config/release.local.sh
+export TOWER_DEVELOPMENT_TEAM
+git fetch origin main
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+# 版本与构建号替换为本次发布值；目录使用新的绝对路径。
+bash Scripts/release_testflight_remote.sh --aqua \
+  --version 1.0.21 --build 59 --commit "$(git rev-parse HEAD)" \
+  --release-dir "$HOME/Builds/Tower-TestFlight-1.0.21-59"
+```
+
+`--aqua` 直接执行当前机器上的归档和上传，不发起远程连接。上传成功后在 App Store Connect 核对构建处理状态、测试说明和群组可用性，不把上传成功当作外部测试审核通过。
+
 ## Mac mini M2 备用发布：一条命令
 
 在塔台仓库根目录执行：

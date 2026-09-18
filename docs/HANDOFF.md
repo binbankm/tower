@@ -1,5 +1,15 @@
 # 当前交接
 
+## 1.0.21（59）本机正式发布（2026-09-18）
+
+- 用户确认 M4 已升级正式版系统，改用本机正式版 Xcode 27.0（27A266a）完成 Mac 通用归档、公证及 iOS TestFlight 上传。AGENTS、开发和发布文档已改为本机优先、M2 远程备用。
+- 正式版工具链全量 TowerTests：1255 通过、5 跳过、0 失败；存在已有编译警告，不宣称零警告。源代码归档提交为 6044cf1。
+- GitHub v1.0.21 已公开，附通用 DMG 与 SHA256SUMS.txt；公证取回、stapler、严格签名、Gatekeeper 及 DMG 挂载验证通过。DMG SHA-256：420cb665dacf2ac6e57bf0b8ff12f7c9891b60690c1e0280c8c4aa3b5bdff235。
+- iOS 上传日志确认 Upload succeeded；App Store Connect 已显示 1.0.21（59）处理完成、准备提交，关联既有内部测试组。已填写简短测试说明；未提交外部 Beta 审核或 App Store 审核。
+- Homebrew style / audit 均通过；本机 brew 升级至 1.0.21（59），安装后签名与 Gatekeeper 验证通过，tap 已更新。README 已指向新版 DMG。
+- 远端 M2 流程已停止；本轮公开包及 iOS 上传均来自本机正式版 Xcode。
+
+
 ## 1.0.21（59）发布准备（2026-09-18）
 
 - 汇总 ShadowTLS 导入、分享及各目标客户端导出；Karing 按用户连接失败反馈保持跳过。
