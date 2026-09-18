@@ -5,9 +5,8 @@
 ## 工具链
 
 ```sh
-# MacBook Air M2 / 发布用 Mac mini M2
+# Mac mini M4 / MacBook Air M2 / 备用 Mac mini M2
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-# 开发用 Mac mini M4 改为 /Applications/Xcode-beta.app/Contents/Developer
 xcodebuild -version
 xcrun simctl list devices available
 ```

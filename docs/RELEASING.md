@@ -11,7 +11,7 @@
 
 Cask 将应用安装为「塔台.app」，区分同名 Tower Git 客户端；不删除用户订阅、设置或 iCloud 数据。
 
-塔台有两条正式版 Xcode 发布路径：出门使用的 MacBook Air M2 可以在当前 Aqua 会话中直接完成自动签名、归档和 App Store Connect / TestFlight 上传；家中 Mac mini M2 是固定发布机，也可从头完成归档和上传。家中 Mac mini M4 的 Xcode Beta 只用于开发调试，不参与正式发布。
+自 2026-09-18 起，家中 Mac mini M4 已升级正式版 macOS，优先使用本机 `/Applications/Xcode.app/Contents/Developer` 完成自动签名、归档、Mac 公证和 TestFlight 上传。MacBook Air M2 出门时也可本机发布；Mac mini M2 保留为远程备用发布机。首次切换须核对实际 Xcode 版本、账号和签名，并分别验证归档、上传与 Apple 处理状态。
 
 最近已上传版本见 [HANDOFF](HANDOFF.md)。版本已获批、预发布通道关闭后必须递增 MARKETING_VERSION，不能只递增 build。
 
@@ -22,8 +22,8 @@ Cask 将应用安装为「塔台.app」，区分同名 Tower Git 客户端；不
 - 本地仓库工作区必须干净，并且 `HEAD` 与 `origin/main` 完全一致。
 - 随 App 打包的 ACL4SSR 快照必须对应上游最新提交；发布脚本会联网检查并在过期时中止。
 - 工程中的 `MARKETING_VERSION` 和 `CURRENT_PROJECT_VERSION` 必须已经更新并推送。
-- Air 本机归档不需要 `TOWER_RELEASE_HOST`、远端仓库或 Ghostty；它必须处于 Aqua 会话，并使用 `/Applications/Xcode.app/Contents/Developer`。本机已登录开发账号，存在可用证书和匹配 `com.jzb.tower` 的描述文件。
-- Air 本机上传前必须在 Xcode **Settings ▸ Accounts** 确认 Apple Account 已登录且能看到对应团队；账号还需具有 App Store Connect 访问权限，或提供单独的 App Store Connect API Key。只有开发证书和描述文件不能证明账号已登录或具备上传能力。
+- M4 / Air 本机归档不需要 `TOWER_RELEASE_HOST`、远端仓库或 Ghostty；它必须处于 Aqua 会话，并使用 `/Applications/Xcode.app/Contents/Developer`。本机已登录开发账号，存在可用证书和匹配 `com.jzb.tower` 的描述文件。
+- M4 / Air 本机上传前必须在 Xcode **Settings ▸ Accounts** 确认 Apple Account 已登录且能看到对应团队；账号还需具有 App Store Connect 访问权限，或提供单独的 App Store Connect API Key。只有开发证书和描述文件不能证明账号已登录或具备上传能力。
 - Mac mini M2 发布机必须安装 `/Applications/Xcode.app`，其登录钥匙串中需要存在可用的 Apple Development 或 Apple Distribution 签名身份，并由具有 App Store Connect 权限的账号完成上传。
 - 远程备用流程的开发机和 Mac mini M2 各自需要 `Config/release.local.sh` 中与自身职责对应的私有值（见下一节）；开发机还需安装 Ghostty。SSH 优先使用现有公钥，没有公钥时由 SSH 自己交互询问密码。
 - 三台 Mac 都不要依赖或切换全局 `xcode-select`。运行命令前显式设置 `DEVELOPER_DIR` 并用 `xcodebuild -version` 复核。
@@ -101,7 +101,7 @@ TOWER_RELEASE_REPO="${TOWER_RELEASE_REPO:-/构建机上的仓库路径}"
 TOWER_DEVELOPMENT_TEAM="${TOWER_DEVELOPMENT_TEAM:-你的团队 ID}"
 ```
 
-Air 本机归档不需要 `TOWER_RELEASE_HOST`、`TOWER_RELEASE_REPO` 或 Ghostty。工程故意没有把 `DEVELOPMENT_TEAM` 写进项目文件，所以命令行归档仍必须在进程环境或构建参数中提供团队。若 Air 没有本地配置，可从与 `com.jzb.tower` 匹配且未过期的描述文件中确认唯一的 `TeamIdentifier`，只保存在当前 Shell 变量中；找不到或出现多个不同团队时停止，不要猜，也不要把结果打印到日志或写进仓库。看到 `Signing for Tower requires a development team` 只说明命令没有传这个参数，不代表 Xcode 没登录。
+M4 / Air 本机归档不需要 `TOWER_RELEASE_HOST`、`TOWER_RELEASE_REPO` 或 Ghostty。工程故意没有把 `DEVELOPMENT_TEAM` 写进项目文件，所以命令行归档仍必须在进程环境或构建参数中提供团队。若本机没有本地配置，可从与 `com.jzb.tower` 匹配且未过期的描述文件中确认唯一的 `TeamIdentifier`，只保存在当前 Shell 变量中；找不到或出现多个不同团队时停止，不要猜，也不要把结果打印到日志或写进仓库。看到 `Signing for Tower requires a development team` 只说明命令没有传这个参数，不代表 Xcode 没登录。
 
 用 `${VAR:-…}` 写法是为了让环境变量优先，这样临时换一台机器发布不需要改文件：
 
