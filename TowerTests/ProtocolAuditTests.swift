@@ -160,6 +160,16 @@ final class ProtocolAuditTests: XCTestCase {
 
     // MARK: - Hysteria 2 port hopping
 
+    func testHysteria2PortListInTheAuthorityIsParsed() throws {
+        let node = try XCTUnwrap(parser.parseURI("hysteria2://pw@hy.example.com:443,20000-20100/?sni=hy.example.com#HY"))
+        XCTAssertEqual(node.port, 443)
+        XCTAssertEqual(node.portHopping, "443,20000-20100")
+        let range = try XCTUnwrap(parser.parseURI("hy2://pw@[2001:db8::1]:20000-20100?obfs=salamander&obfs-password=x#V6"))
+        XCTAssertEqual(range.port, 20000)
+        XCTAssertEqual(range.server, "2001:db8::1")
+        XCTAssertEqual(range.portHopping, "20000-20100")
+    }
+
     func testPortHoppingReachesEveryClientThatHasIt() throws {
         let node = hysteria2(hopping: "20000-20100,443")
         XCTAssertTrue(content([node], .surge).contains("port-hopping=\"20000-20100;443\""))

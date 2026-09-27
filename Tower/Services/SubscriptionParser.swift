@@ -1420,6 +1420,14 @@ struct SubscriptionParser {
         } else if normalized.lowercased().hasPrefix("socks://") {
             normalized = "socks5://" + normalized.dropFirst("socks://".count)
         }
+        // Hysteria 2's own URI format writes port hopping into the port:
+        // `host:443,5000-6000`. URLComponents rejects that, so the whole link
+        // was dropped as unrecognised.
+        var authorityPortHopping: String?
+        if kind == .hysteria2, let split = splitMultiPortAuthority(normalized) {
+            normalized = split.link
+            authorityPortHopping = split.ports
+        }
         guard let components = URLComponents(string: normalized),
               let rawHost = components.host else { return nil }
         let defaultHTTPPort: Int? = kind == .http
@@ -1569,7 +1577,8 @@ struct SubscriptionParser {
                 ? query["congestion_control"] ?? query["congestion-controller"]
                 : nil,
             udpRelayMode: kind == .tuic ? query["udp_relay_mode"] ?? query["udp-relay-mode"] : nil,
-            portHopping: query["mport"]
+            portHopping: authorityPortHopping
+                ?? query["mport"]
                 ?? query["ports"]
                 ?? query["server-ports"]
                 ?? query["port-hopping"],
@@ -1586,6 +1595,25 @@ struct SubscriptionParser {
         guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
               !value.isEmpty, value.lowercased() != "none" else { return nil }
         return value
+    }
+
+    /// `scheme://auth@host:443,5000-6000/?…` → the link with its first port,
+    /// plus the full port list. Nil when the port is an ordinary number.
+    private func splitMultiPortAuthority(_ link: String) -> (link: String, ports: String)? {
+        guard let schemeEnd = link.range(of: "://") else { return nil }
+        let rest = link[schemeEnd.upperBound...]
+        let authorityEnd = rest.firstIndex(where: { "/?#".contains($0) }) ?? rest.endIndex
+        let authority = rest[..<authorityEnd]
+        let hostStart = authority.lastIndex(of: "@").map(authority.index(after:)) ?? authority.startIndex
+        let hostPort = authority[hostStart...]
+        let searchFrom = hostPort.lastIndex(of: "]") ?? hostPort.startIndex
+        guard let colon = hostPort[searchFrom...].lastIndex(of: ":") else { return nil }
+        let ports = String(hostPort[hostPort.index(after: colon)...])
+        guard ports.contains(where: { $0 == "," || $0 == "-" }),
+              ports.allSatisfy({ $0.isNumber || $0 == "," || $0 == "-" }),
+              let first = ports.split(whereSeparator: { $0 == "," || $0 == "-" }).first else { return nil }
+        let rebuilt = link[..<hostPort.index(after: colon)] + first + link[authorityEnd...]
+        return (String(rebuilt), ports)
     }
 
     /// Shadowrocket serializes Trojan WebSocket as a SIP003-looking plugin:
