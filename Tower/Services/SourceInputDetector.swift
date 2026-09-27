@@ -19,6 +19,12 @@ struct SourceInputDetector {
         let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return .unknown }
 
+        if value.hasPrefix("{") || value.hasPrefix("[") {
+            let parsed = parser.parse(data: Data(value.utf8))
+            if parsed.nodes.count == 1, let node = parsed.nodes.first { return .node(node.kind) }
+            if parsed.nodes.count > 1 { return .nodeBatch(count: parsed.nodes.count) }
+        }
+
         let meaningfulLines = value.components(separatedBy: .newlines).filter {
             let line = $0.trimmingCharacters(in: .whitespacesAndNewlines)
             return !line.isEmpty && !line.hasPrefix("#")

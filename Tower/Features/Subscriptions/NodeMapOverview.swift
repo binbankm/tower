@@ -630,7 +630,7 @@ private struct NodeRegionLogo: View {
         case .vmess, .vless: .indigo
         case .trojan: .red
         case .hysteria, .hysteria2: .orange
-        case .tuic: .pink
+        case .tuic, .masque: .pink
         case .wireguard: .green
         case .anytls: .mint
         case .snell: .brown

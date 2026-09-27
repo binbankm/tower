@@ -157,7 +157,7 @@ enum CloudSnapshotMerge {
             if r == nil { return l }
             // First sync adopts remote preferences; owned records with differing
             // contents are conflicts, not candidates for timestamp replacement.
-            let preferences: Set<String> = ["selectedPresetID", "selectedTarget", "configurationName", "clientOrder", "visibleClientTargets", "lanSharingOrderIndex", "lanSharingFullOrderIndex", "clientOrderMigrationVersion", "macClientPreferences", "renewalRemindersEnabled", "isLANSharingVisible", "appendSubscriptionNameToNodes", "filterSubscriptionInfoNodes", "autoRefreshOnOpen", "preferRuleSets", "preferRuleSetsWasExplicitlySet", "embedRemoteSubscriptionLinks"]
+            let preferences: Set<String> = ["selectedPresetID", "selectedTarget", "configurationName", "clientOrder", "visibleClientTargets", "lanSharingOrderIndex", "lanSharingFullOrderIndex", "clientOrderMigrationVersion", "macClientPreferences", "renewalRemindersEnabled", "isLANSharingVisible", "appendSubscriptionNameToNodes", "filterSubscriptionInfoNodes", "nodeExportNameFilter", "autoRefreshOnOpen", "preferRuleSets", "preferRuleSetsWasExplicitlySet", "embedRemoteSubscriptionLinks"]
             if preferences.contains(key) { return r }
         }
         throw CloudSyncError.conflict

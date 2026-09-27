@@ -151,4 +151,48 @@ final class NodeSelectionTests: XCTestCase {
         XCTAssertEqual(Set(model.enabledNodes.map(\.id)), Set(nodes.map(\.id)))
         XCTAssertNil(try store.load()?.excludedNodeIDs)
     }
+
+    @MainActor
+    func testSavedNameConditionFiltersNewNodesAndBothExportModes() throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tower-export-name-filter-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let store = PersistenceStore(fileURL: fileURL)
+        let source = SubscriptionSource(name: "Airport", urlString: "https://example.com/sub")
+        func node(_ name: String) -> ProxyNode {
+            ProxyNode(sourceID: source.id, kind: .shadowsocks, name: name,
+                server: "example.com", port: 443, cipher: "aes-128-gcm",
+                password: "test", rawURI: "ss://test")
+        }
+        let initial = [node("US IEPL 01"), node("US 普通 02")]
+        try store.save(AppSnapshot(subscriptions: [source], nodes: initial,
+            selectedPresetID: AppModel.defaultRuleSchemeID, selectedTarget: .surge))
+
+        let model = AppModel(persistence: store, arguments: [])
+        try model.setNodeExportNameFilter(.init(pattern: "(?i)IEPL", ignoresCase: true))
+        XCTAssertEqual(model.enabledNodes.map(\.name), ["US IEPL 01"])
+        XCTAssertEqual(model.configuration(target: .hiddify, contentMode: .nodesOnly).supportedNodeCount, 1)
+        XCTAssertEqual(model.configuration(target: .surge, contentMode: .fullConfiguration).supportedNodeCount, 1)
+        XCTAssertFalse(model.isNodeAllowedByName(initial[1]))
+
+        let restored = AppModel(persistence: store, arguments: [])
+        XCTAssertEqual(restored.nodeExportNameFilter?.pattern, "(?i)IEPL")
+        restored.nodes.append(contentsOf: [node("SG iepl 03"), node("SG 普通 04")])
+        XCTAssertEqual(restored.enabledNodes.map(\.name), ["US IEPL 01", "SG iepl 03"])
+        XCTAssertEqual(restored.configuration(target: .hiddify, contentMode: .nodesOnly).supportedNodeCount, 2)
+        for target in ClientTarget.allCases {
+            for mode in target.supportedContentModes {
+                let output = restored.configuration(target: target, contentMode: mode)
+                XCTAssertEqual(output.supportedNodeCount, 2, "\(target) \(mode)")
+            }
+        }
+        restored.setNode(initial[0], included: false)
+        XCTAssertThrowsError(try restored.setNodeExportNameFilter(.init(pattern: "[", ignoresCase: true)))
+        XCTAssertEqual(restored.enabledNodes.count, 1)
+        try restored.setNodeExportNameFilter(.init(pattern: "  \n", ignoresCase: true))
+        XCTAssertNil(restored.nodeExportNameFilter)
+        XCTAssertNil(try store.load()?.nodeExportNameFilter)
+        XCTAssertEqual(restored.enabledNodes.count, 3)
+        XCTAssertFalse(restored.isNodeIncluded(initial[0]))
+    }
 }

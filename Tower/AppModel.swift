@@ -42,9 +42,14 @@ final class AppModel {
 
     // Defaults so `apply(_:)` can be an instance method: a class cannot call
     // one until every stored property is initialised.
-    var subscriptions: [SubscriptionSource] = []
+    var subscriptions: [SubscriptionSource] = [] {
+        didSet { nodeSelectionCache = nil }
+    }
     var nodes: [ProxyNode] = [] {
-        didSet { countryResolutionNodeServers = nil }
+        didSet {
+            countryResolutionNodeServers = nil
+            nodeSelectionCache = nil
+        }
     }
     @ObservationIgnored private var countryResolutionNodeServers: [UUID: String]?
 
@@ -116,7 +121,9 @@ final class AppModel {
         fullExportDestinationOrder.filter { !isExportDestinationVisible($0) }
     }
     var appendSubscriptionNameToNodes = false
-    var filterSubscriptionInfoNodes = false
+    var filterSubscriptionInfoNodes = false {
+        didSet { nodeSelectionCache = nil }
+    }
     /// Refresh enabled subscriptions when the app opens. Off by default like
     /// every other feature here that reaches the network — the promise the app
     /// makes on first launch is that it goes online when you say so.
@@ -143,7 +150,12 @@ final class AppModel {
     /// Missing means follow the source and show its emoji. Only explicit
     /// overrides are persisted so newly imported schemes retain their design.
     var ruleGroupEmojisEnabled: [String: Bool] = [:]
-    var excludedNodeIDs: Set<UUID> = []
+    var excludedNodeIDs: Set<UUID> = [] {
+        didSet { nodeSelectionCache = nil }
+    }
+    var nodeExportNameFilter: NodeExportNameFilter? {
+        didSet { nodeSelectionCache = nil }
+    }
     /// User-owned rule contents are kept independently from the schemes in
     /// which they are currently active.
     var localRuleSets: [LocalRuleSet] = []
@@ -202,6 +214,7 @@ final class AppModel {
         let nodes: [ProxyNode]
         let sources: [SubscriptionSource]
         let excludedNodes: Set<UUID>
+        let nameFilter: NodeExportNameFilter?
         let countryCodes: [UUID: String]
         let schemes: [RuleScheme]
         let groups: [String: Set<String>]
@@ -231,20 +244,26 @@ final class AppModel {
         let sources: [SubscriptionSource]
         let excluded: Set<UUID>
         let filterInfo: Bool
+        let nameFilter: NodeExportNameFilter?
     }
     private struct NodeSelection {
         let available: [ProxyNode]
         let enabled: [ProxyNode]
         let local: [ProxyNode]
         let counts: [UUID: Int]
+        let nameMatchedIDs: Set<UUID>
+        let nameFilterError: String?
     }
     @ObservationIgnored private var nodeSelectionCache: (NodeSelectionInputs, NodeSelection)?
     private var nodeSelection: NodeSelection {
         let inputs = NodeSelectionInputs(nodes: nodes, sources: subscriptions,
-                                         excluded: excludedNodeIDs, filterInfo: filterSubscriptionInfoNodes)
-        if let cached = nodeSelectionCache, cached.0 == inputs { return cached.1 }
+                                         excluded: excludedNodeIDs, filterInfo: filterSubscriptionInfoNodes,
+                                         nameFilter: nodeExportNameFilter)
+        // Inputs above remain observable, but validity is maintained by their
+        // setters, avoiding repeated collection comparisons while rendering rows.
+        if let cached = nodeSelectionCache { return cached.1 }
         let enabledSources = Set(inputs.sources.filter(\.isEnabled).map(\.id))
-        var available: [ProxyNode] = [], enabled: [ProxyNode] = [], local: [ProxyNode] = []
+        var available: [ProxyNode] = [], local: [ProxyNode] = []
         var counts: [UUID: Int] = [:]
         for node in inputs.nodes {
             if node.isLocal { local.append(node) }
@@ -252,9 +271,27 @@ final class AppModel {
             if let source = node.sourceID { counts[source, default: 0] += 1 }
             guard node.sourceID == nil || enabledSources.contains(node.sourceID!) else { continue }
             available.append(node)
-            if !inputs.excluded.contains(node.id) { enabled.append(node) }
         }
-        let result = NodeSelection(available: available, enabled: enabled, local: local, counts: counts)
+        var nameMatchedIDs = Set(available.map(\.id))
+        var nameFilterError: String?
+        if let filter = inputs.nameFilter {
+            do {
+                let indices = try NodeNameFilterMatcher.preview(
+                    filter.pattern, candidates: available.map { [$0.name] },
+                    caseInsensitive: filter.ignoresCase
+                )
+                nameMatchedIDs = Set(indices.map { available[$0].id })
+            } catch {
+                // A malformed or expensive expression must never silently
+                // broaden an export to every node.
+                nameMatchedIDs = []
+                nameFilterError = error.localizedDescription
+            }
+        }
+        let enabled = available.filter { nameMatchedIDs.contains($0.id) && !inputs.excluded.contains($0.id) }
+        let result = NodeSelection(available: available, enabled: enabled, local: local,
+                                   counts: counts, nameMatchedIDs: nameMatchedIDs,
+                                   nameFilterError: nameFilterError)
         nodeSelectionCache = (inputs, result)
         return result
     }
@@ -1467,7 +1504,27 @@ final class AppModel {
     }
 
     func isNodeIncluded(_ node: ProxyNode) -> Bool {
-        !excludedNodeIDs.contains(node.id)
+        !excludedNodeIDs.contains(node.id) && isNodeAllowedByName(node)
+    }
+
+    func isNodeAllowedByName(_ node: ProxyNode) -> Bool {
+        nodeExportNameFilter == nil || nodeSelection.nameMatchedIDs.contains(node.id)
+    }
+
+    var nodeExportNameFilterError: String? { nodeSelection.nameFilterError }
+
+    func setNodeExportNameFilter(_ filter: NodeExportNameFilter?) throws {
+        // Saving an emptied editor removes the condition, just like Clear.
+        let filter = filter.flatMap { $0.pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+        if let filter {
+            _ = try NodeNameFilterMatcher.preview(
+                filter.pattern, candidates: availableNodes.map { [$0.name] },
+                caseInsensitive: filter.ignoresCase
+            )
+        }
+        guard nodeExportNameFilter != filter else { return }
+        nodeExportNameFilter = filter
+        persist()
     }
 
     func setNode(_ node: ProxyNode, included: Bool) {
@@ -2712,6 +2769,7 @@ final class AppModel {
         supportedKindsOverride: Set<ProxyKind>? = nil
     ) -> ConfigurationRequest {
         let inputs = RequestInputs(nodes: nodes, sources: subscriptions, excludedNodes: excludedNodeIDs,
+            nameFilter: nodeExportNameFilter,
             countryCodes: nodeIPCountryCodes, schemes: importedSchemes, groups: selectedRuleGroups,
             customizations: ruleSchemeCustomizations, emojis: ruleGroupEmojisEnabled, flows: customRuleFlows,
             excludedKinds: excludedKinds, presetID: selectedPresetID, name: configurationName,
@@ -3393,6 +3451,7 @@ final class AppModel {
         ruleSchemeCustomizations = snapshot.ruleSchemeCustomizations ?? [:]
         ruleGroupEmojisEnabled = snapshot.ruleGroupEmojisEnabled ?? [:]
         excludedNodeIDs = Set(snapshot.excludedNodeIDs ?? [])
+        nodeExportNameFilter = snapshot.nodeExportNameFilter
         let catalogMigratedFlows = migrateLegacyCatalogRuleFlows(snapshot.customRuleFlows ?? [])
         let localMigration = migrateLocalRuleSets(
             snapshot.localRuleSets ?? [],
@@ -3583,6 +3642,7 @@ final class AppModel {
             excludedNodeIDs: excludedNodeIDs.isEmpty
                 ? nil
                 : excludedNodeIDs.sorted { $0.uuidString < $1.uuidString },
+            nodeExportNameFilter: nodeExportNameFilter,
             customRuleFlows: customRuleFlows.isEmpty ? nil : customRuleFlows,
             localRuleSets: localRuleSets.isEmpty ? nil : localRuleSets,
             excludedKinds: Self.encodeExcludedKinds(excludedKinds),

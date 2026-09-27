@@ -84,6 +84,7 @@ struct CustomNodeFilterCreator: View {
 struct NodeNameFilterFields: View {
     @Binding var pattern: String
     let caseInsensitiveDefault: Bool
+    let simplified: Bool
     private let originalPattern: String
     private let initialDraft: NodeNameFilterDraft
     @State private var draft: NodeNameFilterDraft
@@ -96,14 +97,24 @@ struct NodeNameFilterFields: View {
         var value: String
     }
 
-    init(pattern: Binding<String>, caseInsensitiveDefault: Bool) {
+    init(pattern: Binding<String>, caseInsensitiveDefault: Bool, simplified: Bool = false) {
         _pattern = pattern
         self.caseInsensitiveDefault = caseInsensitiveDefault
+        self.simplified = simplified
         originalPattern = pattern.wrappedValue
-        let initial = NodeNameFilterDraft(pattern: pattern.wrappedValue, caseInsensitiveDefault: caseInsensitiveDefault)
+        var initial = NodeNameFilterDraft(pattern: pattern.wrappedValue, caseInsensitiveDefault: caseInsensitiveDefault)
+        // Preserve existing case-sensitive conditions as expert expressions.
+        if !pattern.wrappedValue.isEmpty && (!initial.ignoresCase || (simplified && initial.style != .contains && initial.style != .excludes)) { initial.usesRegex = true }
         initialDraft = initial
         _draft = State(initialValue: initial)
         _keywords = State(initialValue: Self.tokens(initial.keywords))
+    }
+
+    private var editableKeywords: NodeNameFilterDraft? {
+        guard let simple = NodeNameFilterDraft.decode(draft.regex, caseInsensitiveDefault: caseInsensitiveDefault),
+              simple.ignoresCase,
+              !simplified || simple.style == .contains || simple.style == .excludes else { return nil }
+        return simple
     }
 
     private static func tokens(_ text: String) -> [Keyword] {
@@ -119,12 +130,12 @@ struct NodeNameFilterFields: View {
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .accessibilityIdentifier("node-filter-regex")
                 Button("切换到关键词编辑") {
-                    if let simple = NodeNameFilterDraft.decode(draft.regex, caseInsensitiveDefault: caseInsensitiveDefault) {
+                    if let simple = editableKeywords {
                         keywords = Self.tokens(simple.keywords)
                         draft = simple
                     }
                 }
-                .disabled(NodeNameFilterDraft.decode(draft.regex, caseInsensitiveDefault: caseInsensitiveDefault) == nil)
+                .disabled(editableKeywords == nil)
                 Text("| 表示任一项，^ 表示名称开头，$ 表示结尾，(?i) 表示忽略大小写。复杂表达式保持原文，不会自动拆成关键词。")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
@@ -132,7 +143,7 @@ struct NodeNameFilterFields: View {
                     Text("匹配方式")
                     Spacer()
                     Picker("匹配方式", selection: $draft.style) {
-                        ForEach(NodeNameFilterDraft.MatchStyle.allCases) { style in
+                        ForEach(simplified ? [.contains, .excludes] : NodeNameFilterDraft.MatchStyle.allCases) { style in
                             Text(style.title).tag(style)
                         }
                     }
@@ -163,13 +174,10 @@ struct NodeNameFilterFields: View {
                 .buttonStyle(SelectionIndicatorButtonStyle())
                 .foregroundStyle(Color.accentColor)
                 .accessibilityIdentifier("node-keyword-add")
-                Text("例如 jp、hk，可筛选名称中包含这些文字的节点；多个关键词满足任意一个即可。")
+                Text(draft.style == .excludes ? String(localized: "排除名称包含任一关键词的节点，忽略大小写。") : String(localized: "例如 jp、hk，可筛选名称中包含这些文字的节点；多个关键词满足任意一个即可。"))
                     .font(.footnote).foregroundStyle(.secondary)
                     .accessibilityIdentifier("node-keyword-help")
                 Divider().padding(.vertical, 6)
-                Toggle("忽略大小写", isOn: $draft.ignoresCase)
-                    .font(.subheadline)
-                    .frame(minHeight: 44)
                 Button("切换到正则表达式") {
                     draft.regex = draft.pattern
                     draft.usesRegex = true
@@ -333,6 +341,7 @@ struct NodeNameFilterPreview: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let input: NodeNameFilterPreviewInput
     let result: NodeNameFilterPreviewResult?
+    var footer: String = String(localized: "基于已启用且勾选的本地节点。来源限制、其他排除条件与客户端支持的协议仍会影响最终候选；未下载的节点无法预览。")
 
     // Animate only newly completed content, not the list's layout or every edit.
     private var resultTransition: AnyTransition {
@@ -394,7 +403,7 @@ struct NodeNameFilterPreview: View {
                 .contentTransition(.opacity)
                 .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: isCurrent)
         } footer: {
-            Text("基于已启用且勾选的本地节点。来源限制、其他排除条件与客户端支持的协议仍会影响最终候选；未下载的节点无法预览。")
+            Text(footer)
         }
     }
 }

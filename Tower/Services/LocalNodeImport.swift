@@ -3,6 +3,7 @@ import Foundation
 enum ManualNodeValidationError: LocalizedError, Equatable {
     case invalidServer
     case invalidPort
+    case invalidCertificateFingerprint
     case missingSecret
     case missingCipher
     case invalidVersion
@@ -16,6 +17,7 @@ enum ManualNodeValidationError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
+        case .invalidCertificateFingerprint: String(localized: "证书指纹必须是 64 位十六进制 SHA-256，可包含冒号或短横线")
         case .invalidServer: String(localized: "请填写节点服务器地址")
         case .invalidPort: String(localized: "端口必须是 1 到 65535 之间的数字")
         case .missingSecret: String(localized: "请填写该协议需要的密码或 UUID")
@@ -55,9 +57,11 @@ struct LocalNodeImporter {
 struct ManualNodeDraft: Equatable {
     static let supportedKinds: [ProxyKind] = [
         .shadowsocks, .shadowsocksR, .vmess, .vless, .trojan,
-        .hysteria, .hysteria2, .tuic, .wireguard, .anytls, .snell, .socks5, .http
+        .hysteria, .hysteria2, .tuic, .masque, .wireguard, .anytls, .snell, .socks5, .http
     ]
 
+    var masque: MASQUEOptions?
+    private var masqueUDP: Bool?
     var kind: ProxyKind = .shadowsocks
     var name = ""
     var server = ""
@@ -96,6 +100,7 @@ struct ManualNodeDraft: Equatable {
     var alpn = ""
     var realityPublicKey = ""
     var realityShortID = ""
+    var certificateFingerprint = ""
     var fingerprint = "chrome"
     var flow = ""
     var skipCertificateVerification = false
@@ -142,6 +147,7 @@ struct ManualNodeDraft: Equatable {
         alpn: String = "",
         realityPublicKey: String = "",
         realityShortID: String = "",
+        certificateFingerprint: String = "",
         fingerprint: String = "chrome",
         flow: String = "",
         skipCertificateVerification: Bool = false,
@@ -186,6 +192,7 @@ struct ManualNodeDraft: Equatable {
         self.alpn = alpn
         self.realityPublicKey = realityPublicKey
         self.realityShortID = realityShortID
+        self.certificateFingerprint = certificateFingerprint
         self.fingerprint = fingerprint
         self.flow = flow
         self.skipCertificateVerification = skipCertificateVerification
@@ -202,6 +209,8 @@ struct ManualNodeDraft: Equatable {
     }
 
     init(node: ProxyNode) {
+        masque = node.masque
+        masqueUDP = node.udpRelayEnabled
         kind = node.kind
         name = node.name
         server = node.server
@@ -234,6 +243,7 @@ struct ManualNodeDraft: Equatable {
         alpn = node.alpn ?? ""
         realityPublicKey = node.realityPublicKey ?? ""
         realityShortID = node.realityShortID ?? ""
+        certificateFingerprint = node.certificateFingerprint ?? ""
         fingerprint = node.fingerprint ?? "chrome"
         flow = node.flow ?? ""
         skipCertificateVerification = node.skipCertificateVerification
@@ -282,7 +292,7 @@ struct ManualNodeDraft: Equatable {
         case .snell:
             version = "4"
             obfs = "none"
-        case .tuic:
+        case .tuic, .masque:
             security = "tls"
             alpn = "h3"
         case .wireguard:
@@ -412,7 +422,17 @@ struct ManualNodeDraft: Equatable {
         }
         let parsedAlterID = kind == .vmess ? max(Int(alterID) ?? 0, 0) : nil
         let requiresTLS = [.trojan, .hysteria, .hysteria2, .tuic, .anytls].contains(kind)
+            || (kind == .masque && (masque?.mode != .basicConnectIP || (masque?.httpVersion ?? 3) == 3))
         let enablesTLS = requiresTLS || tls || ["tls", "reality"].contains(normalizedSecurity) || usesReality
+
+        let pin = certificateFingerprint.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ":", with: "")
+            .replacingOccurrences(of: "-", with: "")
+        if enablesTLS && !usesReality && !pin.isEmpty {
+            guard pin.count == 64, pin.unicodeScalars.allSatisfy({
+                (48...57).contains($0.value) || (65...70).contains($0.value) || (97...102).contains($0.value)
+            }) else { throw ManualNodeValidationError.invalidCertificateFingerprint }
+        }
 
         var node = ProxyNode(
             id: id,
@@ -430,17 +450,18 @@ struct ManualNodeDraft: Equatable {
                 ? normalizedPassword
                 : ([
                     .shadowsocks, .shadowsocksR, .trojan,
-                    .hysteria, .hysteria2, .anytls, .snell, .socks5, .http
+                    .hysteria, .hysteria2, .anytls, .snell, .socks5, .http, .masque
                 ].contains(kind)
                     ? (normalizedSecret.isEmpty ? nil : normalizedSecret)
                     : nil),
             uuid: [.vmess, .vless, .tuic].contains(kind) ? normalizedSecret : nil,
-            username: [.socks5, .http].contains(kind) && !normalizedUsername.isEmpty
+            username: [.socks5, .http, .masque].contains(kind) && !normalizedUsername.isEmpty
                 ? normalizedUsername
                 : nil,
             transport: [.vmess, .vless, .trojan].contains(kind) && !normalizedTransport.isEmpty
                 ? normalizedTransport
                 : nil,
+            masque: kind == .masque ? masque : nil,
             tls: enablesTLS,
             sni: normalizedSNI.isEmpty ? nil : normalizedSNI,
             hostHeader: normalizedHostHeader.isEmpty ? nil : normalizedHostHeader,
@@ -448,6 +469,7 @@ struct ManualNodeDraft: Equatable {
             alpn: normalizedALPN,
             realityPublicKey: usesReality ? normalizedRealityKey : nil,
             realityShortID: usesReality && !normalizedRealityShortID.isEmpty ? normalizedRealityShortID : nil,
+            certificateFingerprint: enablesTLS && !usesReality && !pin.isEmpty ? pin : nil,
             fingerprint: usesReality && !normalizedFingerprint.isEmpty ? normalizedFingerprint : nil,
             flow: !normalizedFlow.isEmpty ? normalizedFlow : nil,
             skipCertificateVerification: skipCertificateVerification,
@@ -473,6 +495,7 @@ struct ManualNodeDraft: Equatable {
             version: parsedVersion,
             congestionControl: kind == .tuic && !congestionControl.isEmpty ? congestionControl : nil,
             udpRelayMode: kind == .tuic && !udpRelayMode.isEmpty ? udpRelayMode : nil,
+            udpRelayEnabled: kind == .masque ? masqueUDP : nil,
             upMbps: parsedUpMbps,
             downMbps: parsedDownMbps,
             wireGuardPrivateKey: kind == .wireguard ? trimmedWGPrivateKey : nil,
@@ -488,6 +511,9 @@ struct ManualNodeDraft: Equatable {
             rawURI: ""
         )
         node.rawURI = ProxyNodeShareLinkGenerator().link(for: node)
+        if kind == .masque, !node.hasSupportedMASQUEFields {
+            throw ManualNodeValidationError.unsupportedProtocol
+        }
         return node
     }
 }

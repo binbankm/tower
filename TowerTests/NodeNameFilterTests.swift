@@ -10,10 +10,24 @@ final class NodeNameFilterTests: XCTestCase {
         XCTAssertEqual(NodeNameFilterDraft(pattern: draft.pattern).keywords, draft.keywords)
     }
 
+    func testExcludedKeywordsRoundTripAndMatchLiterally() throws {
+        var draft = NodeNameFilterDraft()
+        draft.style = .excludes
+        draft.keywords = "HK\nA+B"
+        let pattern = draft.pattern
+        XCTAssertEqual(try NodeNameFilterMatcher.preview(pattern, candidates: [["hk 01"], ["US"], ["A+B 02"], ["AAAB"], ["JP\nHK"]], caseInsensitive: false), [1, 3])
+        let restored = NodeNameFilterDraft(pattern: pattern)
+        XCTAssertEqual(restored.style, .excludes)
+        XCTAssertEqual(restored.keywords, draft.keywords)
+        XCTAssertEqual(restored.pattern, pattern)
+        draft.keywords = ""
+        XCTAssertEqual(draft.pattern, "")
+    }
+
     func testDefaultKeywordExamplesAndExistingRegexRemainDistinct() throws {
         var simple = NodeNameFilterDraft()
         XCTAssertEqual(simple.style, .contains)
-        XCTAssertEqual(NodeNameFilterDraft.MatchStyle.allCases, [.contains, .prefix, .suffix, .exact])
+        XCTAssertEqual(NodeNameFilterDraft.MatchStyle.allCases, [.contains, .excludes, .prefix, .suffix, .exact])
         XCTAssertEqual(simple.pattern, "")
         simple.keywords = "jp\nhk"
         XCTAssertEqual(try NodeNameFilterMatcher.preview(simple.pattern, candidates: [["JPN 01"], ["HKG 02"], ["US 01"]], caseInsensitive: false), [0, 1])

@@ -470,6 +470,16 @@ struct SubscriptionParser {
             text = decoded
         }
 
+        if let parsed = parseMASQUEJSON(text, sourceID: sourceID) { return parsed }
+
+        if text.hasPrefix("{") || text.hasPrefix("[") && !containsSurgeProxySection(text) {
+            if let records = shadowrocketJSONRecords(text) {
+                let nodes = records.compactMap { shadowrocketJSONNode($0, sourceID: sourceID) }
+                let marked = restoringAmbiguousRegionalNames(nodes).map(markingSubscriptionMetadata)
+                return .init(nodes: deduplicated(marked), rejectedLineCount: records.count - nodes.count)
+            }
+        }
+
         if containsSurgeProxySection(text) {
             let parsed = parseSurgeProxyConfiguration(text, sourceID: sourceID)
             let marked = restoringAmbiguousRegionalNames(parsed.nodes)
@@ -534,6 +544,73 @@ struct SubscriptionParser {
         )
     }
 
+    /// Shadowrocket copies either a JSON array or adjacent JSON objects.
+    /// Track JSON string escapes so braces in names and header values never
+    /// split a record. Unknown/malformed documents are not treated as nodes.
+    private func shadowrocketJSONRecords(_ text: String) -> [Any]? {
+        if let value = try? JSONSerialization.jsonObject(with: Data(text.utf8)) {
+            if let array = value as? [Any] { return array }
+            if value is [String: Any] { return [value] }
+            return nil
+        }
+        var records: [Any] = []
+        var depth = 0
+        var quoted = false
+        var escaped = false
+        var buffer = ""
+        for character in text {
+            if depth == 0 {
+                if character.isWhitespace { continue }
+                guard character == "{" else { return nil }
+            }
+            buffer.append(character)
+            if quoted {
+                if escaped { escaped = false }
+                else if character == "\\" { escaped = true }
+                else if character == "\"" { quoted = false }
+                continue
+            }
+            if character == "\"" { quoted = true }
+            else if character == "{" { depth += 1 }
+            else if character == "}" {
+                depth -= 1
+                if depth == 0 {
+                    guard let value = try? JSONSerialization.jsonObject(with: Data(buffer.utf8)) else { return nil }
+                    records.append(value)
+                    buffer = ""
+                }
+            }
+        }
+        return depth == 0 && !records.isEmpty ? records : nil
+    }
+
+    private func shadowrocketJSONNode(_ value: Any, sourceID: UUID?) -> ProxyNode? {
+        guard let json = value as? [String: Any],
+              stringValue(json["type"])?.lowercased() == "vmess",
+              let server = stringValue(json["host"]), !server.isEmpty,
+              let port = intValue(json["port"]), (1...65535).contains(port),
+              let credential = stringValue(json["password"]), !credential.isEmpty else { return nil }
+        // These settings cannot be represented by the current node model.
+        // Never silently turn a pinned/chained/custom-TLS node into a plain one.
+        for key in ["cert", "hpkp", "chain", "plugin", "ech", "tlsProfile", "privateKey", "publicKey"] {
+            if let field = stringValue(json[key]), !field.isEmpty { return nil }
+        }
+        let transport = normalizedVMessTransport(stringValue(json["obfs"])) ?? "tcp"
+        let rawHost = stringValue(json["obfsParam"])
+        let host = transport == "ws" ? webSocketHost(from: rawHost) : rawHost
+        if transport == "ws", let rawHost, !rawHost.isEmpty, host == nil { return nil }
+        return ProxyNode(
+            sourceID: sourceID, kind: .vmess,
+            name: normalizedName(stringValue(json["title"]), fallback: server),
+            server: normalizedHost(server), port: port,
+            cipher: stringValue(json["method"]) ?? "auto", uuid: credential,
+            transport: transport, tls: boolValue(json["tls"]),
+            sni: stringValue(json["peer"]), hostHeader: host,
+            path: stringValue(json["path"])?.replacingOccurrences(of: "\\/", with: "/"), alpn: stringValue(json["alpn"]),
+            alterID: intValue(json["alterId"]), udpRelayEnabled: boolValue(json["udp"]), rawURI: ""
+        )
+    }
+
     private func containsSurgeProxySection(_ text: String) -> Bool {
         text.components(separatedBy: .newlines).contains { line in
             line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -565,7 +642,7 @@ struct SubscriptionParser {
             }
             guard insideProxySection else { continue }
 
-            if let node = parseSurgeShadowsocksLine(line, sourceID: sourceID) {
+            if let node = parseMASQUELine(line, sourceID: sourceID) ?? parseSurgeShadowsocksLine(line, sourceID: sourceID) {
                 nodes.append(node)
             } else {
                 rejected += 1
@@ -576,6 +653,41 @@ struct SubscriptionParser {
             nodes: nodes,
             rejectedLineCount: nodes.isEmpty ? max(rejected, 1) : rejected
         )
+    }
+
+    /// Only the documented HTTP Basic variant. Unknown semantic parameters
+    /// must not be dropped (in particular CONNECT-IP keys and proxy chains).
+    private func parseMASQUELine(_ raw: String, sourceID: UUID?) -> ProxyNode? {
+        guard let separator = raw.firstIndex(of: "="), !raw.contains(where: \.isNewline) else { return nil }
+        let name = String(raw[..<separator]).trimmingCharacters(in: .whitespaces)
+        let fields = surgeProxyFields(String(raw[raw.index(after: separator)...]))
+        guard !name.isEmpty, fields.count >= 3, fields[0].lowercased() == "masque",
+              let port = Int(fields[2]), (1...65535).contains(port) else { return nil }
+        let host = normalizedHost(fields[1])
+        guard !host.isEmpty, !host.contains(where: { $0.isWhitespace || ",/\\@?#=".contains($0) }) else { return nil }
+        let allowed: Set<String> = ["username", "password", "sni", "alpn", "skip-cert-verify", "server-cert-fingerprint-sha256"]
+        var options: [String: String] = [:]
+        for field in fields.dropFirst(3) {
+            guard let equals = field.firstIndex(of: "=") else { return nil }
+            let key = String(field[..<equals]).trimmingCharacters(in: .whitespaces).lowercased()
+            let value = surgeProxyScalar(String(field[field.index(after: equals)...]), decodePercent: false)
+            guard allowed.contains(key), options[key] == nil,
+                  !value.contains(where: { $0.isNewline || $0 == "\0" || $0 == "," }) else { return nil }
+            options[key] = value
+        }
+        if let sni = options["sni"], sni.contains(where: { $0.isWhitespace || ",/%\\@?#=".contains($0) }) { return nil }
+        if let value = options["skip-cert-verify"], !["true", "false", "1", "0", "yes", "no"].contains(value.lowercased()) { return nil }
+        if let pin = options["server-cert-fingerprint-sha256"] {
+            let compact = pin.replacingOccurrences(of: ":", with: "").replacingOccurrences(of: "-", with: "")
+            guard compact.count == 64, compact.allSatisfy({ $0.isASCII && $0.isHexDigit }) else { return nil }
+        }
+        let node = ProxyNode(sourceID: sourceID, kind: .masque, name: name, server: host, port: port,
+                         password: options["password"], username: options["username"], tls: true,
+                         sni: options["sni"], alpn: options["alpn"],
+                         certificateFingerprint: options["server-cert-fingerprint-sha256"],
+                         skipCertificateVerification: boolString(options["skip-cert-verify"]),
+                         rawURI: raw)
+        return node.hasSupportedMASQUEFields ? node : nil
     }
 
     private func parseSurgeShadowsocksLine(
@@ -674,6 +786,7 @@ struct SubscriptionParser {
         let lowercased = value.lowercased()
         // Snell has no URI form at all. It is shared as the Surge proxy line it
         // is written as, so that line is what Tower accepts.
+        if let masque = parseMASQUELine(value, sourceID: sourceID) { return masque }
         if let snell = parseSnellLine(value, sourceID: sourceID) { return snell }
         if lowercased.hasPrefix("ss://") { return parseShadowsocks(value, sourceID: sourceID) }
         if lowercased.hasPrefix("ssr://") { return parseShadowsocksR(value, sourceID: sourceID) }
@@ -1088,8 +1201,9 @@ struct SubscriptionParser {
             transport: transport,
             tls: ["1", "true", "tls"].contains(query["tls"]?.lowercased() ?? ""),
             sni: query["peer"]?.removingPercentEncoding ?? query["sni"]?.removingPercentEncoding,
-            hostHeader: query["obfsparam"]?.removingPercentEncoding
-                ?? query["host"]?.removingPercentEncoding,
+            hostHeader: transport == "ws"
+                ? webSocketHost(from: query["obfsparam"] ?? query["host"])
+                : (query["obfsparam"]?.removingPercentEncoding ?? query["host"]?.removingPercentEncoding),
             path: query["path"]?.removingPercentEncoding,
             skipCertificateVerification: ["1", "true"].contains(
                 query["allowinsecure"]?.lowercased() ?? query["tls-verification"]?.lowercased() ?? ""
@@ -1469,6 +1583,90 @@ struct SubscriptionParser {
         return ("ws", host, path)
     }
 
+    /// A deliberately bounded CONNECT-IP subset. Unknown fields reject the
+    /// node instead of silently discarding authentication or routing settings.
+    private func parseMASQUEClash(_ fields: [String: String], sourceID: UUID?) -> ProxyNode? {
+        let allowed: Set<String> = ["name", "type", "server", "port", "private-key", "public-key",
+                                    "ip", "ipv6", "network", "mtu", "dns", "remote-dns-resolve", "udp", "sni"]
+        guard Set(fields.keys).isSubset(of: allowed),
+              let server = fields["server"], let port = Int(fields["port"] ?? "") else { return nil }
+        if let value = fields["udp"], !["true", "false"].contains(value.lowercased()) { return nil }
+        if let value = fields["remote-dns-resolve"], !["true", "false"].contains(value.lowercased()) { return nil }
+        if let mtu = fields["mtu"], Int(mtu) == nil { return nil }
+        func validAddress(_ value: String, ipv6: Bool) -> Bool {
+            let parts = value.split(separator: "/", omittingEmptySubsequences: false)
+            guard parts.count <= 2 else { return false }
+            if parts.count == 2, !(Int(parts[1]).map { (0...(ipv6 ? 128 : 32)).contains($0) } ?? false) { return false }
+            return ipv6 ? IPv6Address(String(parts[0])) != nil : IPv4Address(String(parts[0])) != nil
+        }
+        if let ip = fields["ip"], !validAddress(ip, ipv6: false) { return nil }
+        if let ip = fields["ipv6"], !validAddress(ip, ipv6: true) { return nil }
+        let dns = fields["dns"].map { csvValues($0) }
+        if let dns, dns.contains(where: { IPv4Address($0) == nil && IPv6Address($0) == nil }) { return nil }
+        let options = MASQUEOptions(mode: .keyConnectIP, privateKey: fields["private-key"],
+            publicKey: fields["public-key"], ipv4: fields["ip"], ipv6: fields["ipv6"],
+            network: fields["network"], mtu: fields["mtu"].flatMap(Int.init), dns: dns,
+            remoteDNSResolve: fields["remote-dns-resolve"].map { $0.lowercased() == "true" })
+        let node = ProxyNode(sourceID: sourceID, kind: .masque, name: fields["name"] ?? server,
+            server: server, port: port, masque: options, tls: true, sni: fields["sni"],
+            udpRelayEnabled: fields["udp"].map { $0.lowercased() == "true" }, rawURI: "")
+        return node.hasSupportedMASQUEFields ? node : nil
+    }
+
+    private func parseMASQUEJSON(_ text: String, sourceID: UUID?) -> ParsedContent? {
+        guard let data = text.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) else { return nil }
+        let records: [Any]
+        if let root = object as? [String: Any], let endpoints = root["endpoints"] as? [Any] {
+            // Count unhandled real outbounds too; never claim a full profile
+            // was imported when only its CONNECT-IP endpoints were retained.
+            records = endpoints + ((root["outbounds"] as? [[String: Any]]) ?? []).filter {
+                !["direct", "block", "dns", "selector", "urltest"].contains($0["type"] as? String ?? "")
+            }
+        } else if let root = object as? [String: Any], root["type"] as? String == "masque-client" {
+            records = [root]
+        } else if let array = object as? [[String: Any]], array.contains(where: { $0["type"] as? String == "masque-client" }) {
+            records = array
+        } else { return nil }
+        let nodes = records.compactMap { ($0 as? [String: Any]).flatMap { parseMASQUEEndpoint($0, sourceID: sourceID) } }
+        return .init(nodes: deduplicated(nodes), rejectedLineCount: records.count - nodes.count)
+    }
+
+    private func parseMASQUEEndpoint(_ fields: [String: Any], sourceID: UUID?) -> ProxyNode? {
+        let allowed: Set<String> = ["type", "tag", "server", "server_port", "username", "password", "path",
+                                   "headers", "version", "disable_version_fallback", "tls", "system", "mtu"]
+        guard fields["type"] as? String == "masque-client", Set(fields.keys).isSubset(of: allowed),
+              let server = fields["server"] as? String, let port = fields["server_port"] as? Int,
+              fields["system"] == nil || fields["system"] as? Bool == false else { return nil }
+        for key in ["tag", "username", "password", "path"] {
+            if fields[key] != nil && !(fields[key] is String) { return nil }
+        }
+        for key in ["version", "mtu"] {
+            if fields[key] != nil && !(fields[key] is Int) { return nil }
+        }
+        if fields["headers"] != nil && !(fields["headers"] is [String: String]) { return nil }
+        if fields["disable_version_fallback"] != nil && !(fields["disable_version_fallback"] is Bool) { return nil }
+        let tls = fields["tls"] as? [String: Any] ?? [:]
+        if fields["tls"] != nil && !(fields["tls"] is [String: Any]) { return nil }
+        guard Set(tls.keys).isSubset(of: ["enabled", "server_name", "insecure", "alpn", "certificate"]) else { return nil }
+        for key in ["enabled", "insecure"] { if tls[key] != nil && !(tls[key] is Bool) { return nil } }
+        if tls["server_name"] != nil && !(tls["server_name"] is String) { return nil }
+        func strings(_ value: Any?) -> [String]? {
+            if let string = value as? String { return [string] }
+            return value as? [String]
+        }
+        for key in ["alpn", "certificate"] { if tls[key] != nil && strings(tls[key]) == nil { return nil } }
+        let options = MASQUEOptions(mode: .basicConnectIP, mtu: fields["mtu"] as? Int,
+            httpVersion: fields["version"] as? Int, disableVersionFallback: fields["disable_version_fallback"] as? Bool,
+            headers: fields["headers"] as? [String: String], certificate: strings(tls["certificate"]))
+        let node = ProxyNode(sourceID: sourceID, kind: .masque, name: fields["tag"] as? String ?? server,
+            server: server, port: port, password: fields["password"] as? String, username: fields["username"] as? String,
+            masque: options, tls: tls["enabled"] as? Bool ?? false, sni: tls["server_name"] as? String,
+            path: fields["path"] as? String, alpn: strings(tls["alpn"])?.joined(separator: ","),
+            skipCertificateVerification: tls["insecure"] as? Bool ?? false, rawURI: "")
+        return node.hasSupportedMASQUEFields ? node : nil
+    }
+
     private func parseClashYAML(_ text: String, sourceID: UUID?) -> ParsedContent {
         let lines = text.components(separatedBy: .newlines)
         guard let start = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "proxies:" }) else {
@@ -1551,6 +1749,11 @@ struct SubscriptionParser {
         var rejected = 0
         for rawDictionary in dictionaries {
             let dictionary = flattenedClashProxy(rawDictionary)
+            if dictionary["type"]?.lowercased() == "masque" {
+                if let node = parseMASQUEClash(dictionary, sourceID: sourceID) { nodes.append(node) }
+                else { rejected += 1 }
+                continue
+            }
             guard let type = dictionary["type"]?.lowercased(),
                   let kind = clashKind(type),
                   let rawServer = dictionary["server"],
@@ -1996,7 +2199,7 @@ struct SubscriptionParser {
         )
     }
 
-    /// Shadowrocket's endpoint-only VLESS dialect calls the WebSocket header
+    /// Shadowrocket's endpoint-only VLESS/VMess dialect calls the WebSocket header
     /// `obfsParam`. Most producers store a bare hostname there, while others
     /// percent-encode a JSON header map such as `{\"Host\":\"cdn.example\"}`.
     /// Decode both shapes without ever serialising the JSON object itself as a

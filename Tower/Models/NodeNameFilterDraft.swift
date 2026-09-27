@@ -1,12 +1,20 @@
 import Foundation
 
+/// A saved export condition. It is independent of per-node checkboxes so a
+/// subscription refresh applies the same condition to newly arrived nodes.
+struct NodeExportNameFilter: Codable, Equatable {
+    var pattern: String
+    var ignoresCase: Bool
+}
+
 struct NodeNameFilterDraft: Equatable {
     enum MatchStyle: String, CaseIterable, Identifiable {
-        case contains, prefix, suffix, exact
+        case contains, excludes, prefix, suffix, exact
         var id: Self { self }
         var title: String {
             switch self {
             case .contains: String(localized: "包含关键词")
+            case .excludes: String(localized: "不包含关键词")
             case .prefix: String(localized: "以关键词开头")
             case .suffix: String(localized: "以关键词结尾")
             case .exact: String(localized: "名称完全相同")
@@ -36,6 +44,7 @@ struct NodeNameFilterDraft: Equatable {
         let alternatives = values.map { word in
             word.map { "\\.*+?()[]{}^$|".contains($0) ? "\\" + String($0) : String($0) }.joined()
         }.joined(separator: "|")
+        if style == .excludes { return flags + "^(?![\\s\\S]*(?:" + alternatives + "))[\\s\\S]*$" }
         let prefix = style == .prefix || style == .exact ? "^" : ""
         let suffix = style == .suffix || style == .exact ? "$" : ""
         return flags + prefix + "(?:" + alternatives + ")" + suffix
@@ -49,6 +58,15 @@ struct NodeNameFilterDraft: Equatable {
         draft.ignoresCase = caseInsensitiveDefault
         if text.hasPrefix("(?i)") { draft.ignoresCase = true; text.removeFirst(4) }
         else if text.hasPrefix("(?-i)") { draft.ignoresCase = false; text.removeFirst(5) }
+        let exclusionPrefix = "^(?![\\s\\S]*(?:"
+        let exclusionSuffix = "))[\\s\\S]*$"
+        if text.hasPrefix(exclusionPrefix), text.hasSuffix(exclusionSuffix) {
+            let body = String(text.dropFirst(exclusionPrefix.count).dropLast(exclusionSuffix.count))
+            guard var decoded = decode("(?:" + body + ")", caseInsensitiveDefault: draft.ignoresCase) else { return nil }
+            decoded.style = .excludes
+            decoded.regex = pattern
+            return decoded
+        }
         let anchoredStart = text.hasPrefix("^")
         if anchoredStart { text.removeFirst() }
         let anchoredEnd = text.hasSuffix("$") && !text.hasSuffix("\\$")

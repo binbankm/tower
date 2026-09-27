@@ -813,7 +813,8 @@ struct LANSharingDestinationCard: View {
                         Label {
                             Text(format.displayName)
                         } icon: {
-                            LANClientIcon(format: format, size: 20)
+                            Image(uiImage: LANClientMenuImages.image(for: format))
+                                .renderingMode(.original)
                         }
                             .tag(Optional(format))
                     }
@@ -850,6 +851,39 @@ struct LANSharingDestinationCard: View {
         }
     }
 
+}
+
+/// Native menu labels extract the image and discard SwiftUI clip/overlay
+/// modifiers. Bake the same rounded silhouette into transparent pixels instead.
+@MainActor
+private enum LANClientMenuImages {
+    private static let images: [String: UIImage] = {
+        let size: CGFloat = 20
+        let bounds = CGRect(x: 0, y: 0, width: size, height: size)
+        let rendererFormat = UIGraphicsImageRendererFormat()
+        rendererFormat.opaque = false
+        rendererFormat.scale = 3
+        let renderer = UIGraphicsImageRenderer(size: bounds.size, format: rendererFormat)
+        var images: [String: UIImage] = [:]
+        for format in LANSubscriptionFormat.allCases {
+            let asset = format.appIconAssetName
+            guard images[asset] == nil, let source = UIImage(named: asset),
+                  source.size.width > 0, source.size.height > 0 else { continue }
+            images[asset] = renderer.image { _ in
+                UIBezierPath(roundedRect: bounds, cornerRadius: size * 0.22).addClip()
+                let scale = max(size / source.size.width, size / source.size.height)
+                let width = source.size.width * scale
+                let height = source.size.height * scale
+                source.draw(in: CGRect(x: (size - width) / 2, y: (size - height) / 2,
+                                       width: width, height: height))
+            }.withRenderingMode(.alwaysOriginal)
+        }
+        return images
+    }()
+
+    static func image(for format: LANSubscriptionFormat) -> UIImage {
+        images[format.appIconAssetName] ?? UIImage(systemName: "app") ?? UIImage()
+    }
 }
 
 private struct LANClientIcon: View {

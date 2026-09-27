@@ -28,6 +28,7 @@ final class SymbolAvailabilityTests: XCTestCase {
             .hysteria: .system("hare.fill"),
             .hysteria2: .system("hare.fill"),
             .tuic: .system("bolt.circle.fill"),
+            .masque: .system("network"),
             .wireguard: .system("shield.checkered"),
             .anytls: .system("lock.shield.fill"),
             .snell: .system("s.square.fill"),

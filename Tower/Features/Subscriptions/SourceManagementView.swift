@@ -7,6 +7,7 @@ struct SourceManagementView: View {
     @State private var tab: SourceManagementTab
     @State private var showsEntryTitle = true
     @State private var searchText = ""
+    @State private var showsNameFilter = false
     @State private var selectedSubscriptionIDs: Set<UUID> = []
     @State private var selectedLocalNodeIDs: Set<UUID> = []
     @State private var pendingDeletion: SourceManagementDeletion?
@@ -35,7 +36,7 @@ struct SourceManagementView: View {
             case .localNodes:
                 localNodesContent
             case .exportFilter:
-                NodeFilterSections(searchText: $searchText)
+                NodeFilterSections(searchText: $searchText, showsNameFilter: $showsNameFilter)
             }
         }
         // Search cancellation restores many rows in the same transaction as
@@ -46,8 +47,16 @@ struct SourceManagementView: View {
         .scrollContentBackground(.hidden)
         .background(TowerTheme.background.ignoresSafeArea())
         .navigationTitle(navigationTitle)
+        // Present from the stable List, not a Group of Sections whose modifier
+        // is distributed to multiple children during list reconciliation.
+        .sheet(isPresented: $showsNameFilter) {
+            NodeExportNameFilterSheet(filter: model.nodeExportNameFilter) { filter in
+                try model.setNodeExportNameFilter(filter)
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: tab.searchPrompt)
+        .modifier(ManagementSearchPresentation())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 SubscriptionRefreshToolbarButton(sources: subscriptionsToRefresh)
@@ -573,5 +582,17 @@ private struct ManagementActionButton: View {
 
     private var backgroundStyle: Color {
         role == .destructive ? Color.primary.opacity(0.07) : .accentColor
+    }
+}
+
+/// Retain navigation content during search so cancellation does not also
+/// restore a collapsed navigation bar and readjust the List's top inset.
+private struct ManagementSearchPresentation: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 17.1, *) {
+            content.searchPresentationToolbarBehavior(.avoidHidingContent)
+        } else {
+            content
+        }
     }
 }

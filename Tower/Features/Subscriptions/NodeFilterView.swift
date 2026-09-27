@@ -82,6 +82,7 @@ struct NodeFilterSections: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @Binding var searchText: String
+    @Binding var showsNameFilter: Bool
 
     var body: some View {
         // Filtering used to run once for the rows, once for the empty check,
@@ -91,21 +92,62 @@ struct NodeFilterSections: View {
         // keystroke in the search field.
         let filteredNodes = self.filteredNodes
         let includedFilteredNodeCount = filteredNodes.lazy.filter(model.isNodeIncluded).count
-        let allFilteredNodesIncluded = !filteredNodes.isEmpty
-            && filteredNodes.allSatisfy(model.isNodeIncluded)
+        let eligibleFilteredNodes = filteredNodes.filter(model.isNodeAllowedByName)
+        let allFilteredNodesIncluded = !eligibleFilteredNodes.isEmpty
+            && eligibleFilteredNodes.allSatisfy(model.isNodeIncluded)
 
         return Group {
             Section {
-                LazyVGrid(columns: filterColumns, spacing: 9) {
-                    countryFilter
-                    protocolFilter
+                VStack(spacing: 9) {
+                    LazyVGrid(columns: filterColumns, spacing: 9) {
+                        countryFilter
+                        protocolFilter
+                    }
+                    Button {
+                        showsNameFilter = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "text.magnifyingglass")
+                                .foregroundStyle(Color.primary)
+                                .frame(width: 22)
+                            Text("节点名称")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .layoutPriority(1)
+                            Spacer(minLength: 8)
+                            if let filter = model.nodeExportNameFilter {
+                                let draft = NodeNameFilterDraft(pattern: filter.pattern)
+                                Text(verbatim: draft.usesRegex ? filter.pattern : draft.keywords.replacingOccurrences(of: "\n", with: " · "))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                            if model.nodeExportNameFilter == nil {
+                                Text("未设置").font(.subheadline).foregroundStyle(.secondary)
+                            }
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 48)
+                        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("node-name-export-filter")
                 }
                 .padding(.vertical, 2)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
             } header: {
                 Text("筛选")
             } footer: {
-                Text("取消勾选的节点仍保存在塔台中，但不会写入任何客户端配置。")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("取消勾选的节点仍保存在塔台中，但不会写入任何客户端配置。")
+                    if let error = model.nodeExportNameFilterError {
+                        Text(error).foregroundStyle(.red)
+                    }
+                }
             }
 
             Section {
@@ -127,7 +169,7 @@ struct NodeFilterSections: View {
                         }
                     Spacer()
                     bulkSelectionButton(
-                        filteredNodes: filteredNodes,
+                        filteredNodes: eligibleFilteredNodes,
                         allIncluded: allFilteredNodesIncluded
                     )
                 }
@@ -201,6 +243,9 @@ struct NodeFilterSections: View {
             ForEach(countryOptions) { option in
                 exportGroupSelectionToggle(title: option.title, nodes: option.nodes)
             }
+            Divider()
+            Button("完成") {}
+                .menuActionDismissBehavior(.enabled)
         } label: {
             FilterChip(
                 title: String(localized: "国家地区"),
@@ -208,6 +253,9 @@ struct NodeFilterSections: View {
                 isActive: false
             )
         }
+        // Region selection is a multi-select task: keep the native menu open
+        // for toggles, and dismiss only via Done or a tap outside the menu.
+        .menuActionDismissBehavior(.disabled)
         .frame(maxWidth: .infinity)
     }
 
@@ -226,6 +274,9 @@ struct NodeFilterSections: View {
                     kind: option
                 )
             }
+            Divider()
+            Button("完成") {}
+                .menuActionDismissBehavior(.enabled)
         } label: {
             FilterChip(
                 title: String(localized: "协议"),
@@ -233,6 +284,8 @@ struct NodeFilterSections: View {
                 isActive: false
             )
         }
+        // Keep the protocol menu open while selecting multiple kinds.
+        .menuActionDismissBehavior(.disabled)
         .frame(maxWidth: .infinity)
     }
 
@@ -241,20 +294,21 @@ struct NodeFilterSections: View {
         nodes: [ProxyNode],
         kind: ProxyKind? = nil
     ) -> some View {
-        let includedCount = nodes.lazy.filter(model.isNodeIncluded).count
+        let eligibleNodes = nodes.filter(model.isNodeAllowedByName)
+        let includedCount = eligibleNodes.lazy.filter(model.isNodeIncluded).count
         let selectionState = NodeExportGroupSelectionState(
             includedCount: includedCount,
-            totalCount: nodes.count
+            totalCount: eligibleNodes.count
         )
         let countSummary = selectionState == .partial
-            ? "\(includedCount)/\(nodes.count)"
-            : "\(nodes.count)"
+            ? "\(includedCount)/\(eligibleNodes.count)"
+            : "\(eligibleNodes.count)"
 
         return Toggle(
             isOn: Binding(
                 get: { selectionState.isMenuSelected },
                 set: { shouldInclude in
-                    model.setNodes(nodes, included: shouldInclude)
+                    model.setNodes(eligibleNodes, included: shouldInclude)
                 }
             )
         ) {
@@ -268,10 +322,11 @@ struct NodeFilterSections: View {
                 Text("\(title) · \(countSummary)")
             }
         }
-        .disabled(nodes.isEmpty)
+        .disabled(eligibleNodes.isEmpty)
     }
 
     private func nodeRow(_ node: ProxyNode) -> some View {
+        let allowedByName = model.isNodeAllowedByName(node)
         let included = model.isNodeIncluded(node)
         let presentedNode = model.nodeForPresentation(node)
         return Button {
@@ -293,7 +348,7 @@ struct NodeFilterSections: View {
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                Text(included ? "已启用" : "已停用")
+                Text(!allowedByName ? "名称不匹配" : (included ? "已启用" : "已停用"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(included ? Color.accentColor : Color.secondary)
                 SelectionIndicator(isSelected: included)
@@ -301,11 +356,88 @@ struct NodeFilterSections: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(!allowedByName)
         .accessibilityValue(included ? String(localized: "已启用") : String(localized: "已停用"))
     }
 
     private var resolutionTaskID: Int {
         model.availableNodes.map { "\($0.id):\($0.server)" }.hashValue
+    }
+}
+
+/// The same editor used by policy-group name rules, with a separate saved
+/// condition that controls which nodes reach every export destination.
+struct NodeExportNameFilterSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var pattern: String
+    @State private var previewResult: NodeNameFilterPreviewResult?
+    @State private var saveError: String?
+    let onSave: (NodeExportNameFilter?) throws -> Void
+
+    init(filter: NodeExportNameFilter?, onSave: @escaping (NodeExportNameFilter?) throws -> Void) {
+        _pattern = State(initialValue: filter?.pattern ?? "")
+        self.onSave = onSave
+    }
+
+    private var previewInput: NodeNameFilterPreviewInput {
+        .init(patterns: [pattern], candidates: model.availableNodes.map { [$0.name] }, insensitive: true)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    NodeNameFilterFields(pattern: $pattern, caseInsensitiveDefault: true, simplified: true)
+                } header: {
+                    Text("节点名称")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("名称条件会用于所有客户端导出；订阅刷新后新增的节点也会自动匹配。")
+                        Text("仅筛选本地节点；代理集合中的节点由客户端获取，不受此处筛选影响。")
+                    }
+                }
+                NodeNameFilterPreview(input: previewInput, result: previewResult,
+                    footer: String(localized: "预览基于当前已启用订阅的节点。手动取消勾选的节点仍不会导出。"))
+                if let saveError {
+                    Section { Text(saveError).foregroundStyle(.red) }
+                }
+                if model.nodeExportNameFilter != nil {
+                    Section {
+                        Button("清除名称筛选", role: .destructive) {
+                            do {
+                                try onSave(nil)
+                                dismiss()
+                            } catch { saveError = error.localizedDescription }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("节点名称筛选")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        do {
+                            try onSave(NodeExportNameFilter(pattern: pattern, ignoresCase: true))
+                            dismiss()
+                        } catch { saveError = error.localizedDescription }
+                    }
+                    .disabled(!pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                              && (previewResult?.input != previewInput || previewResult?.error != nil))
+                }
+            }
+            .task(id: previewInput) {
+                let input = previewInput
+                do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+                let result = await input.evaluate()
+                guard !Task.isCancelled, input == previewInput else { return }
+                previewResult = result
+            }
+        }
     }
 }
 

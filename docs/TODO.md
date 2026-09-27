@@ -2,6 +2,12 @@
 
 这里只保留未完成事项。已实施的审查修复及测试结果见[审查报告](../plans/2026-09-05-project-audit.md)。
 
+## Shadowrocket 批量复制的 VMess WebSocket Host 异常（2026-09-24 邮件反馈）
+
+- 反馈者在 TestFlight 1.0.20（58）中，从 Shadowrocket 批量复制大量 VMess + WebSocket + TLS 节点，粘贴到塔台后，部分节点的 Host 显示为类似 `{"Host":"xxx.xxxx.com"}` 的 JSON 对象字符串，而不是 `xxx.xxxx.com`。2026-09-25 已用虚构旧式 VMess URI 复现 JSON obfsParam 原样落入 Host，并修复该分支；原反馈片段及 Shadowrocket 真机往返仍待确认，不能据此判断所有节点或导出格式都有同一问题。
+- 获取脱敏后的原始复制片段及对应异常节点，覆盖批量粘贴解析与保存后的 Host 显示，并检查是否有协议或来源格式差异。不要收集真实订阅链接或节点凭据。
+- 反馈者另表示有多项规则调整建议，但邮件没有具体规则与预期结果；待取得脱敏示例后逐项记录。
+
 ## Tailscale：一次配置，后续方便导入
 
 - 尚未实现；用户要求先记录，等待测试确认。不要与普通节点协议混用，也不要声称所有 Clash / Surge 版本都支持。

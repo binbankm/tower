@@ -885,7 +885,7 @@ final class RepositoryConsistencyTests: XCTestCase {
         let catalog = try sourceText("Tower/Localizable.xcstrings")
 
         XCTAssertTrue(settings.contains("String(localized: \"支持安卓、Windows、Mac、路由器等。\")"))
-        XCTAssertTrue(settings.contains("LANClientIcon(format: format"))
+        XCTAssertTrue(settings.contains("LANClientMenuImages.image(for: format)"))
         XCTAssertTrue(settings.contains("LANClientIcon(format: selectedClient"))
         XCTAssertFalse(settings.contains("Label(format.displayName, systemImage: format.systemImageName)"))
         XCTAssertFalse(settings.contains("String(localized: \"共享的是转换结果，不含机场原始链接\")"))

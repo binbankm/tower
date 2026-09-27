@@ -1,5 +1,130 @@
 # 当前交接
 
+## 未发布：Clash 系 MASQUE 节点内 DNS（2026-09-27）
+
+- Clash、Clash Mi、Clash Verge、ClashMac、FlClash、Mihomo Party 的密钥 CONNECT-IP 节点缺省输出 remote-dns-resolve: true 与 dns: [1.1.1.1, 8.8.8.8]。完整配置和仅节点共用节点生成器；不修改全局 DNS、规则、策略组，不依赖任何固定组名。
+- 增加可选 remoteDNSResolve 存储字段及 Clash YAML 解析/校验，保留用户显式 false 和自定义 DNS；旧数据缺省 nil 兼容。编辑、编码、导入再导出保留设置。Shadowrocket 不自动启用新默认值；Stash 生成分支包含相同默认逻辑，但仍由能力和生成器门禁拒绝 MASQUE，暂不声明支持。Surge/sing-box 不套用此设置。
+- 全量 1177 项 XCTest（5 跳过、0 失败）及 100 项 Swift Testing 通过；新增六目标完整/仅节点字段往返、显式关闭与自定义 DNS、持久化/编辑、非法布尔值、Stash 仍禁用和 Shadowrocket 无默认项回归。
+- 临时真实文件用例读取用户节点，实际生成六个目标完整配置；临时用例已移除。六份配置均经 Mihomo 1.19.27 语法检查，并在隔离 SOCKS、固定 MATCH 到测试节点的运行验证中访问 YouTube 返回 200。全局 DNS 未替换；不能将同一内核验证称为六个图形客户端逐个验收。
+- 正式 Xcode 已覆盖安装并启动连接的实体 iPhone，保留数据。未新增界面文案，版本仍为 1.0.21（59），未推送发布。git diff --check 通过。
+
+## MASQUE 与其他协议 DNS 对照实测（2026-09-27）
+
+- 同一 Mihomo 1.19.27、原 VPS 既有服务、固定物理出口、仅回环 SOCKS 入口，以域名交给代理（socks5h）访问 YouTube / example.com / 公网 IP HTTPS。用 MATCH 固定测试节点，隔离分流规则差异；未修改服务端、系统代理或 VPN。
+- 覆盖 MASQUE CONNECT-IP、Snell（Mihomo v4 对接服务器 v5）、Shadowsocks、VMess TCP、Trojan TLS、VLESS WS TLS、AnyTLS，以及 MASQUE 节点级 remote-dns-resolve 变体。
+- 分别使用用户原配置 DNS 与刻意不可用的客户端 DNS，逐个重启内核排除进程 DNS 缓存。两轮共 48 次请求，4 次失败均为原 MASQUE 的两个域名；所有节点公网 IP HTTPS 均成功。Snell 等六种域名代理及 MASQUE 节点 DNS 变体，两个域名均 HTTP 200。
+- 日志确认原 MASQUE 错误为 dns resolve failed；验证差异是该 CONNECT-IP 路径需客户端获得目标 IP，而其他测试 TCP 代理可直接传域名给服务器。不是所有 MASQUE 变体的普遍结论，也不表示其他协议不会遇到 DNS 故障；节点服务器域名解析、IP 规则或其他 UDP/直连路径仍可能依赖客户端 DNS。本轮未测试 WireGuard、TUIC、Hysteria。
+- 私密脚本配置与原始日志保存在忽略目录 .artifacts/masque-dns-matrix，测试内核已全部停止。本轮仅诊断，未修改 App 代码。
+
+## MASQUE 用户原始导出 DNS 对照（2026-09-27）
+
+- 用户提供实际 Clash / ACL4SSR 配置。隔离 Mihomo 1.19.27 保留全部分组规则测试：YouTube 正确匹配国外媒体，但 DNS 解析失败；百度、哔哩哔哩直连成功，Apple 代理成功，gstatic 测速 204。尚未复现手机国内网站也失败。
+- 只对 nameserver 与 fallback 的 DoH URL 指定现有节点选择组，保留 proxy-server-nameserver 直连以避免解析代理服务器时循环依赖；节点、全部策略组与 ACL4SSR 规则保持原样。YouTube、百度、哔哩哔哩、Apple 返回 200，测速 204；日志确认国内仍 DIRECT、YouTube 仍国外媒体。
+- 私密修正版仅放 Downloads，未修改用户原文件。等待 clash.md 手机使用该原方案修正版验证；尚未更改 App 的通用 DNS 生成策略，不能将个别测试节点名硬编码到产品。
+
+## MASQUE Clash 无法上网诊断（2026-09-27）
+
+- 用户反馈 clash.md 最新版测速成功但无法上网。用 Mihomo 1.19.27、同一测试节点、隔离的本地 SOCKS 入口复查；保留之前塔台生成配置的 DNS 段，强制 MATCH 到测试节点，以排除分组选择差异，未修改系统 VPN/代理。
+- 公网 IP HTTPS 成功，Apple 返回 200，gstatic 测速地址返回 204；Google、YouTube、Cloudflare、example.com 失败，日志显示直连的 DoH fallback 超时。最小无 DNS 配置还受到本机已有 VPN 的系统 DNS 地址影响，不能把它当成手机根因。
+- 单项对照：保持节点及 DNS 服务列表不变，仅给 DNS 上游加测试代理指定。五个域名 HTTPS 均返回 200。由此确认本机测试的 DNS 出口路径问题，不能据此断言用户 clash.md 中的完整配置也相同。
+- 已生成本机私密 Downloads/Tower-MASQUE-DNS-Test.yaml，移除本机 interface-name，供用户直接导入 Clash 对照；测试配置强制所有流量走测试节点，不是生产分流方案。待对照结果或实际导出配置与失败日志后再确定产品修复，未盲改全局 DNS 策略。
+
+## 未发布：MASQUE Clash 入口与 Stash 调整（2026-09-26）
+
+- 按用户反馈暂停 Stash 的 MASQUE 导出，能力列表与生成器均拒绝；保留节点导入与已有数据。以下旧记录的 Stash 放行状态由本节覆盖。
+- 名称为 Clash 的独立入口（clashApple）此前未放行，本轮加入密钥 CONNECT-IP 完整配置与仅节点导出名单，供用户验证实际客户端内核。Mihomo 内核实测不能替代该图形客户端验收。
+- 导入仍自动识别 Surge、Clash YAML 和 sing-box JSON，保留认证与隧道变体；不能将密钥/密码或 CONNECT-IP/CONNECT-UDP 强制互换。
+- 全量 TowerTests 通过：1176 项 XCTest（5 跳过、0 失败）与 100 项 Swift Testing。客户端矩阵覆盖 Clash 放行和 Stash 跳过，git diff --check 通过。正式 Xcode 已覆盖安装并启动连接的 iPhone，版本仍为 1.0.21（59）。
+
+## 未发布：MASQUE 客户端补齐与手机测试文件（2026-09-26）
+
+- 在下方既有方言边界上补充 Shadowrocket 密钥式 CONNECT-IP 的完整配置和仅节点导出；含该类型时仅节点输出 Clash YAML，混合普通节点仍保留，不能包进普通 URI Base64。依据 Sub-Store 04f44c2 的 Shadowrocket producer，实际手机客户端连接仍待用户测试。
+- Surge / Surge Mac 使用 Basic CONNECT/CONNECT-UDP；Stash、Shadowrocket 和已放行的 Mihomo 客户端使用密钥 CONNECT-IP；sing-box 1.15 使用 Basic masque-client endpoint。三类分别导入，不能互相强转；Hiddify、Karing、Hako 等未确认目标仍不放行。
+- 全量 1176 项 XCTest（5 跳过、0 失败）及 100 项 Swift Testing 通过。三个私密测试文件另经临时真实文件用例验证可导入且对应目标可生成，临时用例已移除。无新文案、无版本变更、无发布。
+- 之前的 VPS 新增独立 CONNECT-IP 测试服务，七天自动停止；仅为测试子网添加 NAT，启用 IPv4 转发，服务结束清理本次规则并恢复原转发值。静态密钥地址与 Basic 动态地址分开。Mihomo 1.19.27、sing-box 1.15.0-alpha.8 的公网 HTTPS 和 UDP DNS 均通过；本机 SOCKS 测试没有修改系统代理。
+- Surge 方言探测器重验：HTTP/3 握手、TCP CONNECT、UDP DNS 均通过；首次 UDP 超时，延长单阶段超时重测通过，不宣称手机客户端连接已验收。
+- 三份用户测试文件存于本机 Downloads/Tower-MASQUE-Tests，含私密测试凭据，不提交仓库。手机正式 Xcode 覆盖安装并启动成功，仍为 1.0.21（59），保留数据。外部手机客户端实际导入与连接待用户验收。
+
+## 未发布：Mihomo / sing-box MASQUE CONNECT-IP（2026-09-26）
+
+- 在既有 Surge Basic CONNECT/CONNECT-UDP 之外，新增显式的密钥 CONNECT-IP 与 Basic CONNECT-IP 数据类型，保存、去重、手动编辑已有节点和分享往返保留各自参数；旧快照继续兼容。手动新建表单仍创建 Surge 变体，新增两种通过结构化配置导入。
+- Clash YAML 导入密钥式 MASQUE，支持 P-256 DER 私钥/公钥、IPv4/IPv6 隧道地址、SNI、UDP、MTU、DNS 与 QUIC/H2。为 Clash Verge、ClashMac、FlClash、Mihomo Party、Clash Mi 生成 Mihomo 写法，Stash 使用 h3/h2 写法。完整配置和仅节点路径均覆盖。需要客户端内核实际支持 MASQUE，未逐个图形客户端验收。
+- sing-box 支持单个 masque-client JSON、数组及配置 endpoints 中的 Basic CONNECT-IP；按 endpoint 输出并供策略组引用，不能放入 outbounds。保留用户名/密码、路径、HTTP 版本、版本回退设置、请求头、TLS/CA、SNI、ALPN 和 MTU；使用内部网络栈。要求 sing-box 1.15，目前验证版本为 1.15.0-alpha.8，稳定版 1.14.2 不支持；Hiddify、Karing、Hako 未据此放行。sing-box 原有仅完整配置的产品边界保持不变。
+- 不跨认证/隧道方言强转；代理链、系统网卡、广告路由及尚未建模的参数拒绝计数。不是通用 sing-box 全配置导入，其他未支持的真实端点/出站记录计入跳过。
+- Mihomo 1.19.27 与 sing-box 1.15.0-alpha.8 均通过塔台生成的完整配置检查；sing-box 有既有 TUN stack 弃用警告。使用独立测试实例、仅本地 SOCKS 监听和 en0 出口，分别通过隧道内 TCP HTTP 页面与 UDP 回显测试；没有把语法检查当作手机连接验收，也未以此宣称公网出口测试完成。
+- 测试服务器的 Basic 认证需要 Proxy-Authorization，sing-box 的该 HTTP/3 路径首次返回认证错误；在测试输入显式添加该请求头后连接通过，塔台仅保留输入，不全局注入认证头。两个测试客户端需独立运行以避免测试服务的分配地址碰撞。
+- 验证：1175 项 XCTest（5 跳过、0 失败）与 100 项 Swift Testing 通过；包含全部目标客户端边界、预设/规则方案两条生成路径、保存/编辑/分享往返及非法/未知参数拒绝。git diff --check 通过。未新增界面文案、未更改版本、未发布。
+- 正式 Xcode 已覆盖安装到连接的实体 iPhone，保留数据，版本仍为 1.0.21（59）。首次启动及重试被系统 Locked 拒绝；最后补充 Surge 布尔值校验、7 项 MASQUE 定向回归通过后，再次覆盖安装并启动成功。手机代理客户端实际导入/连接仍待用户验收。
+- 临时 CONNECT-IP、HTTP、UDP 测试服务及本地内核已停止；未修改服务器全局转发或 NAT。
+- 官方依据：https://wiki.metacubex.one/config/proxies/masque/ 、https://stash.wiki/en/proxy-protocols/proxy-types 、https://sing-box.sagernet.org/configuration/endpoint/masque-client/ 。
+
+## 未发布：MASQUE HTTP Basic / Surge（2026-09-25）
+
+- 新增 MASQUE 节点类型、手动添加、Surge 单行/[Proxy] 配置导入、节点分享、完整配置和仅节点导出；保留用户名、密码、SNI、ALPN、证书 SHA-256 pin 及证书校验设置。
+- 本轮仅启用 Surge iOS 5.22.0+ / Mac 6.9.0+ 的 HTTP/3 CONNECT + CONNECT-UDP / HTTP Basic 变体。Mihomo/WARP 的密钥式 CONNECT-IP 不是同一配置，其他导出目标仍跳过并计数，能力覆盖参数也不能强行放行。
+- 未建模的端口跳跃、代理链、客户端证书、独立证书校验名等输入拒绝；包含 INI 分隔符的凭据暂不导入，不静默删字段。后续应按真实样例逐项扩展，不要以协议同名直接跨客户端转换。
+- 新增解析/存储/手动编辑/分享往返、证书 pin、全部客户端完整及仅节点边界、非法输入回归；既有所有协议符号断言同步增加 MASQUE。
+- 独立测试实例使用 masque-server v0.13.0，发布归档 SHA-256 已核对；只启用 HTTP Basic 的 TCP/UDP，不创建 TUN、不改现有服务。实例设置 7 天自动停止，私密配置与凭据不进入仓库。
+- 本机 masque-probe 实测 HTTP/3/TLS/ALPN、TCP CONNECT 请求和 UDP DNS 应答均通过。初次经当前系统代理路径遭连接拒绝，绑定物理网卡后通过；服务端本地探测也通过。本机 Surge 6.4.4 低于要求，未声称 Surge 客户端连接已验收，手机由用户测试。
+- 已尝试执行正式 Xcode 的真机安装脚本；Xcode 当前没有可用实体 iPhone，CoreDevice 唯一 connected 的 iPhone 是模拟设备，安装未进行。连接并解锁实体 iPhone 后运行 `Scripts/install_device.zsh`。
+- 验证：1171 项 XCTest（5 项跳过、0 失败）及 100 项 Swift Testing 通过；本地化提取 1031 项全部覆盖。
+- 官方依据：https://manual.nssurge.com/policies/masque.html 、https://manual.nssurge.com/policies/tls.html 、https://wiki.metacubex.one/config/proxies/masque/ 。
+
+
+## 未发布：Shadowrocket VMess JSON 批量导入（2026-09-25）
+
+- 用户提供混合备份文件，本地临时用例实际读取验证：160 条中导入 3 个 VMess、跳过 157 条；113 个 SS+ShadowTLS、34 个 VLESS（带 publicKey、tlsProfile、xtls）、7 条 Subscribe 尚未适配此 JSON 方言，另 3 个 SS 条目缺少密码和加密方式。原文件不复制进仓库，临时绝对路径用例已移除。仅验证现状，未增加这些协议适配。
+
+- 用户回传原生 JSON 格式后，先复现无法识别，再补单个对象、数组和空白分隔的连续对象导入；剪贴板检测共用解析入口。host 为服务器、obfsParam 为 WS Host、password 为协议 UUID，不能使用 Shadowrocket 记录 uuid。
+- 支持普通和 JSON 形式的 WS Host，保留 TLS/SNI/路径/alterId/UDP，处理转义斜杠。带无法表示的证书、链路及自定义 TLS 参数或其他协议 JSON 计入跳过，不宣称通用 JSON 导入。
+- 验证三节点批量、单行单节点检测、数组、保存读取、字符串大括号/引号、畸形 JSON 和不支持记录统计。全量 XCTest 1168 项（5 跳过、0 失败）及 Swift Testing 100 项通过；最后路径兼容补充后 LegacyVMessTests 16 项通过。已覆盖安装并启动连接的 iPhone 1.0.21（59），保留数据；实际剪贴板粘贴交互待用户确认，未发布。
+
+## 未发布：VMess WebSocket Host 与手动证书指纹（2026-09-25）
+
+- 用户回传 Shadowrocket 分享的三个虚构 VMess WS+TLS 样例：obfsParam 均为普通域名。实际批量导入、保存读取、再次分享解析均通过，LegacyVMessTests 14 项通过；这些样例没有 JSON Host，不能单独证实原邮件 JSON 变体的来源。此次仅增加回归测试，未改 App 代码、未重复安装。
+
+- 用虚构节点复现旧式 VMess URI 的 JSON obfsParam 被原样当成 Host 保存；WebSocket 分支复用已有 VLESS Host 解包器，支持普通域名、JSON Host 及嵌套 headers。未取得反馈者原始片段，不宣称所有来源格式均已验证。
+- 手动 TLS 节点增加可选证书 SHA-256 指纹，编辑已导入节点时保留指纹；校验 64 个十六进制字符，允许冒号/短横线，非 TLS/REALITY 不带入。这里是证书指纹，不是 PEM 正文或公钥 pin，不混用客户端指纹。
+- 回归先复现 Host 保存异常及手动编辑丢指纹，再验证批量导入/JSON 编解码、指纹校验和已有导出用例。正式版 Xcode 27.1：XCTest 1165 项（5 跳过、0 失败），Swift Testing 100 项通过；本地化提取 1031/1031 通过。已覆盖安装并启动连接的 iPhone，仍为 1.0.21（59），保留数据；Shadowrocket 批量复制往返与界面体验待真机确认。未推送发布。
+
+## 未发布：搜索时保留导航栏内容（2026-09-25）
+
+- 用户授权接入隔离验证中的方案。管理页使用系统 searchPresentationToolbarBehavior(.avoidHidingContent)，搜索时保留导航内容，避免取消搜索同时恢复隐藏导航栏。保留默认下拉搜索、List 及原 safeAreaInset 操作栏；iOS 17.0 保留系统默认行为，17.1 起使用此 API。
+- TowerInteraction 2 项通过：空搜索连续三次取消并断言搜索时管理标题仍存在；有结果/无结果/再次搜索取消后节点、操作和键盘状态恢复。完成模拟器录屏检查；功能断言不等于真机动画验收。正式版 Xcode 27.1 真机构建、覆盖安装和启动成功，版本 1.0.21（59），数据保留。git diff --check 通过；动画观感待用户真机确认。
+
+## 已撤回：管理页取消空搜索跳动（2026-09-24 晚）
+
+- 2026-09-25 隔离验证：仅系统 List + 两段 Picker + 静态 30 行 + searchable 的临时页面（无 AppModel、底部操作栏或自定义动画）仍能录屏观察到取消时列表先下移再回弹。范围缩小到系统搜索/导航栏与列表布局协作，尚不能断言 Apple 内部具体根因。avoidHidingContent 对照会改变搜索时导航栏表现，未采纳为正式修复。实验页面及入口已移除，手机保持已安装并启动的回退版 1.0.21（59），原问题未解决。
+- 2026-09-25 用户真机反馈仍不正确，已撤回操作栏移出 List 的改动。此前将 safeAreaInset 认定为根因的结论证据不足，不再作为已定位原因；重新隔离验证。
+- 新增订阅管理空搜索连续取消用例，录屏复现取消时分段按钮及列表先下移再回弹；此前只验证结果恢复的用例不足以证明动画正常。
+- 保留 searchable 默认下拉搜索和全部操作栏内容，将底部操作栏从 List.safeAreaInset 移到同级 VStack，避免键盘与搜索导航栏恢复时重复调整列表滚动几何；不使用上次已撤回的固定搜索栏或隐藏操作栏方案。修改前后模拟器录屏对照未再观察到原明显回弹，真机观感仍待用户确认。
+- 正式版 Xcode 27.1，TowerInteraction 空搜索三次取消、导出筛选有结果/无结果/再次搜索取消共 2 项通过；git diff --check 通过。真机构建及覆盖安装成功，首次自动启动失败后单独重试启动成功，数据保留，版本 1.0.21（59）。未推送发布。
+
+## 已撤回：批量管理搜索动画调整（2026-09-24）
+
+- 用户真机确认原动画问题仍在，并新增进入页面搜索框背景短暂缺失、布局变化。已按要求撤回本轮固定搜索栏、搜索期间隐藏操作栏、移动禁用动画范围三项改动，恢复此前页面布局；保留名称筛选及此前其他修改。
+- 回退后正式版 Xcode 真机构建通过，已覆盖安装并启动 iPhone 1.0.21（59），保留数据；git diff --check 通过。
+- 原搜索取消动画问题仍待定位。此前 UI 用例通过只证明搜索结果及键盘状态恢复，不能作为动画观感通过的证据。
+
+## 未发布：持续节点名称筛选（2026-09-24）
+
+- 名称入口改成与国家/协议一致的 48pt 最小高度，状态移至右侧。导出名称编辑器只提供包含/不包含关键词，移除大小写开关，常规关键词忽略大小写；旧大小写敏感及高级匹配保留为正则。新增排除关键词的字面匹配、多关键词、大小写、换行名称及往返保存回归：NodeNameFilterTests + NodeSelectionTests 21 项通过；本地化提取检查通过。已覆盖安装并启动 iPhone 1.0.21（59），视觉交互待用户确认。
+- 再次真机反馈后：名称筛选弹窗从多个 Section 的 Group 移到稳定的外层 List，避免列表重建影响展示；名称图标统一为 primary。节点选择缓存改为输入属性变更时失效，避免每行读取时重复比较整份集合。正式版 Xcode 真机构建、覆盖安装及启动成功，仍为 1.0.21（59）；git diff --check 通过。本轮定向模拟器测试未返回结果，已中止，不宣称回归通过；流畅度及弹窗表现待真机验收。
+- 真机反馈后：入口关键词摘要移至右侧横向排列，增加上下内边距；删除全部关键词后允许保存，空白条件规范为无筛选并持久化，保留手动排除。NodeSelectionTests 6 项通过；UI 用例增加删除最后关键词再保存步骤。
+- 订阅管理 → 导出筛选增加「节点名称」入口，复用关键词/正则编辑器与异步匹配预览。保存后显示条件摘要；名称不匹配的节点标明原因，清除条件保留手动排除。
+- 名称条件保存至可选快照字段，并接入共用 enabledNodes 和配置请求缓存；订阅刷新新增节点自动匹配，完整配置、仅节点和局域网生成共用该结果。由目标客户端自行获取的远程代理集合不受本地筛选影响，界面明确说明。
+- 正式版 Xcode 27.1 完整 TowerTests：1256 通过、5 跳过、0 失败；最后补充全客户端各支持导出模式、清除后保留手动排除断言后，NodeSelectionTests 6 项通过。本地化提取 1027/1027 通过。新增 UI 用例覆盖保存、重启和清除，但本轮模拟器停在主屏幕，测试未完成，不作为界面验收；2026-09-24 已用正式版 Xcode 27.1 覆盖安装并启动连接的 iPhone 1.0.21（59），保留数据；界面效果待用户验收。未推送或发布。
+
+## 未发布：地区与协议筛选连续多选（2026-09-23）
+
+- 国家地区与协议菜单均设置 menuActionDismissBehavior(.disabled)，逐项勾选或操作「全部」后保持展开；各自的「完成」操作关闭菜单，仍可点击菜单外关闭。节点排除、计数与持久化逻辑保持不变。
+- 地区筛选此前已通过正式版 Xcode 真机构建及本地化检查（1019/1019），已覆盖安装并启动 iPhone 1.0.21（59）。本次协议筛选变更通过 Xcode 27.1 模拟器构建、本地化检查（1019/1019）及 git diff --check；2026-09-23 已用正式版 Xcode 27.1 覆盖安装并启动连接的 iPhone，保持 1.0.21（59）。连续多选的实际点击效果待用户验收；未推送或发布。
+
+## 未发布：局域网格式菜单图标圆角（2026-09-19）
+
+- 原生菜单提取图片时会丢弃 SwiftUI 外层 clipShape；为菜单预渲染并缓存带透明圆角的客户端图片，保持 20pt 尺寸、原色与原生选择交互。普通页面图标保持原样。
+- 正式版 Xcode 模拟器构建通过；已明确选择连接的实体 iPhone，覆盖安装并启动 1.0.21（59），保留用户数据。菜单视觉效果待用户确认。未推送、未发布。
+
 ## 1.0.21（59）本机正式发布（2026-09-18）
 
 - 用户确认 M4 已升级正式版系统，改用本机正式版 Xcode 27.0（27A266a）完成 Mac 通用归档、公证及 iOS TestFlight 上传。AGENTS、开发和发布文档已改为本机优先、M2 远程备用。

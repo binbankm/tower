@@ -302,7 +302,7 @@ struct AddSourceSheet: View {
                     Text("ChaCha20-Poly1305").tag("chacha20-poly1305")
                 }
             }
-            if [.socks5, .http].contains(manualDraft.kind) {
+            if [.socks5, .http, .masque].contains(manualDraft.kind) {
                 TextField("用户名（可选）", text: $manualDraft.username)
                     .focused($focusedField, equals: .manual("username"))
                     .textInputAutocapitalization(.never)
@@ -561,6 +561,12 @@ struct AddSourceSheet: View {
                         .focused($focusedField, equals: .manual("alpn"))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    if manualDraft.security != "reality" {
+                        TextField("证书 SHA-256 指纹（可选）", text: $manualDraft.certificateFingerprint)
+                            .focused($focusedField, equals: .manual("certificateFingerprint"))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
                     Toggle("允许不安全证书", isOn: $manualDraft.skipCertificateVerification)
                 }
 
@@ -612,7 +618,7 @@ struct AddSourceSheet: View {
     }
 
     private var usesMandatoryTLS: Bool {
-        [.trojan, .hysteria, .hysteria2, .tuic, .anytls].contains(manualDraft.kind)
+        [.trojan, .hysteria, .hysteria2, .tuic, .masque, .anytls].contains(manualDraft.kind)
     }
 
     private var usesTLSSettings: Bool {
@@ -711,7 +717,7 @@ struct AddSourceSheet: View {
         case .trojan, .hysteria2, .anytls, .snell: String(localized: "密码或 PSK")
         case .hysteria: String(localized: "认证密码")
         case .wireguard: String(localized: "WireGuard 密钥")
-        case .socks5, .http: String(localized: "密码（可选）")
+        case .socks5, .http, .masque: String(localized: "密码（可选）")
         default: String(localized: "认证信息")
         }
     }

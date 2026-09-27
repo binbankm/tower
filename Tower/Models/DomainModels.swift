@@ -426,6 +426,9 @@ enum ProxyKind: String, Codable, CaseIterable, Identifiable {
     case hysteria
     case hysteria2
     case tuic
+    /// HTTP/3 CONNECT + CONNECT-UDP with optional HTTP Basic auth (Surge).
+    /// This is not the Cloudflare CONNECT-IP/key-pair variant.
+    case masque
     case wireguard
     case anytls
     case snell
@@ -445,6 +448,7 @@ enum ProxyKind: String, Codable, CaseIterable, Identifiable {
         case .hysteria: "Hysteria"
         case .hysteria2: "Hysteria 2"
         case .tuic: "TUIC"
+        case .masque: "MASQUE"
         case .wireguard: "WireGuard"
         case .anytls: "AnyTLS"
         case .snell: "Snell"
@@ -470,6 +474,7 @@ enum ProxyKind: String, Codable, CaseIterable, Identifiable {
         // TUIC is the low-latency QUIC option. Keep it distinct from the
         // Shadowsocks bolt while matching the filled, circular protocol icons
         // used by the export filter.
+        case .masque: .system("network")
         case .tuic: .system("bolt.circle.fill")
         case .wireguard: .system("shield.checkered")
         case .anytls: .system("lock.shield.fill")
@@ -501,6 +506,31 @@ struct ShadowTLSOptions: Codable, Hashable {
     }
 }
 
+/// MASQUE has incompatible wire dialects. Never infer CONNECT-IP from a
+/// Surge CONNECT/CONNECT-UDP node merely because both use HTTP Basic auth.
+struct MASQUEOptions: Codable, Hashable {
+    enum Mode: String, Codable { case keyConnectIP, basicConnectIP }
+    var mode: Mode
+    var privateKey: String?
+    var publicKey: String?
+    var ipv4: String?
+    var ipv6: String?
+    var network: String?
+    var mtu: Int?
+    var dns: [String]?
+    var remoteDNSResolve: Bool?
+    var httpVersion: Int?
+    var disableVersionFallback: Bool?
+    var headers: [String: String]?
+    var certificate: [String]?
+
+    var identity: String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return (try? encoder.encode(self)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+    }
+}
+
 struct ProxyNode: Identifiable, Codable, Hashable {
     let id: UUID
     var sourceID: UUID?
@@ -522,6 +552,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
     /// nil means the source did not declare plugin multiplexing.
     var pluginMux: Bool?
     var shadowTLS: ShadowTLSOptions?
+    var masque: MASQUEOptions?
     var tls: Bool
     var sni: String?
     var hostHeader: String?
@@ -609,6 +640,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         plugin: String? = nil,
         pluginMux: Bool? = nil,
         shadowTLS: ShadowTLSOptions? = nil,
+        masque: MASQUEOptions? = nil,
         tls: Bool = false,
         sni: String? = nil,
         hostHeader: String? = nil,
@@ -663,6 +695,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         self.plugin = plugin
         self.pluginMux = pluginMux
         self.shadowTLS = shadowTLS
+        self.masque = masque
         self.tls = tls
         self.sni = sni
         self.hostHeader = hostHeader
@@ -751,6 +784,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
             fields.append(contentsOf: ["shadow-tls", String(shadowTLS.version), shadowTLS.host,
                                       shadowTLS.password, String(shadowTLS.skipCertificateVerification)])
         }
+        if let masque { fields.append(masque.identity) }
         return fields.joined(separator: "\u{1F}")
     }
 
@@ -881,6 +915,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         case .hysteria: "HYSTERIA"
         case .hysteria2: "HYSTERIA 2"
         case .tuic: "TUIC"
+        case .masque: "MASQUE"
         case .wireguard: "WIREGUARD"
         case .anytls: "ANYTLS"
         case .snell: version.map { "SNELL V\($0)" } ?? "SNELL"
@@ -922,8 +957,43 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         }
     }
 
+    /// Validate each MASQUE dialect independently. A legacy nil options value
+    /// means Surge Basic-auth CONNECT/CONNECT-UDP, never CONNECT-IP.
+    var hasSupportedMASQUEFields: Bool {
+        guard kind == .masque else { return false }
+        if let masque {
+            guard !server.isEmpty, (1...65535).contains(port),
+                  !server.contains(where: { $0.isWhitespace || ",/\\@?#=".contains($0) }),
+                  !usesReality, shadowTLS == nil, portHopping == nil,
+                  masque.mtu.map({ (1280...1500).contains($0) }) ?? true else { return false }
+            switch masque.mode {
+            case .keyConnectIP:
+                guard tls, certificateFingerprint == nil, !skipCertificateVerification,
+                      (username ?? "").isEmpty, (password ?? "").isEmpty,
+                      (alpn ?? "").isEmpty else { return false }
+                return masque.privateKey.flatMap { Data(base64Encoded: $0) }.flatMap { try? P256.Signing.PrivateKey(derRepresentation: $0) } != nil
+                    && masque.publicKey.flatMap { Data(base64Encoded: $0) }.flatMap { try? P256.Signing.PublicKey(derRepresentation: $0) } != nil
+                    && !(masque.ipv4 ?? masque.ipv6 ?? "").isEmpty
+                    && [nil, "quic", "h3", "h2"].contains(masque.network)
+            case .basicConnectIP:
+                return [nil, 1, 2, 3].contains(masque.httpVersion)
+                    && (masque.httpVersion != nil && masque.httpVersion != 3 || tls)
+                    && !(username ?? "").contains(":")
+            }
+        }
+        guard !server.isEmpty, (1...65535).contains(port),
+              !server.contains(where: { $0.isWhitespace || ",/\\@?#=".contains($0) }),
+              !usesReality, shadowTLS == nil, portHopping == nil,
+              [nil, "", "tcp", "quic"].contains(transport),
+              (username ?? "").contains(":") == false else { return false }
+        return [username, password, sni, alpn].compactMap { $0 }.allSatisfy {
+            !$0.contains(where: { $0.isNewline || $0 == "\0" || $0 == "," })
+        }
+    }
+
     private var supportsUDP: Bool {
         if shadowTLS != nil { return udpRelayEnabled == true }
+        if masque?.mode == .keyConnectIP { return udpRelayEnabled == true }
         return switch kind {
         case .http, .unknown: false
         // Snell only carries UDP from version 3 onwards.
@@ -1333,7 +1403,12 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
     }
 
     func supports(_ kind: ProxyKind) -> Bool {
-        switch self {
+        // Other clients may implement a different MASQUE dialect.
+        if kind == .masque {
+            return [.surge, .surgeMac, .clashApple, .clashVerge, .clashMac,
+                    .flClash, .mihomoParty, .clashMi, .shadowrocket, .singBox].contains(self)
+        }
+        return switch self {
         case .clash, .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi:
             kind != .unknown
         case .karing:
@@ -1673,6 +1748,9 @@ struct AppSnapshot: Codable {
     /// Nodes explicitly excluded from generated configurations. Optional keeps
     /// snapshots written before per-node selection backward compatible.
     var excludedNodeIDs: [UUID]?
+    /// Saved name condition shared by every export destination. Missing means
+    /// all names are eligible, preserving older snapshots.
+    var nodeExportNameFilter: NodeExportNameFilter?
     /// User-authored rules live outside downloaded schemes so upstream refresh
     /// can never overwrite them.
     var customRuleFlows: [CustomRuleFlow]?
@@ -1751,6 +1829,7 @@ struct AppSnapshot: Codable {
         ruleSchemeCustomizations: [String: RuleSchemeCustomization]? = nil,
         ruleGroupEmojisEnabled: [String: Bool]? = nil,
         excludedNodeIDs: [UUID]? = nil,
+        nodeExportNameFilter: NodeExportNameFilter? = nil,
         customRuleFlows: [CustomRuleFlow]? = nil,
         localRuleSets: [LocalRuleSet]? = nil,
         excludedKinds: [String: [String]]? = nil,
@@ -1785,6 +1864,7 @@ struct AppSnapshot: Codable {
         self.ruleSchemeCustomizations = ruleSchemeCustomizations
         self.ruleGroupEmojisEnabled = ruleGroupEmojisEnabled
         self.excludedNodeIDs = excludedNodeIDs
+        self.nodeExportNameFilter = nodeExportNameFilter
         self.customRuleFlows = customRuleFlows
         self.localRuleSets = localRuleSets
         self.excludedKinds = excludedKinds

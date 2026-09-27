@@ -70,6 +70,7 @@ struct ProxyNodeShareLinkGenerator {
         case .wireguard: wireGuardLink(for: node) ?? original
         // Snell has no URI form, so share its portable Surge proxy line.
         case .snell: original.isEmpty ? snellLine(for: node) : original
+        case .masque: ConfigurationGenerator().masqueShareLine(node)
         case .unknown: original
         }
     }

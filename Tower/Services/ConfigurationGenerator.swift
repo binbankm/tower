@@ -666,7 +666,7 @@ struct ConfigurationGenerator {
         }
         // These clients accept structured node subscriptions. Keep the legacy
         // URI path for ordinary lists; ShadowTLS needs both credential layers.
-        let structuredNodes = supported.contains { $0.shadowTLS != nil }
+        let structuredNodes = supported.contains { $0.shadowTLS != nil || $0.masque?.mode == .keyConnectIP }
         var fileExtension = target.usesClashFormat ? "yaml" : "txt"
 
         let content: String
@@ -777,6 +777,17 @@ struct ConfigurationGenerator {
         excluding excludedKinds: Set<ProxyKind>,
         supportedKindsOverride: Set<ProxyKind>? = nil
     ) -> Bool {
+        if node.kind == .masque {
+            guard node.hasSupportedMASQUEFields else { return false }
+            switch node.masque?.mode {
+            case .keyConnectIP:
+                guard [.clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi, .shadowrocket].contains(target) else { return false }
+            case .basicConnectIP:
+                guard target == .singBox else { return false }
+            case nil:
+                guard [.surge, .surgeMac].contains(target) else { return false }
+            }
+        }
         let supportsKind = supportedKindsOverride?.contains(node.kind) ?? target.supports(node.kind)
         guard supportsKind, !excludedKinds.contains(node.kind) else { return false }
         if target == .anywhere, !AnywhereExport.supports(node) { return false }
@@ -2036,6 +2047,27 @@ struct ConfigurationGenerator {
                 if [.shadowrocket, .karing].contains(target) { appendClashReality(node, to: &values) }
                 appendClashClientFingerprint(node, to: &values)
             }
+        case .masque:
+            if let options = node.masque, options.mode == .keyConnectIP {
+                values += ["    private-key: \(yaml(options.privateKey ?? ""))",
+                           "    public-key: \(yaml(options.publicKey ?? ""))",
+                           "    udp: \(node.udpRelayEnabled ?? false)"]
+                if let ip = options.ipv4 { values.append("    ip: \(yaml(ip))") }
+                if let ip = options.ipv6 { values.append("    ipv6: \(yaml(ip))") }
+                if let mtu = options.mtu { values.append("    mtu: \(mtu)") }
+                let network = options.network ?? "quic"
+                values.append("    network: \(target == .clash ? (network == "quic" ? "h3" : network) : (network == "h3" ? "quic" : network))")
+                if let sni = node.sni { values.append("    sni: \(yaml(sni))") }
+                // CONNECT-IP needs a destination IP. Resolve through this node,
+                // independent of user-defined policy names and global DNS reachability.
+                // Stash shares this writer but remains gated off in writes/supports.
+                let defaultRemoteDNS = [.clash, .clashApple, .clashVerge, .clashMac,
+                                        .flClash, .mihomoParty, .clashMi].contains(target)
+                let remoteDNS = options.remoteDNSResolve ?? (defaultRemoteDNS ? true : nil)
+                if let remoteDNS { values.append("    remote-dns-resolve: \(remoteDNS)") }
+                let dns = options.dns ?? (remoteDNS == true ? ["1.1.1.1", "8.8.8.8"] : nil)
+                if let dns { values.append("    dns: [\(dns.map(yaml).joined(separator: ", "))]") }
+            }
         case .unknown:
             break
         }
@@ -2475,6 +2507,11 @@ struct ConfigurationGenerator {
             components = [node.tls ? "https" : "http", node.server, "\(node.port)"]
             components += surgeCredentialPair(node)
             if node.tls { appendSurgeTLS(node, includeTLSFlag: false, to: &components) }
+        case .masque:
+            components = ["masque", confValue(node.server), "\(node.port)"]
+            appendValue(node.username, key: "username", to: &components)
+            appendValue(node.password, key: "password", to: &components)
+            appendSurgeTLS(node, includeTLSFlag: false, to: &components)
         case .unknown:
             components = ["direct"]
         }
@@ -2483,6 +2520,41 @@ struct ConfigurationGenerator {
         }
         if shadowrocket, node.kind == .vless { components.append("udp-relay=true") }
         return "\(name) = \(components.joined(separator: ", "))"
+    }
+
+    func masqueShareLine(_ node: ProxyNode) -> String {
+        switch node.masque?.mode {
+        case .keyConnectIP: return "proxies:\n" + clashNode(node, target: .clashVerge) + "\n"
+        case .basicConnectIP:
+            guard let endpoint = singBoxMASQUEEndpoint(node),
+                  let data = try? JSONSerialization.data(withJSONObject: ["endpoints": [endpoint]], options: [.prettyPrinted, .sortedKeys]),
+                  let text = String(data: data, encoding: .utf8) else { return "" }
+            return text
+        case nil: return surgeNode(node, shadowrocket: false)
+        }
+    }
+
+    private func singBoxMASQUEEndpoint(_ node: ProxyNode) -> [String: Any]? {
+        guard node.kind == .masque, let options = node.masque, options.mode == .basicConnectIP else { return nil }
+        var endpoint: [String: Any] = [
+            "type": "masque-client", "tag": NodeRegionResolver.displayName(for: node),
+            "server": node.server, "server_port": node.port,
+            "version": options.httpVersion ?? 3, "system": false
+        ]
+        endpoint["username"] = node.username
+        endpoint["password"] = node.password
+        endpoint["path"] = node.path
+        endpoint["mtu"] = options.mtu
+        endpoint["headers"] = options.headers
+        endpoint["disable_version_fallback"] = options.disableVersionFallback
+        if node.tls {
+            var tls: [String: Any] = ["enabled": true, "insecure": node.skipCertificateVerification]
+            tls["server_name"] = node.sni
+            tls["certificate"] = options.certificate
+            if let alpn = node.alpn { tls["alpn"] = alpn.split(separator: ",").map(String.init) }
+            endpoint["tls"] = tls
+        }
+        return endpoint
     }
 
     // Surge and Shadowrocket read username and password as positional fields.
@@ -2579,7 +2651,7 @@ struct ConfigurationGenerator {
     /// Intrinsically TLS protocols also cover snapshots with an old false flag.
     private func certificatePin(_ node: ProxyNode) -> String? {
         guard !node.usesReality,
-              [.trojan, .hysteria, .hysteria2, .tuic, .anytls].contains(node.kind)
+              [.trojan, .hysteria, .hysteria2, .tuic, .masque, .anytls].contains(node.kind)
                 || (node.tls && [.vmess, .vless, .http, .socks5, .shadowsocks].contains(node.kind)),
               let raw = node.certificateFingerprint else { return nil }
         let pin = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2888,7 +2960,7 @@ struct ConfigurationGenerator {
             }
         // Loon implements neither, and writes(_:to:excluding:) filters them
         // out before generation, so this branch is defensive only.
-        case .hysteria, .tuic, .snell, .unknown:
+        case .hysteria, .tuic, .snell, .masque, .unknown:
             values = ["Direct"]
         }
         // Confirmed in Loon on device: these TLS protocols also accept
@@ -3118,7 +3190,7 @@ struct ConfigurationGenerator {
 
         // Quantumult X implements none of these, and writes(_:to:excluding:)
         // filters them out before generation, so this is defensive only.
-        case .hysteria, .hysteria2, .tuic, .wireguard, .snell, .unknown:
+        case .hysteria, .hysteria2, .tuic, .wireguard, .snell, .masque, .unknown:
             prefix = "http"
         }
         if [.socks5, .http].contains(node.kind), node.tls {
@@ -3658,7 +3730,7 @@ extension ConfigurationGenerator {
         ]
 
         if target == .singBox {
-            let endpoints = nodes.compactMap(singBoxWireGuardEndpoint)
+            let endpoints = nodes.compactMap { singBoxWireGuardEndpoint($0) ?? singBoxMASQUEEndpoint($0) }
             if !endpoints.isEmpty { configuration["endpoints"] = endpoints }
         }
 
@@ -4033,7 +4105,7 @@ extension ConfigurationGenerator {
             outbound["type"] = "http"
             if let user = node.username, !user.isEmpty { outbound["username"] = user }
             if let password = node.password, !password.isEmpty { outbound["password"] = password }
-        case .unknown:
+        case .masque, .unknown:
             return nil
         }
 
@@ -4286,7 +4358,7 @@ extension ConfigurationGenerator {
         }
 
         if target == .singBox {
-            let endpoints = nodes.compactMap(singBoxWireGuardEndpoint)
+            let endpoints = nodes.compactMap { singBoxWireGuardEndpoint($0) ?? singBoxMASQUEEndpoint($0) }
             if !endpoints.isEmpty { configuration["endpoints"] = endpoints }
         }
 
@@ -4689,7 +4761,7 @@ extension ConfigurationGenerator {
             if let password = node.password, !password.isEmpty {
                 body.append("      password: \(yaml(password))")
             }
-        case .hysteria, .shadowsocksR, .unknown:
+        case .hysteria, .shadowsocksR, .masque, .unknown:
             // supports(_:) filters these out; this keeps the switch total.
             return nil
         }

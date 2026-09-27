@@ -3,6 +3,41 @@ import UIKit
 
 @MainActor
 final class AuditFlowInteractionTests: XCTestCase {
+    func testPersistentExportNameFilter() {
+        let app = XCUIApplication()
+        app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString
+        app.launchEnvironment["TOWER_PERFORMANCE_NODE_COUNT"] = "30"
+        app.launchArguments = ["-hasSeenWelcome", "YES", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        func openFilter() {
+            XCTAssertTrue(app.buttons["source-management-button"].waitForExistence(timeout: 15))
+            app.buttons["source-management-button"].tap()
+            app.segmentedControls.buttons["导出筛选"].tap()
+            app.buttons["node-name-export-filter"].tap()
+        }
+        openFilter()
+        app.buttons["node-keyword-add"].tap()
+        let keyword = app.textFields["关键词"].firstMatch
+        XCTAssertTrue(keyword.waitForExistence(timeout: 5))
+        keyword.typeText("IEPL")
+        let save = app.buttons["保存"]
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: save)
+        waitForExpectations(timeout: 5)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "export-name-keyword-filter"
+        shot.lifetime = .keepAlways
+        add(shot)
+        save.tap()
+        XCTAssertTrue(app.staticTexts["筛选持续生效"].waitForExistence(timeout: 5))
+        app.terminate(); app.launch()
+        openFilter()
+        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "value == %@", "IEPL")).firstMatch.waitForExistence(timeout: 5))
+        app.buttons["删除关键词 IEPL"].tap()
+        XCTAssertTrue(app.buttons["保存"].isEnabled)
+        app.buttons["保存"].tap()
+        XCTAssertTrue(app.staticTexts["未设置"].waitForExistence(timeout: 5))
+    }
+
     func testLocalNodeDeletionAndSubscriptionContextMenu() {
         let app = launch()
         let source = app.buttons["展开 云帆机场 的节点"]
@@ -98,6 +133,37 @@ final class AuditFlowInteractionTests: XCTestCase {
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: header)
         waitForExpectations(timeout: 5)
         XCTAssertFalse(collapsed.exists)
+    }
+
+    func testManagementEmptySearchCancellationKeepsLayout() {
+        let app = XCUIApplication()
+        app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString
+        app.launchEnvironment["TOWER_PERFORMANCE_NODE_COUNT"] = "300"
+        app.launchArguments = ["-hasSeenWelcome", "YES", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let management = app.buttons["source-management-button"]
+        XCTAssertTrue(management.waitForExistence(timeout: 15))
+        management.tap()
+        app.swipeDown()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        let tabs = app.segmentedControls.firstMatch
+        let initialY = tabs.frame.minY
+        for _ in 0..<3 {
+            search.tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.navigationBars.staticTexts["批量管理"].exists)
+            let cancel = app.buttons["关闭"].firstMatch
+            XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+            cancel.tap()
+            XCTAssertTrue(app.buttons["source-management-list"].exists || tabs.exists)
+            XCTAssertFalse(app.keyboards.firstMatch.exists)
+            XCTAssertEqual(tabs.frame.minY, initialY, accuracy: 3)
+        }
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "management-empty-search-restored"
+        shot.lifetime = .keepAlways
+        add(shot)
     }
 
     func testManagementSearchCancellationRestoresNodes() {

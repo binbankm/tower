@@ -912,7 +912,7 @@ final class SubscriptionInteractionTests: XCTestCase {
         XCTAssertTrue(managementSource.contains("@State private var tab: SourceManagementTab"))
         XCTAssertTrue(managementSource.contains("ForEach(SourceManagementTab.allCases)"))
         XCTAssertTrue(managementSource.contains("case .exportFilter:"))
-        XCTAssertTrue(managementSource.contains("NodeFilterSections(searchText: $searchText)"))
+        XCTAssertTrue(managementSource.contains("NodeFilterSections(searchText: $searchText, showsNameFilter: $showsNameFilter)"))
         XCTAssertTrue(managementSource.contains("Picker(\"管理内容\", selection: $tab)"))
         XCTAssertTrue(managementSource.contains("case .nodes: return String(localized: \"节点筛选\")"))
         XCTAssertTrue(managementSource.contains("case .regions: return String(localized: \"覆盖地区\")"))
@@ -1005,7 +1005,8 @@ final class SubscriptionInteractionTests: XCTestCase {
         XCTAssertTrue(source.contains("exportGroupSelectionToggle("))
         XCTAssertTrue(source.contains("title: String(localized: \"全部地区\")"))
         XCTAssertTrue(source.contains("title: String(localized: \"全部协议\")"))
-        XCTAssertTrue(source.contains("model.setNodes(nodes, included: shouldInclude)"))
+        XCTAssertTrue(source.contains("model.setNodes(eligibleNodes, included: shouldInclude)"))
+        XCTAssertTrue(source.contains("NodeExportNameFilterSheet"))
         XCTAssertTrue(source.contains("NodeExportGroupBuilder.countryGroups"))
         XCTAssertTrue(source.contains("NodeExportGroupBuilder.protocolGroups"))
 
