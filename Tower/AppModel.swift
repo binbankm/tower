@@ -64,6 +64,8 @@ final class AppModel {
     struct SubscriptionRefreshProgress {
         let id = UUID()
         let sourceIDs: Set<UUID>
+        /// A card's own refresh button: its spinner is the whole presentation.
+        var isSingleSource = false
         var completedIDs: Set<UUID> = []
         var title: String {
             String(localized: "正在刷新订阅（\(completedIDs.count)/\(sourceIDs.count)）")
@@ -2146,11 +2148,26 @@ final class AppModel {
     /// Foreground refresh owns its lifetime independently of the pull gesture.
     /// Background auto-refresh uses the existing non-modal entry points.
     func startSubscriptionRefresh(sourceIDs: [UUID], singleSource: Bool = false) {
-        guard subscriptionRefreshProgress == nil else { return }
         let requestedIDs = Set(sourceIDs)
         let sources = subscriptions.filter { requestedIDs.contains($0.id) }
         guard !sources.isEmpty else { return }
-        let progress = SubscriptionRefreshProgress(sourceIDs: Set(sources.map(\.id)))
+        if let current = subscriptionRefreshProgress {
+            // Refreshing no longer blocks the app, so another request can
+            // arrive while one runs. A running batch never restarts; sources it
+            // does not cover refresh on their own, like a card's button.
+            guard !singleSource, current.isSingleSource else {
+                for source in sources where !current.sourceIDs.contains(source.id) {
+                    Task { [weak self] in _ = await self?.updateSubscription(id: source.id) }
+                }
+                return
+            }
+            // A pull while only one card refreshes: the batch takes over the
+            // presentation and joins that card's in-flight request.
+        }
+        let progress = SubscriptionRefreshProgress(
+            sourceIDs: Set(sources.map(\.id)).union(subscriptionRefreshProgress?.sourceIDs ?? []),
+            isSingleSource: singleSource
+        )
         subscriptionRefreshProgress = progress
         presentedSubscriptionRefreshTask = Task { [weak self] in
             guard let self else { return }
@@ -2766,14 +2783,33 @@ final class AppModel {
     }
 
     /// Read an already generated result without starting work during view updates.
+    /// Requests for the clients on either side of the selected one in the
+    /// picker that are not cached yet. Preparing them while the export page is
+    /// idle turns the next swipe into a cache hit: the status header updates
+    /// in the same frame instead of showing a busy state.
+    func adjacentUncachedExportRequests() -> [ConfigurationRequest] {
+        let clients = exportDestinationOrder.compactMap { destination -> ClientTarget? in
+            if case .client(let target) = destination { return target }
+            return nil
+        }
+        guard let index = clients.firstIndex(of: selectedTarget) else { return [] }
+        return [index + 1, index - 1]
+            .filter(clients.indices.contains)
+            .map { configurationRequest(target: clients[$0]) }
+            .filter { cachedConfiguration(for: $0) == nil }
+    }
+
     func cachedConfiguration(for request: ConfigurationRequest) -> GeneratedConfiguration? {
         generationCache[request.key]?.named(request.name)
     }
 
-    func configuration(for request: ConfigurationRequest) async -> GeneratedConfiguration {
+    func configuration(
+        for request: ConfigurationRequest,
+        priority: TaskPriority = .userInitiated
+    ) async -> GeneratedConfiguration {
         if let cached = generationCache[request.key] { return cached.named(request.name) }
         configurationGenerationCount += 1
-        let worker = Task.detached(priority: .userInitiated) { request.generate() }
+        let worker = Task.detached(priority: priority) { request.generate() }
         let result = await withTaskCancellationHandler {
             await worker.value
         } onCancel: {

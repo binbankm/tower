@@ -20,6 +20,8 @@ struct ExportView: View {
     @State private var isLANSharingSelected = false
     @State private var configurationNameDraft = ConfigurationNameDraft()
     @State private var previewPayload: ConfigurationPreviewPayload?
+    /// The cold request that has been generating long enough to say so.
+    @State private var pendingStatusRequest: ConfigurationRequest?
 
     var body: some View {
         // The LAN destination does not have one fixed configuration: the
@@ -34,6 +36,13 @@ struct ExportView: View {
         // a spinner creates a visible ready/busy/ready flash on cold targets.
         // Only `configuration` (the current request) may enable export/preview.
         let statusConfiguration = configuration ?? preparedConfiguration
+        // Most switches hit the cache (neighbours are prepared while idle), so
+        // the header changes in one frame. A slower cold generation keeps the
+        // same icon view and only dims it, with the title fading in place —
+        // swapping the seal for a spinner is what used to flash.
+        let showsPending = configuration == nil
+            && (statusConfiguration == nil || (request != nil && pendingStatusRequest == request))
+        let headerConfiguration = showsPending ? nil : statusConfiguration
 
         ScrollView {
             VStack(spacing: 22) {
@@ -52,23 +61,25 @@ struct ExportView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             Group {
                                 HStack(alignment: .center, spacing: 12) {
-                                    Text(statusConfiguration == nil ? "正在转换…" : statusConfiguration!.hasExportableProxies ? "转换已就绪" : "暂时无法导出")
+                                    Text(headerConfiguration == nil ? "正在转换…" : headerConfiguration!.hasExportableProxies ? "转换已就绪" : "暂时无法导出")
                                         .font(.headline)
                                         .fixedSize(horizontal: false, vertical: true)
+                                        .contentTransition(.opacity)
                                     Spacer(minLength: 0)
                                     Image(systemName: statusConfiguration?.hasExportableProxies == false
                                           ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
                                         .font(.title2)
                                         .foregroundStyle(statusConfiguration?.hasExportableProxies == false
                                                          ? Color.orange : Color.green)
+                                        .contentTransition(.symbolEffect(.replace))
                                         .frame(width: 28, height: 28)
-                                        .opacity(statusConfiguration == nil ? 0 : 1)
+                                        .opacity(statusConfiguration == nil ? 0 : showsPending ? 0.3 : 1)
                                         .accessibilityHidden(true)
                                 }
-                                .transaction { transaction in
-                                    transaction.animation = nil
-                                    transaction.disablesAnimations = true
-                                }
+                                // Scoped to the header's own text and icon; layout
+                                // never animates, so the card below cannot jump.
+                                .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: headerConfiguration?.hasExportableProxies)
+                                .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: showsPending)
                                 .accessibilityIdentifier("conversion-status-header")
                                 .padding(.bottom, 18)
                             }
@@ -158,6 +169,21 @@ struct ExportView: View {
                 preparedConfiguration = result
                 preparedRequest = request
             }
+            // Idle for a moment, then prepare the clients on either side in
+            // the background; switching cancels this task along with it.
+            try? await Task.sleep(for: .milliseconds(400))
+            for neighbour in model.adjacentUncachedExportRequests() {
+                guard !Task.isCancelled else { return }
+                _ = await model.configuration(for: neighbour, priority: .utility)
+            }
+        }
+        .task(id: request) {
+            // Only a cold generation that is still running after 200 ms marks
+            // the header as pending; faster ones switch straight to the result.
+            guard let request, model.cachedConfiguration(for: request) == nil else { return }
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled, preparedRequest != request else { return }
+            pendingStatusRequest = request
         }
         .onAppear { surgeSchemeAvailable = MacClientImportCapability.surgeSchemeAvailable }
         .onChange(of: scenePhase) { _, phase in

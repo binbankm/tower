@@ -782,26 +782,45 @@ final class WorldDotMapTests: XCTestCase {
         XCTAssertTrue(source.contains("DragGesture(minimumDistance: 1)"))
     }
 
-    func testPanKeepsOnlyASmallPartOfProjectedMomentum() {
-        let settled = WorldDotMapView.PanMotion.settled(
-            translation: CGSize(width: 100, height: 50),
-            predictedEndTranslation: CGSize(width: 400, height: 200),
-            reduceMotion: false
+    func testPanGlideProjectsReleaseVelocityWithFastDeceleration() {
+        let size = CGSize(width: 360, height: 240)
+        // 500 pt/s × 0.99 / 0.01 / 1000 = 49.5 pt, inside the 96 pt cap.
+        let glide = WorldDotMapView.PanMotion.glide(
+            velocity: CGSize(width: 400, height: -300), in: size, reduceMotion: false
         )
-
-        XCTAssertEqual(settled.width, 112, accuracy: 0.001)
-        XCTAssertEqual(settled.height, 56, accuracy: 0.001)
+        XCTAssertEqual(glide.width, 39.6, accuracy: 0.01)
+        XCTAssertEqual(glide.height, -29.7, accuracy: 0.01)
     }
 
-    func testReducedMotionPanDoesNotUseProjectedMomentum() {
-        let settled = WorldDotMapView.PanMotion.settled(
-            translation: CGSize(width: 100, height: 50),
-            predictedEndTranslation: CGSize(width: 400, height: 200),
-            reduceMotion: true
+    func testPanGlideIsCappedAndKeepsDirection() {
+        let size = CGSize(width: 360, height: 240)
+        let glide = WorldDotMapView.PanMotion.glide(
+            velocity: CGSize(width: 6000, height: 8000), in: size, reduceMotion: false
         )
+        XCTAssertEqual(hypot(glide.width, glide.height), 240 * 0.4, accuracy: 0.01)
+        XCTAssertEqual(glide.width / glide.height, 0.75, accuracy: 0.001)
+    }
 
-        XCTAssertEqual(settled.width, 100, accuracy: 0.001)
-        XCTAssertEqual(settled.height, 50, accuracy: 0.001)
+    func testSlowReleaseAndReducedMotionDoNotGlide() {
+        let size = CGSize(width: 360, height: 240)
+        XCTAssertEqual(WorldDotMapView.PanMotion.glide(
+            velocity: CGSize(width: 40, height: 50), in: size, reduceMotion: false), .zero)
+        XCTAssertEqual(WorldDotMapView.PanMotion.glide(
+            velocity: CGSize(width: 900, height: 0), in: size, reduceMotion: true), .zero)
+    }
+
+    func testGlideStartsAtFingerSpeedWithoutOvershoot() {
+        // Uncapped: the spring leaves at exactly the release speed.
+        let distance = CGSize(width: 49.5, height: 0)
+        XCTAssertEqual(WorldDotMapView.PanMotion.relativeVelocity(
+            CGSize(width: 500, height: 0), toward: distance), 500 / 49.5, accuracy: 0.001)
+        // Capped or clamped at an edge: stay below the natural frequency so a
+        // critically damped spring never overshoots past the map's bounds.
+        let limit = 2 * Double.pi / WorldDotMapView.PanMotion.glideDuration * 0.9
+        XCTAssertEqual(WorldDotMapView.PanMotion.relativeVelocity(
+            CGSize(width: 6000, height: 0), toward: CGSize(width: 20, height: 0)), limit, accuracy: 0.001)
+        XCTAssertEqual(WorldDotMapView.PanMotion.relativeVelocity(
+            CGSize(width: 500, height: 0), toward: .zero), 0)
     }
 
     func testViewportUsesThreeInformationLevels() {

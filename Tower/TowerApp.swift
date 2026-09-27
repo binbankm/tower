@@ -104,7 +104,6 @@ struct AppRootView: View {
         }
         .tint(.accentColor)
         .background { TabSelectionFeedback() }
-        .modifier(SubscriptionRefreshProgressModifier())
         .towerToast()
     }
 }
@@ -211,74 +210,5 @@ private struct ToastOverlay: View {
 
     private var appearance: Animation {
         TowerMotion.surface(reduceMotion: reduceMotion)
-    }
-}
-
-/// Presentation has its own transaction: a native refresh can suppress animations
-/// in the update that starts the task. Do not disable the underlying scroll view
-/// while its pull gesture and refresh indicator are returning to rest.
-private struct SubscriptionRefreshProgressModifier: ViewModifier {
-    @Environment(AppModel.self) private var model
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var presentedProgress: Presentation?
-
-    private struct Presentation: Equatable {
-        let id: UUID
-        let title: String
-        let sources: [String]
-    }
-
-    private var progress: Presentation? {
-        guard let progress = model.subscriptionRefreshProgress else { return nil }
-        return Presentation(
-            id: progress.id,
-            title: progress.title,
-            sources: model.subscriptions.filter {
-                progress.sourceIDs.contains($0.id) && model.refreshingSourceIDs.contains($0.id)
-            }.map(\.name)
-        )
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .accessibilityHidden(presentedProgress != nil)
-            .overlay {
-                ZStack {
-                    if let presentedProgress {
-                        Color.black.opacity(0.18)
-                            .ignoresSafeArea()
-                            .contentShape(Rectangle())
-                            .onTapGesture { }
-                            .accessibilityHidden(true)
-                            .transition(.opacity)
-                            .zIndex(0)
-                        TaskProgressCard(
-                            title: presentedProgress.title,
-                            sources: presentedProgress.sources,
-                            message: "可随时取消，已更新的订阅会保留。",
-                            identifier: "subscription-refresh-progress",
-                            onCancel: model.cancelSubscriptionRefresh
-                        )
-                        .padding(24)
-                        .transition(TowerMotion.surfaceTransition(reduceMotion: reduceMotion))
-                        .zIndex(1)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(presentedProgress != nil)
-            }
-            .onChange(of: progress, initial: true) { _, newProgress in
-                let visibilityChanged = (presentedProgress == nil) != (newProgress == nil)
-                // Entering/leaving uses the shared surface curve; progress text
-                // morphing in place keeps a short ease-in-out.
-                let animation: Animation = visibilityChanged || reduceMotion
-                    ? TowerMotion.surface(reduceMotion: reduceMotion)
-                    : .easeInOut(duration: 0.2)
-                // A fresh transaction also clears disablesAnimations inherited
-                // from UIKit's refresh handling, without animating model writes.
-                withTransaction(Transaction(animation: animation)) {
-                    presentedProgress = newProgress
-                }
-            }
     }
 }

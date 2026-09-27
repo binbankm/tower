@@ -106,7 +106,8 @@ struct SubscriptionsView: View {
             }
             .refreshable {
                 model.startSubscriptionRefresh(sourceIDs: model.subscriptions.map(\.id))
-                // Hand off immediately so the native pull indicator can retract.
+                // Hand off immediately so the native pull indicator can retract;
+                // the floating capsule carries progress and cancel from here.
             }
             .sheet(isPresented: $isAddSourcePresented) {
                 AddSourceSheet()
@@ -117,6 +118,7 @@ struct SubscriptionsView: View {
             .sheet(item: $editingLocalNode) { node in
                 AddSourceSheet(editingNode: node)
             }
+            .subscriptionRefreshProgress()
             .subscriptionRefreshReport()
             .navigationDestination(item: $sourceManagementRoute) { route in
                 SourceManagementView(initialRoute: route)
@@ -216,11 +218,116 @@ struct SubscriptionsView: View {
 }
 
 extension View {
+    /// Batch refresh progress floats above the tab bar instead of covering the
+    /// app: the page stays usable — browse, edit, export — while it runs, and
+    /// every source update is already guarded by per-source tickets.
+    func subscriptionRefreshProgress() -> some View {
+        overlay(alignment: .bottom) { SubscriptionRefreshProgressHost() }
+    }
+
     /// Hosts batch-refresh failures in the page currently covering the screen.
     /// A host attached only to the subscriptions root sits behind a pushed
     /// management page and makes the report appear only after navigating back.
     func subscriptionRefreshReport() -> some View {
         overlay { SubscriptionRefreshReportHost() }
+    }
+}
+
+/// Presentation has its own transaction: a native pull-to-refresh can suppress
+/// animations in the update that starts the task.
+private struct SubscriptionRefreshProgressHost: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var presented: Presentation?
+
+    private struct Presentation: Equatable {
+        let id: UUID
+        let completed: Int
+        let total: Int
+    }
+
+    private var progress: Presentation? {
+        // A card's own refresh button already spins in place.
+        guard let progress = model.subscriptionRefreshProgress, !progress.isSingleSource else { return nil }
+        return Presentation(id: progress.id, completed: progress.completedIDs.count, total: progress.sourceIDs.count)
+    }
+
+    var body: some View {
+        ZStack {
+            if let presented {
+                SubscriptionRefreshCapsule(
+                    completed: presented.completed,
+                    total: presented.total,
+                    onCancel: model.cancelSubscriptionRefresh
+                )
+                // It rests just above the tab bar, so it arrives from and
+                // leaves toward that edge.
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
+        .onChange(of: progress, initial: true) { _, newProgress in
+            let visibilityChanged = (presented == nil) != (newProgress == nil)
+            let animation: Animation = visibilityChanged || reduceMotion
+                ? TowerMotion.surface(reduceMotion: reduceMotion)
+                : TowerMotion.selection(reduceMotion: false)
+            // A fresh transaction also clears disablesAnimations inherited
+            // from UIKit's refresh handling.
+            withTransaction(Transaction(animation: animation)) {
+                presented = newProgress
+            }
+        }
+    }
+}
+
+private struct SubscriptionRefreshCapsule: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    let completed: Int
+    let total: Int
+    let onCancel: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+                .accessibilityHidden(true)
+            Text("正在刷新订阅（\(completed)/\(total)）")
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(.numericText(value: Double(completed)))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 4)
+            Button(action: onCancel) {
+                Text("取消")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(ResponsivePressButtonStyle())
+            .foregroundStyle(Color.accentColor)
+            .accessibilityIdentifier("subscription-refresh-progress-cancel")
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 4)
+        .frame(maxWidth: 420, minHeight: 48)
+        .background {
+            Capsule()
+                .fill(reduceTransparency || contrast == .increased
+                    ? AnyShapeStyle(Color(uiColor: .secondarySystemGroupedBackground))
+                    : AnyShapeStyle(.regularMaterial))
+        }
+        .overlay {
+            Capsule()
+                .strokeBorder(Color.primary.opacity(contrast == .increased ? 0.35 : 0.08), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 16, y: 6)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("subscription-refresh-progress")
     }
 }
 

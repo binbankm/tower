@@ -196,7 +196,7 @@ final class AuditFlowInteractionTests: XCTestCase {
         add(shot)
     }
 
-    func testSubscriptionRefreshUsesCenteredProgressAndCanCancel() {
+    func testSubscriptionRefreshShowsFloatingProgressAndCanCancel() {
         let app = XCUIApplication()
         app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString
         app.launchEnvironment["TOWER_REFRESH_UI_TEST"] = "1"
@@ -208,22 +208,24 @@ final class AuditFlowInteractionTests: XCTestCase {
         let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
         let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.90))
         start.press(forDuration: 0.05, thenDragTo: end)
-        let card = app.descendants(matching: .any)["subscription-refresh-progress"].firstMatch
-        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        let capsule = app.descendants(matching: .any)["subscription-refresh-progress"].firstMatch
+        XCTAssertTrue(capsule.waitForExistence(timeout: 5))
         let window = app.windows.firstMatch.frame
-        XCTAssertEqual(card.frame.midX, window.midX, accuracy: 8)
-        XCTAssertLessThan(abs(card.frame.midY - window.midY), window.height * 0.15)
+        XCTAssertEqual(capsule.frame.midX, window.midX, accuracy: 8)
+        XCTAssertGreaterThan(capsule.frame.midY, window.midY, "Progress floats near the bottom, not over the page")
+        XCTAssertLessThan(capsule.frame.maxY, app.tabBars.firstMatch.frame.minY + 1, "It sits above the tab bar")
+        // The page stays usable while refreshing.
+        XCTAssertTrue(app.buttons["add-source-button"].isHittable)
         let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "subscription-refresh-centered"; shot.lifetime = .keepAlways; add(shot)
+        shot.name = "subscription-refresh-floating"; shot.lifetime = .keepAlways; add(shot)
         app.buttons["subscription-refresh-progress-cancel"].tap()
-        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: card)
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: capsule)
         waitForExpectations(timeout: 3)
-        XCTAssertTrue(app.buttons["add-source-button"].isEnabled)
         XCTAssertEqual(summary.frame.minY, originalY, accuracy: 8, "Pull indicator must retract without shifting the page")
         // A fresh pull after cancellation must run normally and dismiss on success.
         start.press(forDuration: 0.05, thenDragTo: end)
-        XCTAssertTrue(card.waitForExistence(timeout: 5))
-        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: card)
+        XCTAssertTrue(capsule.waitForExistence(timeout: 5))
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: capsule)
         waitForExpectations(timeout: 15)
         XCTAssertTrue(app.buttons["add-source-button"].isEnabled)
         XCTAssertFalse(app.staticTexts["更新失败"].exists)

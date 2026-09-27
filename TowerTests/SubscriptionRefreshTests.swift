@@ -187,6 +187,46 @@ final class SubscriptionRefreshTests: XCTestCase {
         XCTAssertNil(model.subscriptionRefreshProgress)
     }
 
+    /// Refreshing no longer blocks the app, so requests can overlap: a pull
+    /// takes over a card's single refresh, and a card outside a running batch
+    /// still refreshes instead of being silently ignored.
+    func testOverlappingRefreshRequestsJoinOrRunAlongside() async throws {
+        let first = SubscriptionSource(name: "One", urlString: "https://one.example/sub")
+        let second = SubscriptionSource(name: "Two", urlString: "https://two.example/sub")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("refresh-overlap-\(UUID()).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let fetcher = OverlappingRefreshFetcher()
+        let model = AppModel(persistence: PersistenceStore(fileURL: url), subscriptionService: fetcher, arguments: [])
+        model.subscriptions = [first, second]
+
+        model.startSubscriptionRefresh(sourceIDs: [first.id], singleSource: true)
+        XCTAssertEqual(model.subscriptionRefreshProgress?.isSingleSource, true)
+        model.startSubscriptionRefresh(sourceIDs: [first.id, second.id])
+        XCTAssertEqual(model.subscriptionRefreshProgress?.isSingleSource, false)
+        XCTAssertEqual(model.subscriptionRefreshProgress?.sourceIDs, [first.id, second.id])
+        var deadline = ContinuousClock.now + .seconds(3)
+        while model.subscriptionRefreshProgress != nil, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertNil(model.subscriptionRefreshProgress)
+        var requestedIDs = await fetcher.requestedIDs
+        XCTAssertEqual(requestedIDs.filter { $0 == first.id }.count, 1, "The pull joins the card's request")
+        XCTAssertEqual(requestedIDs.filter { $0 == second.id }.count, 1)
+
+        model.startSubscriptionRefresh(sourceIDs: [first.id])
+        let batchID = model.subscriptionRefreshProgress?.id
+        model.startSubscriptionRefresh(sourceIDs: [second.id], singleSource: true)
+        XCTAssertEqual(model.subscriptionRefreshProgress?.id, batchID, "A card never replaces a running batch")
+        XCTAssertEqual(model.subscriptionRefreshProgress?.sourceIDs, [first.id])
+        deadline = ContinuousClock.now + .seconds(3)
+        while (model.subscriptionRefreshProgress != nil || !model.refreshingSourceIDs.isEmpty),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        requestedIDs = await fetcher.requestedIDs
+        XCTAssertEqual(requestedIDs.filter { $0 == second.id }.count, 2, "The card outside the batch still refreshes")
+    }
+
     /// Speed comes from hitting different providers at once. Hitting one
     /// provider several times at once is the thing that gets rate-limited, and
     /// a 429 costs more than the wait it saved.

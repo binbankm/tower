@@ -742,16 +742,23 @@ struct WorldDotMapView: View {
                 guard dragStartViewport != nil else { return }
                 let remaining = PanMotion.delta(from: previousDragTranslation, to: value.translation)
                 let released = viewport.translated(by: remaining, in: size)
-                let momentum = PanMotion.settled(
-                    translation: .zero,
-                    predictedEndTranslation: PanMotion.delta(from: value.translation, to: value.predictedEndTranslation),
-                    reduceMotion: reduceMotion
+                let settled = released.translated(
+                    by: PanMotion.glide(velocity: value.velocity, in: size, reduceMotion: reduceMotion),
+                    in: size
                 )
-                let settled = released.translated(by: momentum, in: size)
                 dragStartViewport = nil
                 previousDragTranslation = .zero
                 isManipulatingViewport = magnifyStartViewport != nil
-                withViewportAnimation {
+                // Land exactly where the finger lifted, then let the glide
+                // leave that point at the finger's own speed: no stop-and-go
+                // seam between dragging and coasting.
+                updateViewportWithoutAnimation(released)
+                let initialVelocity = PanMotion.relativeVelocity(
+                    value.velocity,
+                    toward: CGSize(width: settled.offset.width - released.offset.width,
+                                   height: settled.offset.height - released.offset.height)
+                )
+                withViewportAnimation(initialVelocity > 0 ? PanMotion.glideAnimation(initialVelocity: initialVelocity) : nil) {
                     viewport = settled
                     if magnifyStartViewport == nil { displayedLevel = settled.level }
                 }
@@ -777,12 +784,24 @@ struct WorldDotMapView: View {
 
     /// Track the finger one-to-one while it is down. The earlier damped drag
     /// only applied 46% of the translation and felt as if the map were pulling
-    /// against the gesture. Keep release momentum deliberately small instead,
-    /// so direct manipulation stays responsive without letting a flick throw
-    /// the compact map across several countries.
+    /// against the gesture.
+    ///
+    /// On release the map coasts from the finger's velocity. It used to keep
+    /// only 4% of the projected distance because the settle spring started at
+    /// rest, so any real glide stopped and then lurched; handing the velocity
+    /// to the spring removes that seam. A faster deceleration than scrolling
+    /// and a distance cap keep a flick from throwing the compact map across
+    /// several countries.
     enum PanMotion {
         static let trackingFactor: CGFloat = 1
-        static let momentumFactor: CGFloat = 0.04
+        /// UIScrollView's `.fast` rate; `.normal` (0.998) glides too far here.
+        static let decelerationRate: CGFloat = 0.99
+        /// Never coast further than this share of the map's shorter side.
+        static let maximumGlideFraction: CGFloat = 0.4
+        /// A release slower than this is a placement, not a flick: stop there.
+        static let minimumGlideSpeed: CGFloat = 80
+        /// Critically damped, like other repositioning in Apple's UI.
+        static let glideDuration: Double = 0.4
 
         static func delta(from previous: CGSize, to current: CGSize) -> CGSize {
             tracked(CGSize(width: current.width - previous.width, height: current.height - previous.height))
@@ -795,20 +814,36 @@ struct WorldDotMapView: View {
             )
         }
 
-        static func settled(
-            translation: CGSize,
-            predictedEndTranslation: CGSize,
-            reduceMotion: Bool
-        ) -> CGSize {
-            guard !reduceMotion else { return tracked(translation) }
+        /// Where a release at `velocity` (pt/s) comes to rest, using Apple's
+        /// exponential-decay projection, capped for the compact map.
+        static func glide(velocity: CGSize, in size: CGSize, reduceMotion: Bool) -> CGSize {
+            guard !reduceMotion else { return .zero }
+            let speed = hypot(velocity.width, velocity.height)
+            guard speed >= minimumGlideSpeed else { return .zero }
+            let seconds = decelerationRate / (1 - decelerationRate) / 1000
+            var distance = CGSize(width: velocity.width * seconds, height: velocity.height * seconds)
+            let limit = min(size.width, size.height) * maximumGlideFraction
+            let length = hypot(distance.width, distance.height)
+            if length > limit {
+                distance = CGSize(width: distance.width * limit / length, height: distance.height * limit / length)
+            }
+            return tracked(distance)
+        }
 
-            let projected = CGSize(
-                width: translation.width
-                    + (predictedEndTranslation.width - translation.width) * momentumFactor,
-                height: translation.height
-                    + (predictedEndTranslation.height - translation.height) * momentumFactor
-            )
-            return tracked(projected)
+        /// The spring's initial velocity relative to the distance it covers,
+        /// so the glide starts at the finger's speed. Capped below the
+        /// spring's natural frequency: beyond it a critically damped spring
+        /// overshoots, which here would show the map's edge and bounce back.
+        static func relativeVelocity(_ velocity: CGSize, toward distance: CGSize) -> Double {
+            let lengthSquared = distance.width * distance.width + distance.height * distance.height
+            guard lengthSquared > 1 else { return 0 }
+            let along = (velocity.width * distance.width + velocity.height * distance.height) / lengthSquared
+            let naturalFrequency = 2 * Double.pi / glideDuration
+            return min(max(Double(along), 0), naturalFrequency * 0.9)
+        }
+
+        static func glideAnimation(initialVelocity: Double) -> Animation {
+            .interpolatingSpring(duration: glideDuration, bounce: 0, initialVelocity: initialVelocity)
         }
     }
 
@@ -911,10 +946,10 @@ struct WorldDotMapView: View {
         }
     }
 
-    private func withViewportAnimation(_ updates: () -> Void) {
+    private func withViewportAnimation(_ animation: Animation? = nil, _ updates: () -> Void) {
         let token = UUID()
         viewportAnimationToken = reduceMotion ? nil : token
-        withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 1),
+        withAnimation(reduceMotion ? nil : animation ?? .spring(response: 0.34, dampingFraction: 1),
                       completionCriteria: .removed, updates) {
             guard viewportAnimationToken == token else { return }
             viewportAnimationToken = nil
