@@ -838,6 +838,13 @@ struct ConfigurationGenerator {
         // core has no SOCKS TLS at all, and users saw its HTTP Reality fail.
         if [.loon, .karing].contains(target), node.usesReality, [.socks5, .http].contains(node.kind) { return false }
         if target == .karing, node.kind == .socks5, node.tls { return false }
+        // Mihomo's and Stash's SOCKS5 have no SNI field: TLS always names the
+        // server address. A node whose SNI differs (an IP or a front) failed
+        // its certificate check there, so it is skipped rather than degraded.
+        if node.kind == .socks5, node.tls, !node.usesReality,
+           let sni = node.sni?.trimmingCharacters(in: .whitespacesAndNewlines), !sni.isEmpty,
+           sni.lowercased() != node.server.lowercased(),
+           [.clash, .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi].contains(target) { return false }
         // Native SS-over-TLS (no plugin, no simple-obfs) has a field only in
         // Shadowrocket (`tls: true`) and Quantumult X (`obfs=over-tls`). Every
         // other writer — Surge, Loon, Stash, mihomo, sing-box, URI lists —
@@ -966,6 +973,22 @@ struct ConfigurationGenerator {
         let cipher = (node.cipher ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         // A missing cipher is written as aes-256-gcm, which every list has.
         return cipher.isEmpty || allowed.contains(cipher)
+    }
+
+    /// A VMess/VLESS/Trojan link without `sni` means "use the Host header"
+    /// (v2rayN's rule), which is how CDN-fronted nodes on a bare IP are
+    /// written. Mihomo and sing-box apply it themselves; Surge, Loon, QuanX
+    /// and Egern instead fall back to the server address, so they got the
+    /// IP as SNI and failed the certificate check. Spell it out for them.
+    private func withTransportHostAsSNI(_ node: ProxyNode) -> ProxyNode {
+        guard [.vmess, .vless, .trojan].contains(node.kind), node.tls, !node.usesReality,
+              (node.sni ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              ["ws", "h2", "httpupgrade"].contains(node.transport?.lowercased() ?? ""),
+              let host = node.hostHeader?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !host.isEmpty, host.lowercased() != node.server.lowercased() else { return node }
+        var node = node
+        node.sni = host
+        return node
     }
 
     /// Shadowsocks wrapped in ordinary TLS by the proxy itself, as opposed to
@@ -2194,9 +2217,13 @@ struct ConfigurationGenerator {
         values.append("    tls: \(node.tls)")
         values.append("    skip-cert-verify: \(node.skipCertificateVerification)")
         if let sni = node.sni, !sni.isEmpty {
-            let key = target == .clash && node.kind == .trojan ? "sni" : "servername"
+            // Trojan's key is `sni` in mihomo, Stash and Shadowrocket alike;
+            // `servername` belongs to VMess/VLESS. Mihomo ignored it and sent
+            // the server address as SNI, so an IP or CDN front failed TLS.
+            let key = node.kind == .trojan ? "sni" : "servername"
             values.append("    \(key): \(yaml(sni))")
         }
+        if node.kind == .trojan { appendClashALPN(node, to: &values) }
         appendClashCertificateFingerprint(node, target: target, to: &values)
         appendClashReality(node, to: &values)
         if node.kind == .vless, let flow = node.flow, !flow.isEmpty {
@@ -2463,7 +2490,8 @@ struct ConfigurationGenerator {
         return output
     }
 
-    private func surgeNode(_ node: ProxyNode, shadowrocket: Bool) -> String {
+    private func surgeNode(_ source: ProxyNode, shadowrocket: Bool) -> String {
+        let node = withTransportHostAsSNI(source)
         let name = confName(NodeRegionResolver.displayName(for: node))
         var components: [String] = []
         switch node.kind {
@@ -2944,7 +2972,8 @@ struct ConfigurationGenerator {
         return output
     }
 
-    private func loonNode(_ node: ProxyNode) -> String {
+    private func loonNode(_ source: ProxyNode) -> String {
+        let node = withTransportHostAsSNI(source)
         let name = confName(NodeRegionResolver.displayName(for: node))
         var values: [String]
         switch node.kind {
@@ -3227,7 +3256,8 @@ struct ConfigurationGenerator {
         return values
     }
 
-    private func quanXNode(_ node: ProxyNode) -> String {
+    private func quanXNode(_ source: ProxyNode) -> String {
+        let node = withTransportHostAsSNI(source)
         var values = [node.endpoint]
         let prefix: String
         switch node.kind {
@@ -4799,7 +4829,8 @@ extension ConfigurationGenerator {
     ]
 
     /// One `- <type>:` entry with the snake_case keys Egern uses.
-    func egernProxy(_ node: ProxyNode) -> String? {
+    func egernProxy(_ source: ProxyNode) -> String? {
+        let node = withTransportHostAsSNI(source)
         var body: [String] = ["      name: \(yaml(NodeRegionResolver.displayName(for: node)))"]
         func endpoint() {
             body.append("      server: \(yaml(node.server))")

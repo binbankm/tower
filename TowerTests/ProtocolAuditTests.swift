@@ -222,6 +222,39 @@ final class ProtocolAuditTests: XCTestCase {
         XCTAssertEqual(node.exportablePathWithoutEarlyData, "/plain")
     }
 
+    // MARK: - Trojan SNI in Clash YAML
+
+    func testClashFamilyWritesTrojanSNIUnderItsOwnKey() {
+        let trojan = ProxyNode(kind: .trojan, name: "T", server: "203.0.113.7", port: 443, password: "pw",
+                               tls: true, sni: "front.example.com", alpn: "h2,http/1.1", rawURI: "")
+        for target in [ClientTarget.clashApple, .clashMi, .karing, .shadowrocket, .clash] {
+            let yaml = content([trojan], target)
+            XCTAssertTrue(yaml.contains("    sni: \"front.example.com\""), "\(target.name)\n\(yaml)")
+            XCTAssertFalse(yaml.contains("servername: \"front.example.com\""), target.name)
+            XCTAssertTrue(yaml.contains("alpn: [\"h2\", \"http/1.1\"]"), "\(target.name)\n\(yaml)")
+        }
+    }
+
+    func testSOCKS5TLSWithADifferentSNISkipsClientsWithoutAnSNIField() {
+        let fronted = ProxyNode(kind: .socks5, name: "S", server: "203.0.113.7", port: 443, password: "pw",
+                                username: "u", tls: true, sni: "front.example.com", rawURI: "")
+        for target in [ClientTarget.clashApple, .clashMi, .clash] {
+            XCTAssertFalse(content([fronted], target).contains("203.0.113.7"), target.name)
+        }
+        var direct = fronted
+        direct.server = "front.example.com"
+        XCTAssertTrue(content([direct], .clashApple).contains("front.example.com"))
+    }
+
+    func testTextClientsUseTheHostHeaderWhenSNIIsMissing() {
+        let fronted = ProxyNode(kind: .vmess, name: "CDN", server: "203.0.113.7", port: 443, uuid: uuid,
+                                transport: "ws", tls: true, hostHeader: "front.example.com", path: "/ws", rawURI: "")
+        XCTAssertTrue(content([fronted], .surge).contains("sni=front.example.com"))
+        XCTAssertTrue(content([fronted], .loon).contains("tls-name=front.example.com"))
+        XCTAssertTrue(content([fronted], .quanx).contains("front.example.com"))
+        XCTAssertTrue(content([fronted], .egern).contains("sni: \"front.example.com\""))
+    }
+
     // MARK: - Stash field names
 
     func testStashUsesItsOwnHysteriaAndTUICFields() {

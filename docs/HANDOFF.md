@@ -18,7 +18,11 @@
   - Stash 按其文档改写字段：Hysteria2 用 `auth`，Hysteria 1 用 `up-speed` / `down-speed`，TUIC 写 `version: 5`（缺省按 v4 解析）。mihomo 系保持 `password` / `up` / `down`。
   - Loon 的 VMess/VLESS 补 `udp=true`；QuanX 的 VMess、VLESS、Trojan、SOCKS5、SSR 补 `udp-relay`。两者缺省都不转发 UDP，以前只有 SS / Trojan（Loon）或 SS / AnyTLS（QuanX）会转发。
   - 对照中确认没有问题的差异：Egern `local_ipv4` 可写纯 IP；QuanX VMess 方法名与 AEAD 缺省已由用户实机验证。WireGuard 在多个客户端失败，更可能是国内网络拦截握手（本机直连同样超时，经代理可通）。
-- 验证：`ProtocolAuditTests` 17 项；`testKaringYAMLPreservesRealityOnlyWhereItConnects`、`testNativeShadowsocksTLSIsSkippedWithoutLosingPlainSS` 按新规则更新。第二轮后 1208 项 XCTest（5 跳过、0 失败）与 106 项 Swift Testing 通过，`ProtocolAuditTests` 增至 21 项，`TUICHysteriaTests` 两项改为分别断言 mihomo 与 Stash 字段。实测：mihomo 目标 41/42、sing-box 目标 38/39 连通，唯一失败为 WireGuard（直连时握手超时，经代理路径可通，判断为本地运营商拦截）。
+- 第三轮（服务器写 IP、SNI 另指域名的节点，机场「优选 IP」常见写法）：
+  - Clash YAML 的 Trojan 以前把 SNI 写成 `servername`（只有 Stash 写 `sni`）；mihomo 的 Trojan 只认 `sni`，结果发送 IP 作 SNI，实测失败。现在所有 Clash 系目标都写 `sni`，并补写 Trojan ALPN。
+  - mihomo 与 Stash 的 SOCKS5 没有 SNI 字段（mihomo 源码 `ServerName: option.Server`），SNI 与服务器地址不同的 SOCKS5 TLS 节点在这两类目标上跳过。
+  - VMess/VLESS/Trojan 的 WebSocket、HTTP/2、HTTPUpgrade 在开启 TLS 但没有 SNI 时，按 v2rayN 的约定用 Host 作 SNI：Surge、Loon、QuanX、Egern 以前会把 IP 当 SNI。mihomo 与 sing-box 本来就会这样处理（实测连通）。
+- 验证：`ProtocolAuditTests` 17 项；`testKaringYAMLPreservesRealityOnlyWhereItConnects`、`testNativeShadowsocksTLSIsSkippedWithoutLosingPlainSS` 按新规则更新。第二轮后 1208 项 XCTest（5 跳过、0 失败）与 106 项 Swift Testing 通过，`ProtocolAuditTests` 第二轮增至 21 项、第三轮 24 项（1211 项 XCTest 全部通过），`TUICHysteriaTests` 两项改为分别断言 mihomo 与 Stash 字段。实测：mihomo 目标 41/42、sing-box 目标 38/39 连通，唯一失败为 WireGuard（直连时握手超时，经代理路径可通，判断为本地运营商拦截）。
 - 未完成：图形客户端（Surge、Loon、Shadowrocket、QuanX、Stash、Egern、Karing、V2Box）尚未在 Mac mini 上实测；SSH 通道没有截屏与辅助功能权限。缺失协议评估见本轮报告。
 
 ## 未发布：刷新进度与提示统一到顶部，协议筛选行不再折行（2026-09-27）
