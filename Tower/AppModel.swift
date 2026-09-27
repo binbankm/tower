@@ -3356,22 +3356,41 @@ final class AppModel {
             // Downloading suspends the actor. Compare against the current
             // edits, not the snapshot from before the network request.
             let local = currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)
-            let baseline = try persistence.cloudBaseline()
-            let merged = try remote.map { try CloudSnapshotMerge.merge(local: local, remote: $0, base: baseline) } ?? local
-            // A backup failure stops the transaction before either copy is replaced.
-            if !CloudSnapshotMerge.equal(local, merged) { try persistence.backup(local) }
+            let persistence = self.persistence
+            // Reading the baseline, the three-way merge, the equality checks
+            // and backups all round-trip whole snapshots through JSON. On the
+            // main actor that was a 160–230 ms stall about two seconds after
+            // most edits (device trace, 2026-09-27). None of it touches UI.
+            let merged = try await Task.detached(priority: .userInitiated) {
+                let baseline = try persistence.cloudBaseline()
+                let merged = try remote.map { try CloudSnapshotMerge.merge(local: local, remote: $0, base: baseline) } ?? local
+                // A backup failure stops the transaction before either copy is replaced.
+                if !CloudSnapshotMerge.equal(local, merged) { try persistence.backup(local) }
+                return merged
+            }.value
+            guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
             try await cloudSync.commit(merged, replacing: remote)
             guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
-            let latest = currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)
-            let adopted = try CloudSnapshotMerge.equal(latest, local) ? merged
-                : CloudSnapshotMerge.merge(local: latest, remote: merged, base: local)
-            if !CloudSnapshotMerge.equal(latest, adopted), !CloudSnapshotMerge.equal(latest, local) { try persistence.backup(latest) }
+            let latestEditAt = lastLocalEditAt
+            let latest = currentSnapshot(updatedAt: latestEditAt ?? .distantPast)
+            var adoption = try await Task.detached(priority: .userInitiated) {
+                try CloudSnapshotMerge.adoption(latest: latest, local: local, merged: merged, persistence: persistence)
+            }.value
+            guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
+            if lastLocalEditAt != latestEditAt {
+                // Edited while that ran: redo this last step against the newest
+                // state on the main actor, so nothing changed in the window is
+                // overwritten by an adoption computed without it.
+                let newest = currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)
+                adoption = try CloudSnapshotMerge.adoption(latest: newest, local: local, merged: merged, persistence: persistence)
+            }
             discardPendingLocalWrite()
-            try persistence.save(adopted)
-            try persistence.saveCloudBaseline(merged)
+            try persistence.write(adoption.adoptedData)
+            try persistence.writeCloudBaseline(adoption.baselineData)
+            let adopted = adoption.adopted
             apply(adopted)
             synchronizedEditAt = merged.updatedAt
-            needsAnotherSync = !CloudSnapshotMerge.equal(adopted, merged)
+            needsAnotherSync = adoption.needsAnotherSync
             cloudSyncIssue = nil
             if showResult { showToast(String(localized: "已同步到 iCloud"), symbol: "icloud") }
             lastCloudSyncAt = .now

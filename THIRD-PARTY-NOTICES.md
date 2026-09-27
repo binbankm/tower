@@ -79,6 +79,8 @@ App 和本仓库不再包含 Self-Configuration 的配置、规则列表或图�
 
 这些图标是各自权利人的商标，**不适用本项目的 MIT 许可**。塔台仅将其用于在导出目标列表里指代对应客户端（指称性使用），不表示任何关联、赞助或背书，也不分发这些客户端软件本身。Surge Mac 图标取自本机官方 6.4.4 安装包。移动客户端图标取自 Apple 的公开 iTunes Search API 返回的 artwork 地址。Clash Verge 图标取自 [v2.5.2 官方发布包](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/v2.5.2)；ClashMac 图标取自 [27.1.4 官方发布包](https://github.com/666OS/ClashMac/releases/tag/27.1.4)，仅将 ICNS 转成 PNG，未修改图案。权利人如有异议可提 issue，将立即移除并改用 SF Symbol 占位。
 
+2026-09-27 起，所有客户端图标统一等比缩放到最长边 180 像素（界面最大显示 58pt，按 3 倍屏约 174 像素），以免首次显示时在主线程解码 512–1024 像素的原图；只改尺寸，未修改图案或颜色。
+
 ## 客户端配置格式
 
 塔台生成 Surge、Clash/Stash/Clash Mi/Karing、Shadowrocket、Loon、Quantumult X、Hiddify/sing-box MT 和 Egern 七类配置。这些格式的规范归各自客户端的开发者所有，本项目仅按其公开文档生成配置文件，不包含、不修改、不分发任何客户端软件。

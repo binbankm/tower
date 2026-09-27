@@ -28,12 +28,21 @@ struct PersistenceStore {
     }
 
     func save(_ snapshot: AppSnapshot) throws {
-        let folderURL = fileURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+        try write(Self.encoded(snapshot))
+    }
+
+    /// Encoding is the expensive half of `save`. Split out so callers can do
+    /// it off the main actor and keep only the ordered write there.
+    static func encoded(_ snapshot: AppSnapshot) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(snapshot)
+        return try encoder.encode(snapshot)
+    }
+
+    func write(_ data: Data) throws {
+        let folderURL = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
         try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
     }
 
@@ -42,6 +51,7 @@ struct PersistenceStore {
 
     func cloudBaseline() throws -> AppSnapshot? { try PersistenceStore(fileURL: cloudBaselineURL).load() }
     func saveCloudBaseline(_ snapshot: AppSnapshot) throws { try PersistenceStore(fileURL: cloudBaselineURL).save(snapshot) }
+    func writeCloudBaseline(_ data: Data) throws { try PersistenceStore(fileURL: cloudBaselineURL).write(data) }
     func clearCloudBaseline() throws {
         if FileManager.default.fileExists(atPath: cloudBaselineURL.path) { try FileManager.default.removeItem(at: cloudBaselineURL) }
     }

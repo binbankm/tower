@@ -1097,6 +1097,7 @@ private struct LANExportTargetCard: View {
                             endPoint: .bottomTrailing
                         )
                     )
+                    .shadow(color: Color.accentColor.opacity(0.18), radius: 5, y: 2)
                 Image(systemName: "wifi.router.fill")
                     .font(.system(size: 27, weight: .semibold))
                     .foregroundStyle(.white)
@@ -1112,7 +1113,6 @@ private struct LANExportTargetCard: View {
                         .accessibilityHidden(true)
                 }
             }
-            .shadow(color: Color.accentColor.opacity(0.18), radius: 5, y: 2)
 
             Text("局域网共享")
                 .font(.caption.weight(isSelected ? .bold : .semibold))
@@ -1204,7 +1204,13 @@ struct ClientAppIcon: View {
             RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
                 .stroke(.black.opacity(0.075), lineWidth: 0.65)
         }
-        .shadow(color: .black.opacity(0.09), radius: 5, y: 2)
+        // Cast from the icon's shape, not from the clipped image, so it needs
+        // no offscreen pass per icon.
+        .background {
+            RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
+                .fill(Color(uiColor: .systemBackground))
+                .shadow(color: .black.opacity(0.09), radius: 5, y: 2)
+        }
         .accessibilityHidden(true)
     }
 }

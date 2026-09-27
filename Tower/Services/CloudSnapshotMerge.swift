@@ -21,6 +21,28 @@ enum CloudSnapshotMerge {
         return value as NSDictionary
     }
 
+    /// The pure part of adopting a committed cloud snapshot, done off the main
+    /// actor: every step round-trips whole snapshots through JSON.
+    struct Adoption {
+        let adopted: AppSnapshot
+        let adoptedData: Data
+        let baselineData: Data
+        let needsAnotherSync: Bool
+    }
+
+    /// `latest` is the local state after the commit; `local` what was merged
+    /// before it. Backs up a local version the adoption would replace.
+    static func adoption(latest: AppSnapshot, local: AppSnapshot, merged: AppSnapshot, persistence: PersistenceStore) throws -> Adoption {
+        let adopted = try equal(latest, local) ? merged : merge(local: latest, remote: merged, base: local)
+        if !equal(latest, adopted), !equal(latest, local) { try persistence.backup(latest) }
+        return Adoption(
+            adopted: adopted,
+            adoptedData: try PersistenceStore.encoded(adopted),
+            baselineData: try PersistenceStore.encoded(merged),
+            needsAnotherSync: !equal(adopted, merged)
+        )
+    }
+
     static func merge(local: AppSnapshot, remote: AppSnapshot, base: AppSnapshot?) throws -> AppSnapshot {
         var l = try object(local) as! [String: Any]
         var r = try object(remote) as! [String: Any]

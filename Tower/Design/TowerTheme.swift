@@ -86,14 +86,18 @@ struct TowerCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background {
+                // The shadow belongs to the card's shape only. On the whole
+                // card it was cast from the rendered content, one offscreen
+                // pass per card per frame: 55–112 per scrolled frame on device
+                // (Instruments hitches, 2026-09-27).
                 RoundedRectangle(cornerRadius: TowerTheme.cornerRadius, style: .continuous)
                     .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                    .shadow(color: .black.opacity(0.035), radius: 8, y: 3)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: TowerTheme.cornerRadius, style: .continuous)
                     .stroke(Color.secondary.opacity(0.1), lineWidth: 0.75)
             }
-            .shadow(color: .black.opacity(0.035), radius: 8, y: 3)
     }
 }
 

@@ -204,16 +204,17 @@ struct NodeMapOverview: View, Equatable {
             .foregroundStyle(.white)
             .padding(.horizontal, 14)
             .frame(height: 42)
-            .background(
-                LinearGradient(
-                    colors: [Color.accentColor, Color.blue.opacity(0.82)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: Capsule()
-            )
+            .background {
+                // Shadow from the capsule itself, not the label's rendering.
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [Color.accentColor, Color.blue.opacity(0.82)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .shadow(color: Color.accentColor.opacity(0.28), radius: 10, y: 4)
+            }
             .overlay(Capsule().stroke(.white.opacity(0.45), lineWidth: 0.75))
-            .shadow(color: Color.accentColor.opacity(0.28), radius: 10, y: 4)
             .contentShape(Capsule())
         }
         .buttonStyle(ResponsivePressButtonStyle())
