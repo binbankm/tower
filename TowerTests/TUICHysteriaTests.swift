@@ -505,7 +505,7 @@ final class TUICHysteriaTests: XCTestCase {
 
     func testClashWritesTUICAndHysteriaWithMihomoKeys() {
         let content = ConfigurationGenerator()
-            .generate(nodes: [tuicNode(), hysteriaNode()], preset: RulePreset.builtIns[0], target: .clash)
+            .generate(nodes: [tuicNode(), hysteriaNode()], preset: RulePreset.builtIns[0], target: .clashApple)
             .content
 
         XCTAssertTrue(content.contains("type: tuic"), content)
@@ -528,11 +528,18 @@ final class TUICHysteriaTests: XCTestCase {
         node.downMbps = nil
 
         let content = ConfigurationGenerator()
-            .generate(nodes: [node], preset: RulePreset.builtIns[0], target: .clash)
+            .generate(nodes: [node], preset: RulePreset.builtIns[0], target: .clashApple)
             .content
 
         XCTAssertTrue(content.contains("up: 50"), content)
         XCTAssertTrue(content.contains("down: 100"), content)
+
+        // Stash spells the same budget `up-speed` / `down-speed`.
+        let stash = ConfigurationGenerator()
+            .generate(nodes: [node], preset: RulePreset.builtIns[0], target: .clash)
+            .content
+        XCTAssertTrue(stash.contains("up-speed: 50"), stash)
+        XCTAssertTrue(stash.contains("down-speed: 100"), stash)
     }
 
     func testEgernWritesTUICWithAnALPNList() {

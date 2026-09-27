@@ -843,6 +843,7 @@ struct ConfigurationGenerator {
         // other writer — Surge, Loon, Stash, mihomo, sing-box, URI lists —
         // dropped TLS and handed out plain Shadowsocks that cannot connect.
         if isNativeShadowsocksTLS(node), ![.shadowrocket, .quanx].contains(target) { return false }
+        if !supportsShadowsocksCipher(node, on: target) { return false }
         // Xray's VLESS encryption was run against mihomo 1.19.31 only; other
         // clients either lack the field or ignore it and send plain VLESS.
         if node.kind == .vless, node.vlessEncryption != nil,
@@ -930,6 +931,41 @@ struct ConfigurationGenerator {
         }
         if !canExpressTransport(of: node, on: target) { return false }
         return true
+    }
+
+    /// Shadowsocks ciphers each text-format client documents. A cipher outside
+    /// its list either fails the whole profile or never handshakes — most
+    /// often `2022-blake3-chacha20-poly1305`, which Surge, Loon, Quantumult X
+    /// and Stash do not implement. Sources: the Surge manual and Loon and Egern
+    /// proxy documentation; Quantumult X and Stash via Sub-Store's producers.
+    /// Other targets' cores (mihomo, sing-box, Xray, Shadowrocket) take all.
+    private static let shadowsocksCiphers: [ClientTarget: Set<String>] = {
+        let legacy: Set<String> = ["rc4", "rc4-md5", "aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
+                                   "aes-128-ctr", "aes-192-ctr", "aes-256-ctr", "salsa20", "chacha20", "chacha20-ietf"]
+        let extraLegacy: Set<String> = ["bf-cfb", "camellia-128-cfb", "camellia-192-cfb", "camellia-256-cfb",
+                                        "cast5-cfb", "des-cfb", "idea-cfb", "rc2-cfb", "seed-cfb"]
+        let aead: Set<String> = ["aes-128-gcm", "aes-192-gcm", "aes-256-gcm", "chacha20-ietf-poly1305", "xchacha20-ietf-poly1305"]
+        let aes2022: Set<String> = ["2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm"]
+        let surge = legacy.union(aead).union(aes2022).union(["none"])
+        return [
+            .surge: surge,
+            .surgeMac: surge,
+            .loon: legacy.union(extraLegacy).union(aead).union(aes2022),
+            .quanx: legacy.union(aead).union(aes2022)
+                .union(["none", "rc4-md5-6", "bf-cfb", "cast5-cfb", "des-cfb", "rc2-cfb"]),
+            .egern: legacy.union(extraLegacy).union(aes2022)
+                .union(["2022-blake3-chacha20-poly1305", "aes-128-gcm", "aes-256-gcm",
+                        "chacha20-ietf-poly1305", "chacha20-poly1305", "none", "table"]),
+            .clash: aead.union(aes2022).union(["rc4-md5", "chacha20-ietf", "xchacha20",
+                "aes-128-cfb", "aes-192-cfb", "aes-256-cfb", "aes-128-ctr", "aes-192-ctr", "aes-256-ctr"])
+        ]
+    }()
+
+    private func supportsShadowsocksCipher(_ node: ProxyNode, on target: ClientTarget) -> Bool {
+        guard node.kind == .shadowsocks, let allowed = Self.shadowsocksCiphers[target] else { return true }
+        let cipher = (node.cipher ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // A missing cipher is written as aes-256-gcm, which every list has.
+        return cipher.isEmpty || allowed.contains(cipher)
     }
 
     /// Shadowsocks wrapped in ordinary TLS by the proxy itself, as opposed to
@@ -1968,8 +2004,9 @@ struct ConfigurationGenerator {
             values += ["    password: \(yaml(node.password ?? ""))", "    udp: true"]
             appendClashTransport(node, target: target, to: &values)
         case .hysteria2:
+            // Stash documents `auth`; mihomo and the rest read `password`.
             values += [
-                "    password: \(yaml(node.password ?? ""))",
+                "    \(target == .clash ? "auth" : "password"): \(yaml(node.password ?? ""))",
                 "    skip-cert-verify: \(node.skipCertificateVerification)",
                 "    udp: true"
             ]
@@ -1987,8 +2024,9 @@ struct ConfigurationGenerator {
             // what an airport that omitted them expects.
             values += [
                 "    auth-str: \(yaml(node.password ?? ""))",
-                "    up: \(node.upMbps ?? 50)",
-                "    down: \(node.downMbps ?? 100)",
+                // Stash names the bandwidths `up-speed` / `down-speed`.
+                "    \(target == .clash ? "up-speed" : "up"): \(node.upMbps ?? 50)",
+                "    \(target == .clash ? "down-speed" : "down"): \(node.downMbps ?? 100)",
                 "    skip-cert-verify: \(node.skipCertificateVerification)"
             ]
             if let sni = node.sni, !sni.isEmpty { values.append("    sni: \(yaml(sni))") }
@@ -2012,6 +2050,8 @@ struct ConfigurationGenerator {
             if let value = node.udpRelayMode, !value.isEmpty {
                 values.append("    udp-relay-mode: \(yaml(value))")
             }
+            // Stash reads TUIC as v4 unless told otherwise; Tower writes v5.
+            if target == .clash { values.append("    version: 5") }
             if let ports = node.portHopping, !ports.isEmpty { values.append("    ports: \(yaml(ports))") }
             appendClashALPN(node, to: &values)
             appendClashCertificateFingerprint(node, target: target, to: &values)
@@ -3056,6 +3096,9 @@ struct ConfigurationGenerator {
         values.append("over-tls=\(node.tls)")
         appendValue(node.sni, key: "tls-name", to: &values)
         if node.skipCertificateVerification { values.append("skip-cert-verify=true") }
+        // Loon leaves UDP off unless asked, so VMess and VLESS nodes silently
+        // sent no UDP through the proxy while SS and Trojan did.
+        values.append("udp=\(node.udpRelayEnabled ?? true)")
     }
 
     private func quanX(
@@ -3256,6 +3299,11 @@ struct ConfigurationGenerator {
         }
         if node.tls || [.trojan, .anytls].contains(node.kind) {
             appendQuanXTLS(node, to: &values)
+        }
+        // Quantumult X relays UDP only when a server line asks for it; these
+        // proxies relayed no UDP at all while Shadowsocks and AnyTLS did.
+        if [.vmess, .vless, .trojan, .socks5, .shadowsocksR].contains(node.kind) {
+            values.append("udp-relay=\(node.udpRelayEnabled ?? true)")
         }
         values.append("tag=\(confName(NodeRegionResolver.displayName(for: node)))")
         return "\(prefix)=\(values.joined(separator: ", "))"

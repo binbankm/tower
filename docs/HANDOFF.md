@@ -13,7 +13,12 @@
   - sing-box/Hiddify 的 `http` 传输在有 TLS 时是 HTTP/2、无 TLS 时是 HTTP/1.1，无法表达的另两种组合跳过。
   - Hysteria2 端口跳跃：以前只有 Clash YAML 保留，现补 Surge `port-hopping`、Loon `server-ports`、sing-box `server_ports`、Egern `port_hopping`。
   - 新增 `ProxyNode.vlessEncryption`：VLESS `encryption=mlkem768x25519plus…` 以前被当作 none 导出。现从链接和 Clash YAML 读取，仅导出到 mihomo 系目标（已实测连通），其他目标跳过。
-- 验证：`ProtocolAuditTests` 17 项；`testKaringYAMLPreservesRealityOnlyWhereItConnects`、`testNativeShadowsocksTLSIsSkippedWithoutLosingPlainSS` 按新规则更新。1204 项 XCTest（5 跳过、0 失败）与 106 项 Swift Testing 通过。实测：mihomo 目标 41/42、sing-box 目标 38/39 连通，唯一失败为 WireGuard（直连时握手超时，经代理路径可通，判断为本地运营商拦截）。
+- 第二轮（与最新 Sub-Store 逐节点字段对照后修复）：
+  - 新增按客户端的 SS 加密算法白名单（Surge 手册、Loon/Egern 文档；QuanX、Stash 参照 Sub-Store）。`2022-blake3-chacha20-poly1305` 以前照样导给 Surge、Loon、QuanX、Stash；Egern 不支持 aes-192-gcm、xchacha20-ietf-poly1305。算法缺失时仍按 aes-256-gcm 写出。
+  - Stash 按其文档改写字段：Hysteria2 用 `auth`，Hysteria 1 用 `up-speed` / `down-speed`，TUIC 写 `version: 5`（缺省按 v4 解析）。mihomo 系保持 `password` / `up` / `down`。
+  - Loon 的 VMess/VLESS 补 `udp=true`；QuanX 的 VMess、VLESS、Trojan、SOCKS5、SSR 补 `udp-relay`。两者缺省都不转发 UDP，以前只有 SS / Trojan（Loon）或 SS / AnyTLS（QuanX）会转发。
+  - 对照中确认没有问题的差异：Egern `local_ipv4` 可写纯 IP；QuanX VMess 方法名与 AEAD 缺省已由用户实机验证。WireGuard 在多个客户端失败，更可能是国内网络拦截握手（本机直连同样超时，经代理可通）。
+- 验证：`ProtocolAuditTests` 17 项；`testKaringYAMLPreservesRealityOnlyWhereItConnects`、`testNativeShadowsocksTLSIsSkippedWithoutLosingPlainSS` 按新规则更新。第二轮后 1208 项 XCTest（5 跳过、0 失败）与 106 项 Swift Testing 通过，`ProtocolAuditTests` 增至 21 项，`TUICHysteriaTests` 两项改为分别断言 mihomo 与 Stash 字段。实测：mihomo 目标 41/42、sing-box 目标 38/39 连通，唯一失败为 WireGuard（直连时握手超时，经代理路径可通，判断为本地运营商拦截）。
 - 未完成：图形客户端（Surge、Loon、Shadowrocket、QuanX、Stash、Egern、Karing、V2Box）尚未在 Mac mini 上实测；SSH 通道没有截屏与辅助功能权限。缺失协议评估见本轮报告。
 
 ## 未发布：刷新进度与提示统一到顶部，协议筛选行不再折行（2026-09-27）

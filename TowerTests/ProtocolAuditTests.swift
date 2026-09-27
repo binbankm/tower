@@ -144,6 +144,13 @@ final class ProtocolAuditTests: XCTestCase {
         XCTAssertFalse(content([hysteria2(obfs: "gecko")], .loon).contains("hy.example.com"))
     }
 
+    func testLoonVMessAndVLESSRelayUDP() {
+        let vless = ProxyNode(kind: .vless, name: "V", server: "v.example.com", port: 443, uuid: uuid,
+                              transport: "ws", tls: true, path: "/ws", rawURI: "")
+        let line = content([vless], .loon).split(separator: "\n").first { $0.contains("v.example.com") } ?? ""
+        XCTAssertTrue(line.contains("udp=true"), String(line))
+    }
+
     func testLoonTrojanOnlyWritesWebSocket() {
         // Loon reads a Trojan `transport=http` as WebSocket.
         let trojan = ProxyNode(kind: .trojan, name: "T", server: "t.example.com", port: 443, password: "pw",
@@ -213,6 +220,61 @@ final class ProtocolAuditTests: XCTestCase {
         node.path = "/plain"
         XCTAssertNil(node.webSocketEarlyData)
         XCTAssertEqual(node.exportablePathWithoutEarlyData, "/plain")
+    }
+
+    // MARK: - Stash field names
+
+    func testStashUsesItsOwnHysteriaAndTUICFields() {
+        let hy2 = hysteria2(obfs: nil)
+        let stash = content([hy2], .clash)
+        XCTAssertTrue(stash.contains("    auth: \"pw\""), stash)
+        XCTAssertTrue(content([hy2], .clashApple).contains("    password: \"pw\""))
+
+        let hy1 = ProxyNode(kind: .hysteria, name: "HY1", server: "h1.example.com", port: 443, password: "pw",
+                            tls: true, upMbps: 20, downMbps: 80, rawURI: "")
+        let stashHy1 = content([hy1], .clash)
+        XCTAssertTrue(stashHy1.contains("up-speed: 20") && stashHy1.contains("down-speed: 80"), stashHy1)
+        XCTAssertTrue(content([hy1], .clashApple).contains("    up: 20"))
+
+        let tuic = ProxyNode(kind: .tuic, name: "TUIC", server: "t.example.com", port: 443, password: "pw",
+                             uuid: uuid, tls: true, rawURI: "")
+        XCTAssertTrue(content([tuic], .clash).contains("    version: 5"))
+        // Stash's own YAML must still import back into Tower.
+        let parsed = parser.parse(data: Data(stash.utf8)).nodes.first { $0.kind == .hysteria2 }
+        XCTAssertEqual(parsed?.password, "pw")
+    }
+
+    // MARK: - Quantumult X UDP
+
+    func testQuantumultXRelaysUDPForEveryProxyThatCan() {
+        let trojan = ProxyNode(kind: .trojan, name: "T", server: "t.example.com", port: 443, password: "pw",
+                               tls: true, rawURI: "")
+        let vmess = ProxyNode(kind: .vmess, name: "V", server: "v.example.com", port: 443, uuid: uuid,
+                              transport: "ws", tls: true, path: "/ws", rawURI: "")
+        let text = content([trojan, vmess], .quanx)
+        for host in ["t.example.com", "v.example.com"] {
+            let line = text.split(separator: "\n").first { $0.contains(host) } ?? ""
+            XCTAssertTrue(line.contains("udp-relay=true"), String(line))
+        }
+    }
+
+    // MARK: - Shadowsocks ciphers
+
+    func testShadowsocks2022ChaChaOnlyGoesWhereItIsImplemented() {
+        let node = ProxyNode(kind: .shadowsocks, name: "SS2022", server: "ss.example.com", port: 443,
+                             cipher: "2022-blake3-chacha20-poly1305", password: "a2V5", rawURI: "")
+        // Surge's manual and Loon's docs list only the AES 2022 ciphers.
+        for target in [ClientTarget.surge, .surgeMac, .loon, .quanx, .clash] {
+            XCTAssertFalse(content([node], target).contains("ss.example.com"), target.name)
+        }
+        for target in [ClientTarget.egern, .clashApple, .singBox, .shadowrocket] {
+            XCTAssertTrue(content([node], target).contains("ss.example.com"), target.name)
+        }
+        // Egern's AEAD list has no AES-192.
+        let aes192 = ProxyNode(kind: .shadowsocks, name: "AES192", server: "a.example.com", port: 443,
+                               cipher: "aes-192-gcm", password: "pw", rawURI: "")
+        XCTAssertFalse(content([aes192], .egern).contains("a.example.com"))
+        XCTAssertTrue(content([aes192], .surge).contains("a.example.com"))
     }
 
     // MARK: - VLESS encryption
