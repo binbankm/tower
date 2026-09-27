@@ -55,7 +55,17 @@ final class AppModel {
     @ObservationIgnored private var countryResolutionNodeServers: [UUID: String]?
 
     var selectedPresetID: String = AppModel.defaultRuleSchemeID
-    var selectedTarget: ClientTarget = .surge
+    /// The client being viewed. A device-local preference: remembered in
+    /// UserDefaults, never saved to the snapshot or synced — browsing clients
+    /// used to write the whole state and schedule an iCloud sync.
+    var selectedTarget: ClientTarget = .surge {
+        didSet {
+            guard !isDemoMode, oldValue != selectedTarget else { return }
+            UserDefaults.standard.set(selectedTarget.rawValue, forKey: clientSelectionKey)
+        }
+    }
+    /// What snapshots carry for older builds: the value loaded, not the browsing.
+    @ObservationIgnored private var snapshotSelectedTarget: ClientTarget = .surge
     var isReplayingMacOnboarding = false
     var selectedTab: AppTab = .subscriptions
     var refreshingSourceIDs: Set<UUID> = []
@@ -199,6 +209,7 @@ final class AppModel {
     /// so a stuck iCloud download is not re-attempted after every save.
     private static let cloudFailureBackoff: TimeInterval = 600
     @ObservationIgnored private var lastCloudSyncFailureAt: Date?
+    @ObservationIgnored private var compactedLocalBackups = false
     /// Why and how each sync ran, never what was synced: no names, links or
     /// credentials. Visible in Console and in Instruments' os_log table.
     private static let cloudLog = Logger(subsystem: "com.jzb.tower", category: "CloudSync")
@@ -388,6 +399,14 @@ final class AppModel {
 
     /// Call where the rule caches were just emptied for the current state
     /// (load, applying a snapshot), so the next unrelated save keeps them.
+    private var clientSelectionKey: String {
+        "selectedClientTarget.\(clientPlatform == .mac ? "mac" : "phone").\(persistence.identifier)"
+    }
+
+    private var savedClientSelection: ClientTarget? {
+        UserDefaults.standard.string(forKey: clientSelectionKey).flatMap(ClientTarget.init(rawValue:))
+    }
+
     private func recordRuleInputs() {
         let presentation = currentRulePresentationInputs()
         rulePresentationInputs = presentation
@@ -531,6 +550,10 @@ final class AppModel {
         }
         // Nothing has been built from rules yet, so the caches follow these.
         recordRuleInputs()
+        // Without a snapshot to apply, still restore this device's last client.
+        if !isDemoMode, let saved = savedClientSelection, visibleClientTargets.contains(saved) {
+            selectedTarget = saved
+        }
 
 
         // Old builds stored this now-removed bundled preset id. Migrate it
@@ -2680,10 +2703,12 @@ final class AppModel {
         persist()
     }
 
+    /// Browsing clients is not an edit: the choice is not saved or synced on
+    /// its own, only when it first reveals a hidden client.
     func selectTarget(_ target: ClientTarget) {
-        visibleClientTargets.insert(target)
+        let revealed = visibleClientTargets.insert(target).inserted
         selectedTarget = target
-        persist()
+        if revealed { persist() }
     }
 
     func setClient(_ target: ClientTarget, isVisible: Bool) {
@@ -3313,6 +3338,7 @@ final class AppModel {
         CloudSyncPreference.setEnabled(false)
         lastCloudSyncAt = nil
         lastSyncedCloudSignature = nil
+        UserDefaults.standard.removeObject(forKey: clientSelectionKey)
 
         apply(
             AppSnapshot(
@@ -3418,6 +3444,13 @@ final class AppModel {
     func performForegroundOpenWork() async {
         guard !performedForegroundOpenWork else { return }
         performedForegroundOpenWork = true
+        if !compactedLocalBackups, !isDemoMode {
+            compactedLocalBackups = true
+            // Older builds kept ten uncompressed, often near-identical copies;
+            // reading them trims to the current limit and drops duplicates.
+            let persistence = persistence
+            Task.detached(priority: .utility) { _ = try? persistence.recoveryCopies() }
+        }
         // Checking on every return to the app downloaded and merged the whole
         // history even for a glance at another app. Local edits upload on
         // their own; this only picks up other devices' changes.
@@ -3491,6 +3524,9 @@ final class AppModel {
                 cloudContent = merged
             } else {
                 cloudContent = remote!
+                // Nothing new to publish; still trim versions beyond the limit
+                // (older builds kept ten, many differing only in status).
+                try? await cloudSync.compact()
             }
             guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
             let latestEditAt = lastLocalEditAt
@@ -3793,9 +3829,12 @@ final class AppModel {
             resolvedHostCountryCodes[$0.key] != nil
         }
         selectedPresetID = snapshot.selectedPresetID
-        selectedTarget = clientPlatform == .mac
+        let snapshotTarget = clientPlatform == .mac
             ? snapshot.macClientPreferences?.selectedTarget ?? .shadowrocket
             : snapshot.selectedTarget
+        snapshotSelectedTarget = snapshotTarget
+        // This device's own choice wins over whatever a snapshot carried.
+        selectedTarget = savedClientSelection ?? snapshotTarget
         if !visibleClientTargets.contains(selectedTarget),
            let fallback = visibleClientOrder.first {
             selectedTarget = fallback
@@ -3856,7 +3895,7 @@ final class AppModel {
         let active = ClientPlatformPreferences(
             order: clientOrder.map(\.rawValue), visibleTargets: visibleClientOrder.map(\.rawValue),
             lanSharingIndex: lanSharingOrderIndex, isLANSharingVisible: isLANSharingVisible,
-            selectedTarget: selectedTarget
+            selectedTarget: snapshotSelectedTarget
         )
         let phone = clientPlatform == .phone ? active : savedPhoneClientPreferences ?? ClientPlatformPreferences(
             order: ClientPlatform.phone.defaultOrder.map(\.rawValue),

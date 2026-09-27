@@ -108,8 +108,10 @@ final class CloudSnapshotMergeTests: XCTestCase {
         let current = try await store.download()
         XCTAssertEqual(current?.nodes[0].password, "fixture")
         let copies = try await store.recoveryCopies()
-        XCTAssertEqual(copies.count, 3)
+        // The original and the resolution are the same version; only one is kept.
+        XCTAssertEqual(copies.count, 2)
         XCTAssertTrue(copies.contains { $0.snapshot.nodes[0].password == "edited" })
+        XCTAssertTrue(copies.contains { $0.snapshot.nodes[0].password == "fixture" })
     }
 
     func testConcurrentJournalBranchesMergeWithoutLosingEitherWrite() throws {

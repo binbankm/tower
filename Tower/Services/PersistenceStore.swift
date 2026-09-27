@@ -19,6 +19,9 @@ struct PersistenceStore {
             .appendingPathComponent("state.json", isDirectory: false)
     }
 
+    /// Distinguishes stores for device-local preferences kept beside them.
+    var identifier: String { fileURL.path }
+
     func load() throws -> AppSnapshot? {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
         let data = try Data(contentsOf: fileURL)
@@ -35,7 +38,9 @@ struct PersistenceStore {
     /// it off the main actor and keep only the ordered write there.
     static func encoded(_ snapshot: AppSnapshot) throws -> Data {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        // Compact: indentation made a ~900 KB state file noticeably larger and
+        // slower to write, and nobody reads it by hand on a device.
+        encoder.outputFormatting = [.sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         return try encoder.encode(snapshot)
     }
@@ -59,18 +64,34 @@ struct PersistenceStore {
         try clearCloudBaseline()
         if FileManager.default.fileExists(atPath: backupDirectory.path) { try FileManager.default.removeItem(at: backupDirectory) }
     }
+    /// Recovery copies kept on this device (and versions kept in iCloud).
+    static let backupRetention = CloudSnapshotJournal.retentionLimit
+
     func backup(_ snapshot: AppSnapshot) throws {
         // A copy differing only in refresh status or caches is not a new version.
         guard try !recoveryCopies().contains(where: { CloudSnapshotMerge.sameContent($0.snapshot, snapshot) }) else { return }
-        try PersistenceStore(fileURL: backupDirectory.appendingPathComponent(UUID().uuidString + ".json")).save(snapshot)
+        // Backups are only read when restoring, so they are stored compressed:
+        // each was a full ~900 KB snapshot, eight of them over 7 MB on device.
+        let data = try (Self.encoded(snapshot) as NSData).compressed(using: .lzfse) as Data
+        let url = backupDirectory.appendingPathComponent(UUID().uuidString + ".json.lzfse")
+        try PersistenceStore(fileURL: url).write(data)
         _ = try recoveryCopies()
+    }
+
+    /// Reads a plain (older) or compressed backup.
+    private static func loadBackup(at url: URL) throws -> AppSnapshot? {
+        var data = try Data(contentsOf: url)
+        if url.pathExtension == "lzfse" { data = try (data as NSData).decompressed(using: .lzfse) as Data }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(AppSnapshot.self, from: data)
     }
     func recoveryCopies() throws -> [CloudRecoveryCopy] {
         guard FileManager.default.fileExists(atPath: backupDirectory.path) else { return [] }
         let copies = try FileManager.default.contentsOfDirectory(at: backupDirectory, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
+            .filter { ["json", "lzfse"].contains($0.pathExtension) }
             .compactMap { url in
-                try PersistenceStore(fileURL: url).load().map { CloudRecoveryCopy(id: "local-" + url.lastPathComponent, snapshot: $0) }
+                try Self.loadBackup(at: url).map { CloudRecoveryCopy(id: "local-" + url.lastPathComponent, snapshot: $0) }
             }
             .sorted {
                 let left = $0.snapshot.updatedAt ?? .distantPast, right = $1.snapshot.updatedAt ?? .distantPast

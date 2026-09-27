@@ -37,16 +37,32 @@ final class ClientOrderTests: XCTestCase {
             .client(.shadowrocket), .lanSharing, .client(.surgeMac), .client(.clashVerge), .client(.clashMac), .client(.flClash), .client(.mihomoParty)
         ])
         mac.moveExportDestination(.client(.clashMac), across: .client(.shadowrocket))
-        mac.setClient(.quanx, isVisible: false)
+        // Selecting alone is not saved; it travels with the next real edit.
         mac.selectTarget(.surgeMac)
+        mac.setClient(.quanx, isVisible: false)
         let macOrder = mac.exportDestinationOrder
         let restoredPhone = AppModel(persistence: store, arguments: [], clientPlatform: .phone)
         XCTAssertEqual(restoredPhone.exportDestinationOrder, phoneOrder)
         XCTAssertFalse(restoredPhone.visibleClientTargets.contains(.surgeMac))
         restoredPhone.selectTarget(.clash)
+        // A phone write must not overwrite the Mac's own selection.
+        restoredPhone.setConfigurationName("Phone write")
         let restoredMac = AppModel(persistence: store, arguments: [], clientPlatform: .mac)
         XCTAssertEqual(restoredMac.exportDestinationOrder, macOrder)
         XCTAssertEqual(restoredMac.selectedTarget, .surgeMac)
+    }
+
+    func testBrowsingClientsIsNotSaved() throws {
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("tower-browse-\(UUID()).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let store = PersistenceStore(fileURL: fileURL)
+        let model = AppModel(persistence: store, arguments: [], clientPlatform: .phone)
+        model.setConfigurationName("Saved")
+        let saved = try Data(contentsOf: fileURL)
+        let visible = try XCTUnwrap(model.visibleClientOrder.first { $0 != model.selectedTarget })
+        model.selectTarget(visible)
+        XCTAssertEqual(model.selectedTarget, visible)
+        XCTAssertEqual(try Data(contentsOf: fileURL), saved, "Switching between visible clients must not write")
     }
 
     func testFreshExportOrderMatchesProductDefault() {

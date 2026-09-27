@@ -20,7 +20,9 @@ struct CloudRecoveryCopy: Identifiable, Sendable {
 /// Immutable commits preserve concurrent writes across machines. File coordination
 /// alone only serializes this machine's iCloud cache, not every device's cache.
 struct CloudSnapshotJournal {
-    static let retentionLimit = 10
+    /// Versions kept: meaningful ones only now, so five covers the recent
+    /// history while halving what a full snapshot per version costs.
+    static let retentionLimit = 5
     struct Commit: Codable {
         let id: String
         let parents: [String]
@@ -91,11 +93,7 @@ struct CloudSnapshotJournal {
         for id in ids.dropFirst() {
             common.formIntersection(try ancestors(id, commits: commits, visiting: []))
             // A common ancestor closest to the heads is a shared baseline.
-            let closest = common.filter { candidate in
-                !common.contains { other in
-                    other != candidate && ((try? ancestors(other, commits: commits, visiting: []).contains(candidate)) ?? false)
-                }
-            }.sorted()
+            let closest = closestAncestors(in: common, commits: commits)
             guard closest.count <= 1 else { throw CloudSyncError.conflict }
             guard let remote = commits[id]?.snapshot else { throw CloudSyncError.conflict }
             let base = closest.first.flatMap { commits[$0]?.snapshot }
@@ -105,6 +103,27 @@ struct CloudSnapshotJournal {
             merged = try CloudSnapshotMerge.merge(local: merged, remote: remote, base: base)
         }
         return merged
+    }
+
+    private func closestAncestors(in common: Set<String>, commits: [String: Commit]) -> [String] {
+        common.filter { candidate in
+            !common.contains { other in
+                other != candidate && ((try? ancestors(other, commits: commits, visiting: []).contains(candidate)) ?? false)
+            }
+        }.sorted()
+    }
+
+    /// Baselines the current heads merge against; pruning them would turn a
+    /// mergeable pair of edits into a conflict.
+    private func mergeBases(of ids: [String], commits: [String: Commit]) -> Set<String> {
+        guard let first = ids.first, var common = try? ancestors(first, commits: commits, visiting: []) else { return [] }
+        var bases = Set<String>()
+        for id in ids.dropFirst() {
+            guard let other = try? ancestors(id, commits: commits, visiting: []) else { return bases }
+            common.formIntersection(other)
+            bases.formUnion(closestAncestors(in: common, commits: commits))
+        }
+        return bases
     }
 
     private func ancestors(_ id: String, commits: [String: Commit], visiting: Set<String>) throws -> Set<String> {
@@ -133,8 +152,18 @@ struct CloudSnapshotJournal {
         }
         // Unresolved concurrent branches must never be silently discarded.
         guard liveHeads.count <= Self.retentionLimit else { throw CloudSyncError.conflict }
-        var keep = liveHeads
-        for record in full where keep.count < Self.retentionLimit { keep.insert(record.id) }
+        var keep = liveHeads.union(mergeBases(of: heads(records), commits: records)
+            .filter { records[$0]?.snapshot != nil })
+        // Among older versions keep only ones that differ in what the user
+        // decided; copies that differ only in refresh status are one version.
+        var keptSignatures = Set(records.values.filter { keep.contains($0.id) }
+            .compactMap { $0.snapshot.flatMap(CloudSnapshotMerge.signature) })
+        for record in full where keep.count < Self.retentionLimit && !keep.contains(record.id) {
+            if let snapshot = record.snapshot, let signature = CloudSnapshotMerge.signature(snapshot) {
+                guard keptSignatures.insert(signature).inserted else { continue }
+            }
+            keep.insert(record.id)
+        }
         for record in full where !keep.contains(record.id) {
             try write(Commit(id: record.id, parents: record.parents, snapshot: nil), extension: "pruned")
         }

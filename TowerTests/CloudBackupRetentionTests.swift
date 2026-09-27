@@ -31,27 +31,31 @@ final class CloudBackupRetentionTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: backups.path).count, 2)
     }
 
-    func testLocalBackupsKeepNewestTen() throws {
+    func testLocalBackupsKeepNewestFive() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         let store = PersistenceStore(fileURL: dir.appendingPathComponent("state.json"))
         for i in 0..<14 { try store.backup(snapshot(i)) }
         let copies = try store.recoveryCopies()
-        XCTAssertEqual(copies.count, 10)
-        XCTAssertEqual(Set(copies.map { $0.snapshot.configurationName }), Set((4..<14).map { "Version \($0)" }))
+        XCTAssertEqual(copies.count, CloudSnapshotJournal.retentionLimit)
+        XCTAssertEqual(Set(copies.map { $0.snapshot.configurationName }), Set((9..<14).map { "Version \($0)" }))
+        // New backups are stored compressed.
+        let files = try FileManager.default.contentsOfDirectory(
+            atPath: dir.appendingPathComponent("state.json-backups").path)
+        XCTAssertTrue(files.allSatisfy { $0.hasSuffix(".json.lzfse") })
     }
-    func testCloudKeepsTenSnapshotsAndStillReadsLatest() async throws {
+    func testCloudKeepsFiveSnapshotsAndStillReadsLatest() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         let store = CloudSyncStore(fileURL: dir.appendingPathComponent("state.json"))
         for i in 0..<14 { try await store.upload(snapshot(i)) }
         let copies = try await store.recoveryCopies()
-        XCTAssertEqual(copies.count, 10)
-        XCTAssertEqual(Set(copies.map { $0.snapshot.configurationName }), Set((4..<14).map { "Version \($0)" }))
+        XCTAssertEqual(copies.count, CloudSnapshotJournal.retentionLimit)
+        XCTAssertEqual(Set(copies.map { $0.snapshot.configurationName }), Set((9..<14).map { "Version \($0)" }))
         let current = try await store.download()
         XCTAssertEqual(current?.configurationName, "Version 13")
         let files = try FileManager.default.contentsOfDirectory(at: dir.appendingPathComponent("state-versions-v2"), includingPropertiesForKeys: nil)
-        XCTAssertEqual(files.filter { $0.pathExtension == "json" }.count, 10)
+        XCTAssertEqual(files.filter { $0.pathExtension == "json" }.count, CloudSnapshotJournal.retentionLimit)
     }
     func testDelayedBranchWithPrunedBaseFailsClosed() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -72,7 +76,7 @@ final class CloudBackupRetentionTests: XCTestCase {
         XCTAssertThrowsError(try journal.snapshot(journal.commits())) { error in
             XCTAssertEqual(error as? CloudSyncError, .conflict)
         }
-        XCTAssertEqual(try journal.commits().values.filter { $0.snapshot != nil }.count, 10)
+        XCTAssertEqual(try journal.commits().values.filter { $0.snapshot != nil }.count, CloudSnapshotJournal.retentionLimit)
     }
     func testRecentConcurrentBranchesCanStillMergeAfterPruning() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

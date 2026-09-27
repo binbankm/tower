@@ -6,11 +6,14 @@ protocol CloudSnapshotSyncing: Sendable {
     func upload(_ snapshot: AppSnapshot) async throws
     func removeRemoteSnapshot() async throws
     func commit(_ snapshot: AppSnapshot, replacing expected: AppSnapshot?) async throws
+    func compact() async throws
     func recoveryCopies() async throws -> [CloudRecoveryCopy]
     func resolveConflict(with snapshot: AppSnapshot) async throws
 }
 
 extension CloudSnapshotSyncing {
+    /// Trims old versions without writing a new one.
+    func compact() async throws {}
     func recoveryCopies() async throws -> [CloudRecoveryCopy] { [] }
     func resolveConflict(with snapshot: AppSnapshot) async throws { try await upload(snapshot) }
 }
@@ -97,6 +100,13 @@ actor CloudSyncStore: CloudSnapshotSyncing {
     func upload(_ snapshot: AppSnapshot) async throws {
         let current = try download()
         try await commit(snapshot, replacing: current)
+    }
+
+    func compact() async throws {
+        try Task.checkCancellation()
+        let journal = try journal()
+        guard !(try journal.commits()).isEmpty else { return }
+        try journal.prune()
     }
 
     func commit(_ snapshot: AppSnapshot, replacing expected: AppSnapshot?) async throws {
