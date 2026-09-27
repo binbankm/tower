@@ -196,7 +196,7 @@ final class AuditFlowInteractionTests: XCTestCase {
         add(shot)
     }
 
-    func testSubscriptionRefreshShowsFloatingProgressAndCanCancel() {
+    func testSubscriptionRefreshShowsTopStatusAndCanCancel() {
         let app = XCUIApplication()
         app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString
         app.launchEnvironment["TOWER_REFRESH_UI_TEST"] = "1"
@@ -212,12 +212,15 @@ final class AuditFlowInteractionTests: XCTestCase {
         XCTAssertTrue(capsule.waitForExistence(timeout: 5))
         let window = app.windows.firstMatch.frame
         XCTAssertEqual(capsule.frame.midX, window.midX, accuracy: 8)
-        XCTAssertGreaterThan(capsule.frame.midY, window.midY, "Progress floats near the bottom, not over the page")
-        XCTAssertLessThan(capsule.frame.maxY, app.tabBars.firstMatch.frame.minY + 1, "It sits above the tab bar")
-        // The page stays usable while refreshing.
-        XCTAssertTrue(app.buttons["add-source-button"].isHittable)
+        XCTAssertLessThan(capsule.frame.midY, window.midY, "Progress shares the top slot with every other status message")
+        // It fits between the navigation buttons, and the page stays usable.
+        for id in ["add-source-button", "source-management-button"] {
+            let button = app.buttons[id]
+            XCTAssertTrue(button.isHittable)
+            XCTAssertFalse(capsule.frame.intersects(button.frame), "\(id) must stay uncovered")
+        }
         let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "subscription-refresh-floating"; shot.lifetime = .keepAlways; add(shot)
+        shot.name = "subscription-refresh-top-status"; shot.lifetime = .keepAlways; add(shot)
         app.buttons["subscription-refresh-progress-cancel"].tap()
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: capsule)
         waitForExpectations(timeout: 3)
@@ -226,7 +229,7 @@ final class AuditFlowInteractionTests: XCTestCase {
         start.press(forDuration: 0.05, thenDragTo: end)
         XCTAssertTrue(capsule.waitForExistence(timeout: 5))
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: capsule)
-        waitForExpectations(timeout: 15)
+        waitForExpectations(timeout: 25)
         XCTAssertTrue(app.buttons["add-source-button"].isEnabled)
         XCTAssertFalse(app.staticTexts["更新失败"].exists)
         app.terminate()

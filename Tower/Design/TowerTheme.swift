@@ -237,16 +237,70 @@ struct MetricPill: View {
     }
 }
 
-struct ToastView: View {
+/// The one floating surface for app-wide feedback: brief messages and the
+/// batch subscription refresh share it, so status and its result appear in
+/// the same place and the refresh can turn into its own completion message.
+/// It hugs its content, which keeps a short status clear of the navigation
+/// bar's buttons on either side.
+struct StatusSurface: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var contrast
+    var tone: ToastTone = .neutral
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemBackground))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 17, style: .continuous)
+                            .fill(accentColor.opacity(tone == .success ? 0.14 : 0.05))
+                    }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    .stroke(accentColor.opacity(contrast == .increased ? 0.8 : tone == .success ? 0.55 : 0.24), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: accentColor.opacity(tone == .success ? 0.2 : 0.1), radius: 14, y: 7)
+            .frame(maxWidth: 520)
+    }
+
+    private var accentColor: Color {
+        tone == .success ? .green : .accentColor
+    }
+}
+
+extension View {
+    func statusSurface(tone: ToastTone = .neutral) -> some View {
+        modifier(StatusSurface(tone: tone))
+    }
+}
+
+/// The badge every status leads with, so a message and a running task read
+/// as the same kind of thing.
+struct StatusBadge<Content: View>: View {
+    var tone: ToastTone = .neutral
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        content
+            .foregroundStyle(.white)
+            .frame(width: 29, height: 29)
+            .background((tone == .success ? Color.green : Color.accentColor).gradient, in: Circle())
+    }
+}
+
+struct ToastContent: View {
     let toast: ToastMessage
 
     var body: some View {
         HStack(spacing: 11) {
-            Image(systemName: toast.symbol)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 29, height: 29)
-                .background(accentColor.gradient, in: Circle())
+            StatusBadge(tone: toast.tone) {
+                Image(systemName: toast.symbol)
+                    .font(.subheadline.weight(.bold))
+            }
 
             Text(toast.text)
                 .font(.subheadline.weight(.semibold))
@@ -254,30 +308,9 @@ struct ToastView: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: 520, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: 17, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 17, style: .continuous)
-                        .fill(accentColor.opacity(toast.tone == .success ? 0.14 : 0.05))
-                }
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 17, style: .continuous)
-                .stroke(accentColor.opacity(toast.tone == .success ? 0.55 : 0.24), lineWidth: 1)
-        }
-        .shadow(color: accentColor.opacity(toast.tone == .success ? 0.2 : 0.1), radius: 14, y: 7)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("tower-toast")
         .sensoryFeedback(toast.tone == .success ? .success : .selection, trigger: toast.id)
-        .padding(.horizontal)
-    }
-
-    private var accentColor: Color {
-        toast.tone == .success ? .green : .accentColor
     }
 }
 

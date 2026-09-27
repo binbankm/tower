@@ -1,5 +1,11 @@
 # 当前交接
 
+## 未发布：刷新进度与提示统一到顶部，协议筛选行不再折行（2026-09-27）
+
+- 批量刷新订阅的进度原来显示在底部标签栏上方，而完成提示（「17 个订阅已全部更新」）和规则更新提示显示在顶部，两者位置不一致。现在进度改由根层的 `ToastOverlay` 显示（`towerToast(showsRefreshProgress: true)`），与所有提示共用同一个 `StatusSurface` 外框和 `StatusBadge`。进度徽标是确定进度的圆环；刷新完成时，同一个外框原地换成完成提示，不再先消失再出现。外框按内容宽度显示，停在「管理」和「+」之间，不挡导航按钮。只在订阅页显示；单个订阅刷新时仍由卡片上的按钮转圈。移除了 `subscriptionRefreshProgress()` 修饰符和底部的胶囊进度条。UI 测试 `testSubscriptionRefreshShowsTopStatusAndCanCancel` 检查进度位于顶部、不遮挡两个导航按钮，并可以取消；测试用抓取延迟由 8 秒改为 15 秒。
+- 协议筛选：已选协议列表放不下时，不再折成三行夹在分隔线之间，而是在同一行显示「已选 x/y 种」（新增文案，15 种语言已人工翻译）。只有特大字号才上下排列，并留出上下间距。保留既有决定：数值使用主文字色，不显示右箭头。另外修正了「全部协议」的翻译：原来的机器翻译是 “All agreements”，已按“协议＝protocol”改正全部语言。
+- `testFilterAtAccessibilityTextSize` 在改动前的代码上同样失败，与本次改动无关，尚未处理。
+
 ## 未发布：客户端选择只存本机，压缩本机和 iCloud 存储（2026-09-27）
 
 - 客户端选择：浏览导出页时切换客户端，不再写入 `state.json`，也不触发 iCloud 同步。选择只保存在 `UserDefaults` 里，键名按平台和存储路径区分（`selectedClientTarget.phone|mac.<路径>`）；启动或套用快照时优先读取本机记录。快照中的 `selectedTarget` 保留旧值，旧版本读取时不会出错。只有在选中一个之前隐藏的客户端时，才需要保存客户端列表。新增 `testBrowsingClientsIsNotSaved`。

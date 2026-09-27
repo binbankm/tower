@@ -108,7 +108,7 @@ struct ExportView: View {
                             }
                             if ProtocolFilterPolicy.isVisible(compatibleKindCount: model.filterableKinds(for: model.selectedTarget).count) {
                                 Button { isProtocolFilterPresented = true } label: {
-                                    ExportOptionRow(title: "协议筛选", value: protocolSelectionSummary, symbol: "line.3.horizontal.decrease", showsChevron: false)
+                                    ExportOptionRow(title: "协议筛选", value: protocolSelectionSummary, compactValue: protocolSelectionCount, symbol: "line.3.horizontal.decrease", showsChevron: false)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("open-protocol-filter")
@@ -301,6 +301,15 @@ struct ExportView: View {
         return selected.map { $0.kind.title }.joined(separator: " · ")
     }
 
+    /// When the chosen protocols do not fit beside the title, the row shows
+    /// how many are chosen; the full list is one tap away in the filter.
+    private var protocolSelectionCount: String? {
+        let kinds = model.filterableKinds(for: model.selectedTarget)
+        let selected = kinds.filter { !model.isExcluded($0.kind, for: model.selectedTarget) }
+        guard !selected.isEmpty, selected.count < kinds.count else { return nil }
+        return String(localized: "已选 \(selected.count)/\(kinds.count) 种")
+    }
+
     private var selectedDestinationID: String {
         isLANSharingSelected ? "lan" : model.selectedTarget.rawValue
     }
@@ -412,22 +421,26 @@ struct ExportView: View {
 private struct ExportOptionRow: View {
     let title: LocalizedStringKey
     let value: String
+    /// A shorter value for when `value` does not fit on the title's line. A
+    /// wrapped list of protocol names read as a paragraph wedged between two
+    /// dividers, with no clear end to the row.
+    var compactValue: String? = nil
     var symbol: String? = nil
     var showsChevron = true
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             if let symbol { ExportOptionIcon(symbol: symbol) }
             ViewThatFits(in: .horizontal) {
-                HStack {
-                    Text(title).foregroundStyle(.primary).fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 16)
-                    Text(value).font(.subheadline).foregroundStyle(.primary)
-                }
+                singleLine(value)
+                if let compactValue { singleLine(compactValue) }
+                // Only very large text sizes get here: stack, with room to breathe.
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title).foregroundStyle(.primary)
-                    Text(value).font(.subheadline).foregroundStyle(.primary)
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                    Text(compactValue ?? value).font(.subheadline).foregroundStyle(.primary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
             }
             if showsChevron {
                 Image(systemName: "chevron.right")
@@ -437,6 +450,16 @@ private struct ExportOptionRow: View {
         .font(.body)
         .frame(minHeight: 44)
         .contentShape(Rectangle())
+    }
+
+    private func singleLine(_ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title).foregroundStyle(.primary).fixedSize(horizontal: true, vertical: false)
+            Spacer(minLength: 16)
+            Text(text).font(.subheadline).foregroundStyle(.primary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
     }
 }
 

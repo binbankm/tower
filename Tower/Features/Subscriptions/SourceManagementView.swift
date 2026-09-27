@@ -90,7 +90,6 @@ struct SourceManagementView: View {
         .onChange(of: model.localNodes.map(\.id)) { _, nodeIDs in
             selectedLocalNodeIDs.formIntersection(nodeIDs)
         }
-        .subscriptionRefreshProgress()
         .subscriptionRefreshReport()
     }
 

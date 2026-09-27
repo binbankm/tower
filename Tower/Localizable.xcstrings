@@ -17604,79 +17604,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "جميع الاتفاقيات"
+            "value": "جميع البروتوكولات"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alle Vereinbarungen"
+            "value": "Alle Protokolle"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "All agreements"
+            "value": "All protocols"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todos los acuerdos"
+            "value": "Todos los protocolos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tous les accords"
+            "value": "Tous les protocoles"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Semua perjanjian"
+            "value": "Semua protokol"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "すべての契約"
+            "value": "すべてのプロトコル"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "모든 계약"
+            "value": "모든 프로토콜"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todos os acordos"
+            "value": "Todos os protocolos"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Все соглашения"
+            "value": "Все протоколы"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "ข้อตกลงทั้งหมด"
+            "value": "ทุกโปรโตคอล"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tüm anlaşmalar"
+            "value": "Tüm protokoller"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tất cả các thỏa thuận"
+            "value": "Tất cả giao thức"
           }
         },
         "zh-Hans": {
@@ -17688,7 +17688,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "全部協議"
+            "value": "全部協定"
           }
         }
       }
@@ -97420,6 +97420,100 @@
           "stringUnit": {
             "state": "translated",
             "value": "輕點查看節點詳情"
+          }
+        }
+      }
+    },
+    "已选 %lld/%lld 种": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تحديد %1$lld من %2$lld"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld von %2$lld ausgewählt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld selected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld seleccionados"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld sur %2$lld sélectionnés"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld dari %2$lld dipilih"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld/%2$lld 件を選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld/%2$lld개 선택됨"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld selecionados"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрано %1$lld из %2$lld"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เลือก %1$lld จาก %2$lld"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld içinden %1$lld seçildi"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chọn %1$lld/%2$lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已选 %1$lld/%2$lld 种"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已選 %1$lld/%2$lld 種"
           }
         }
       }

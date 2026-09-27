@@ -4259,7 +4259,8 @@ struct SubscriptionRefreshReport: Identifiable, Equatable, Sendable {
 private struct RefreshPresentationTestFetcher: SubscriptionFetching {
     let nodes: [ProxyNode]
     func fetch(_ source: SubscriptionSource) async throws -> ImportResult {
-        try await Task.sleep(for: .seconds(8))
+        // Long enough for the UI test to inspect the status before it ends.
+        try await Task.sleep(for: .seconds(15))
         let refreshed = nodes.filter { $0.sourceID != nil }.map { node in
             var node = node
             node.sourceID = source.id
