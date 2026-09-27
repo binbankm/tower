@@ -131,11 +131,12 @@ struct NodeMapOverview: View, Equatable {
                 selectedRegionCode = isSelecting ? id : nil
             }
             guard isSelecting, let revealRegionNodes else { return }
-            // Let the inserted list reach layout before asking the page to
-            // reveal it; the scroll is minimal and does nothing when the
-            // heading and first rows are already visible.
+            // Reveal after the map has recentred, not during it: moving the
+            // whole page under a moving map doubled the work of those frames.
+            // The scroll is minimal and does nothing when the heading and
+            // first rows are already visible.
             Task { @MainActor in
-                await Task.yield()
+                try? await Task.sleep(for: .milliseconds(reduceMotion ? 0 : 360))
                 guard selectedRegionCode == id else { return }
                 withAnimation(reduceMotion ? nil : TowerMotion.disclosure(reduceMotion: false)) {
                     revealRegionNodes()
@@ -292,10 +293,13 @@ struct NodeMapOverview: View, Equatable {
         canShowUnavailable: Bool
     ) -> some View {
         if let cluster = selectedCluster {
+            // One list whose rows change in place when another country is
+            // picked. Keying the list by country made a switch fade the old
+            // list out over the new one — two lists rendered and every row
+            // rebuilt inside the recentring spring.
             SelectedRegionNodes(cluster: cluster) {
                 withAnimation(TowerMotion.disclosure(reduceMotion: reduceMotion)) { selectedRegionCode = nil }
             }
-            .id(cluster.id)
         } else if !TowerPlatform.isMac && canShowUnavailable && clusters.isEmpty && !nodes.isEmpty {
             ContentUnavailableView(
                 "还不能定位节点",
@@ -358,6 +362,9 @@ private struct SelectedRegionNodes: View {
                         Divider()
                             .padding(.leading, 42)
                     }
+                    // Swapping countries replaces rows outright; only the
+                    // list's height animates, never two sets of rows at once.
+                    .transition(.identity)
             }
         }
         .padding(.top, 2)

@@ -975,6 +975,35 @@ final class WorldDotMapTests: XCTestCase {
         XCTAssertNil(WorldDotPaint(grid: grid, markers: [markers[1]]).selectionBounds(in: layout))
     }
 
+    func testBitmapRasterMatchesMapSizeAtItsDensity() throws {
+        let grid = WorldDotGrid.shared
+        try XCTSkipIf(grid.isEmpty)
+        let request = WorldDotRasterizer.Request(
+            size: CGSize(width: 360, height: 240), scale: 1.8, displayScale: 3,
+            coveredCells: [], latencyBands: [:], dark: false
+        )
+        let image = try XCTUnwrap(WorldDotRasterizer.render(request, grid: grid))
+        XCTAssertEqual(image.width, 1_944)
+        XCTAssertEqual(image.height, 1_296)
+        // Too large for a texture: refuse rather than allocate.
+        XCTAssertNil(WorldDotRasterizer.render(WorldDotRasterizer.Request(
+            size: CGSize(width: 4_000, height: 3_000), scale: 4.2, displayScale: 3,
+            coveredCells: [], latencyBands: [:], dark: false
+        ), grid: grid))
+    }
+
+    func testBitmapColoursMatchCanvasPaint() {
+        XCTAssertTrue(WorldDotPaint.rgba(forKey: -1, dark: false) == (0, 0, 0, 0.17))
+        XCTAssertTrue(WorldDotPaint.rgba(forKey: -1, dark: true) == (1, 1, 1, 0.22))
+        let key = WorldDotPaint.key(band: .fast, selected: false)
+        let rgb = MapLatencyBand.fast.rgb(selected: false, dark: false)
+        let rgba = WorldDotPaint.rgba(forKey: key, dark: false)
+        XCTAssertEqual(Double(rgba.0), rgb.0, accuracy: 0.0001)
+        XCTAssertEqual(Double(rgba.1), rgb.1, accuracy: 0.0001)
+        XCTAssertEqual(Double(rgba.2), rgb.2, accuracy: 0.0001)
+        XCTAssertEqual(rgba.3, 1)
+    }
+
     func testTestingProgressDoesNotResizeCountryLabels() {
         var marker = WorldDotMarker(id: "JP", title: "日本", latitude: 36, longitude: 138, weight: 1, isSelected: false)
         let frame = WorldDotMapView.LabelPlanner.estimatedFrame(for: marker, at: .zero)

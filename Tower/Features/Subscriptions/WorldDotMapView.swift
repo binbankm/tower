@@ -255,6 +255,12 @@ enum MapLatencyBand: Int, CaseIterable, Sendable {
     }
 
     func color(selected: Bool = false, dark: Bool = false) -> Color {
+        let rgb = rgb(selected: selected, dark: dark)
+        return Color(red: rgb.0, green: rgb.1, blue: rgb.2)
+    }
+
+    /// Shared by the SwiftUI colours and the off-main bitmap raster.
+    func rgb(selected: Bool = false, dark: Bool = false) -> (Double, Double, Double) {
         let rgb: (Double, Double, Double)
         switch self {
         case .untested: rgb = (0.48, 0.59, 0.69)
@@ -268,7 +274,7 @@ enum MapLatencyBand: Int, CaseIterable, Sendable {
             let base = dark ? value + (1 - value) * 0.24 : value
             return selected ? base * (dark ? 0.82 : 0.68) : base
         }
-        return Color(red: component(rgb.0), green: component(rgb.1), blue: component(rgb.2))
+        return (component(rgb.0), component(rgb.1), component(rgb.2))
     }
 }
 
@@ -340,6 +346,9 @@ struct WorldDotMapView: View {
     /// Labels frozen by a drag or pinch (not by recentring) are laid out
     /// again once the map settles.
     @State private var labelsFrozenForGesture = false
+    /// The world raster as a bitmap, drawn off the main thread for `raster`.
+    @State private var rasterImage: RasterImage?
+    @Environment(\.displayScale) private var displayScale
 
     init(markers: [WorldDotMarker], initialPaint: WorldDotPaint = WorldDotPaint(), onSelect: @escaping (String) -> Void) {
         self.markers = markers
@@ -386,16 +395,30 @@ struct WorldDotMapView: View {
                     // release — and it is redrawn at a new density only after
                     // motion stops. Rasterize at that density, normalize back
                     // to map coordinates, then apply the presentation transform.
-                    WorldDotDetailCanvas(
-                        grid: grid, layout: layout, scale: raster.scale,
-                        coveredCells: raster.coveredCells,
-                        latencyBands: raster.latencyBands, colorScheme: colorScheme
-                    )
-                    .equatable()
-                    .frame(width: geometry.size.width * raster.scale, height: geometry.size.height * raster.scale)
-                    .drawingGroup()
-                    .scaleEffect(1 / raster.scale, anchor: .topLeading)
-                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+                    if let rasterImage {
+                        // A bitmap, not a Canvas: SwiftUI re-ran a Canvas's
+                        // drawing closure while an ancestor's zoom animated —
+                        // four full-world redraws in one zoom-out. An image is
+                        // only resampled by the GPU. A stale image (drawn for
+                        // another zoom) stays up, slightly soft, until the
+                        // next one is ready.
+                        Image(decorative: rasterImage.image, scale: 1)
+                            .resizable()
+                            .interpolation(.medium)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                    } else {
+                        // Only until the first bitmap arrives.
+                        WorldDotDetailCanvas(
+                            grid: grid, layout: layout, scale: raster.scale,
+                            coveredCells: raster.coveredCells,
+                            latencyBands: raster.latencyBands, colorScheme: colorScheme
+                        )
+                        .equatable()
+                        .frame(width: geometry.size.width * raster.scale, height: geometry.size.height * raster.scale)
+                        .drawingGroup()
+                        .scaleEffect(1 / raster.scale, anchor: .topLeading)
+                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+                    }
 
                     // Selection is its own small layer over just the selected
                     // country, so tapping a country never re-rasterizes the
@@ -482,6 +505,29 @@ struct WorldDotMapView: View {
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             .contentShape(Rectangle())
             .clipped()
+            .task(id: WorldDotRasterizer.Request(
+                size: geometry.size, scale: raster.scale, displayScale: displayScale,
+                coveredCells: raster.coveredCells, latencyBands: raster.latencyBands,
+                dark: colorScheme == .dark
+            )) {
+                let request = WorldDotRasterizer.Request(
+                    size: geometry.size, scale: raster.scale, displayScale: displayScale,
+                    coveredCells: raster.coveredCells, latencyBands: raster.latencyBands,
+                    dark: colorScheme == .dark
+                )
+                guard rasterImage?.request != request else { return }
+                let grid = grid
+                let worker = Task.detached(priority: .userInitiated) {
+                    WorldDotRasterizer.render(request, grid: grid)
+                }
+                let image = await withTaskCancellationHandler { await worker.value } onCancel: { worker.cancel() }
+                guard !Task.isCancelled, let image else { return }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    rasterImage = RasterImage(image: image, request: request)
+                }
+            }
             .simultaneousGesture(magnifyGesture(in: geometry.size))
             .simultaneousGesture(
                 mapTapGesture(
@@ -1062,6 +1108,11 @@ struct WorldDotMapView: View {
             case .countries, .detail: nil
             }
         }
+    }
+
+    struct RasterImage {
+        let image: CGImage
+        let request: WorldDotRasterizer.Request
     }
 
     /// Inputs of the cached world raster; see `settleRasterIfIdle`.
@@ -1683,6 +1734,16 @@ struct WorldDotPaint {
         guard let band else { return -1 }
         return band.rawValue * 2 + (selected ? 1 : 0)
     }
+    /// The concrete colour of a paint key, for the bitmap raster. Matches
+    /// `fill`: uncovered dots are the primary label colour at low opacity.
+    static func rgba(forKey key: Int, dark: Bool) -> (CGFloat, CGFloat, CGFloat, CGFloat) {
+        guard key >= 0, let band = MapLatencyBand(rawValue: key / 2) else {
+            return dark ? (1, 1, 1, 0.22) : (0, 0, 0, 0.17)
+        }
+        let rgb = band.rgb(selected: key % 2 == 1, dark: dark)
+        return (CGFloat(rgb.0), CGFloat(rgb.1), CGFloat(rgb.2), 1)
+    }
+
     static func fill(_ paths: [Int: Path], in context: inout GraphicsContext, colorScheme: ColorScheme) {
         for (key, path) in paths {
             let color = key < 0 ? WorldDotCellStyle.uncovered.color(in: colorScheme)
@@ -1798,6 +1859,69 @@ private struct WorldDotDetailCanvas: View, Equatable {
         }
     }
 
+}
+
+/// Draws the world raster into a bitmap off the main thread, with exactly the
+/// geometry and colours of `WorldDotDetailCanvas`.
+enum WorldDotRasterizer {
+    struct Request: Equatable, Sendable {
+        let size: CGSize
+        /// The map zoom the dots are laid out for.
+        let scale: CGFloat
+        let displayScale: CGFloat
+        let coveredCells: Set<Int>
+        let latencyBands: [Int: MapLatencyBand]
+        let dark: Bool
+    }
+
+    static func render(_ request: Request, grid: WorldDotGrid) -> CGImage? {
+        let layout = WorldDotMapView.Layout(size: request.size, grid: grid)
+        guard !grid.isEmpty, layout.cell > 0, request.scale > 0, request.displayScale > 0 else { return nil }
+        let pixelsPerPoint = request.scale * request.displayScale
+        // A small tolerance keeps float noise (1944.0000000000002) from adding
+        // a pixel column.
+        let width = Int((request.size.width * pixelsPerPoint - 0.001).rounded(.up))
+        let height = Int((request.size.height * pixelsPerPoint - 0.001).rounded(.up))
+        guard width > 0, height > 0, width <= 16_384, height <= 16_384,
+              let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                  space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else { return nil }
+        // Top-left origin, in raster points (map points × zoom), as the Canvas.
+        context.translateBy(x: 0, y: CGFloat(height))
+        context.scaleBy(x: request.displayScale, y: -request.displayScale)
+
+        let scale = request.scale
+        let screenCell = layout.cell * scale
+        let subdivision = WorldDotMapView.DetailRenderer.subdivision(forScreenCell: screenCell)
+        let offsets = WorldDotMapView.DetailRenderer.offsets(forScreenCell: screenCell)
+        var paths: [Int: CGMutablePath] = [:]
+        for (position, index) in grid.landCells.enumerated() {
+            if position % 1_024 == 0, Task.isCancelled { return nil }
+            let point = layout.center(column: index % grid.columns, row: index / grid.columns)
+            let base = CGPoint(x: point.x * scale, y: point.y * scale)
+            let style: WorldDotCellStyle = request.coveredCells.contains(index) ? .covered : .uncovered
+            let diameter = style.detailDiameter(cell: layout.cell, scale: scale, subdivision: subdivision)
+            let key = WorldDotPaint.key(band: request.latencyBands[index], selected: false)
+            let path = paths[key] ?? CGMutablePath()
+            for offset in offsets {
+                path.addEllipse(in: CGRect(
+                    x: base.x + offset.width - diameter / 2,
+                    y: base.y + offset.height - diameter / 2,
+                    width: diameter, height: diameter
+                ))
+            }
+            paths[key] = path
+        }
+        for (key, path) in paths {
+            let rgba = WorldDotPaint.rgba(forKey: key, dark: request.dark)
+            context.setFillColor(red: rgba.0, green: rgba.1, blue: rgba.2, alpha: rgba.3)
+            context.addPath(path)
+            context.fillPath()
+        }
+        return context.makeImage()
+    }
 }
 
 /// Only the selected country's dots, in the selected style. Its larger, darker
