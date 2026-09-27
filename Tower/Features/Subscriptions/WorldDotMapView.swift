@@ -333,11 +333,23 @@ struct WorldDotMapView: View {
     private let grid = WorldDotGrid.shared
     @State private var paint = WorldDotPaint()
     @State private var preparedPaintInputs: [WorldDotPaint.Input]?
+    /// What the cached world raster was last drawn with. It follows `viewport`
+    /// and `paint` only while nothing moves (`settleRasterIfIdle`), so drags,
+    /// pinches and recentring only transform pixels that already exist.
+    @State private var raster: RasterInputs
+    /// Labels frozen by a drag or pinch (not by recentring) are laid out
+    /// again once the map settles.
+    @State private var labelsFrozenForGesture = false
 
     init(markers: [WorldDotMarker], initialPaint: WorldDotPaint = WorldDotPaint(), onSelect: @escaping (String) -> Void) {
         self.markers = markers
         self.onSelect = onSelect
         _paint = State(initialValue: initialPaint)
+        _raster = State(initialValue: RasterInputs(
+            scale: Viewport.minimumScale,
+            coveredCells: initialPaint.coveredCells,
+            latencyBands: initialPaint.latencyBands
+        ))
     }
 
     var body: some View {
@@ -368,31 +380,38 @@ struct WorldDotMapView: View {
             )
             ZStack(alignment: .topLeading) {
                 ZStack(alignment: .topLeading) {
-                    if RenderPlanner.usesDetailCanvas(
-                        detailLevel: displayedLevel,
-                        isManipulatingViewport: isManipulatingViewport,
-                        isRecenteringSelection: isRecenteringSelection
-                    ) {
-                        // Rasterize at the target density, normalize back to map
-                        // coordinates, then apply the single presentation transform.
-                        WorldDotDetailCanvas(
-                            grid: grid, layout: layout, scale: viewport.scale,
-                            coveredCells: paint.coveredCells, selectedCells: paint.selectedCells,
+                    // One raster for every zoom level and every gesture. It is
+                    // never swapped for another renderer mid-gesture — that
+                    // swap redrew the whole world at touch-down and again at
+                    // release — and it is redrawn at a new density only after
+                    // motion stops. Rasterize at that density, normalize back
+                    // to map coordinates, then apply the presentation transform.
+                    WorldDotDetailCanvas(
+                        grid: grid, layout: layout, scale: raster.scale,
+                        coveredCells: raster.coveredCells,
+                        latencyBands: raster.latencyBands, colorScheme: colorScheme
+                    )
+                    .equatable()
+                    .frame(width: geometry.size.width * raster.scale, height: geometry.size.height * raster.scale)
+                    .drawingGroup()
+                    .scaleEffect(1 / raster.scale, anchor: .topLeading)
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+
+                    // Selection is its own small layer over just the selected
+                    // country, so tapping a country never re-rasterizes the
+                    // world in the middle of the recentring spring.
+                    if let bounds = paint.selectionBounds(in: layout) {
+                        WorldDotSelectionCanvas(
+                            grid: grid, layout: layout, scale: raster.scale, bounds: bounds,
+                            selectedCells: paint.selectedCells,
                             latencyBands: paint.latencyBands, colorScheme: colorScheme
                         )
                         .equatable()
-                        .frame(width: geometry.size.width * viewport.scale, height: geometry.size.height * viewport.scale)
-                        .drawingGroup()
-                        .scaleEffect(1 / viewport.scale, anchor: .topLeading)
-                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                    } else {
-                        WorldDotCanvas(
-                            grid: grid, layout: layout,
-                            coveredCells: paint.coveredCells, selectedCells: paint.selectedCells,
-                            latencyBands: paint.latencyBands, colorScheme: colorScheme
-                        )
-                        .equatable()
-                        .drawingGroup()
+                        .frame(width: bounds.width * raster.scale, height: bounds.height * raster.scale)
+                        .scaleEffect(1 / raster.scale, anchor: .topLeading)
+                        .frame(width: bounds.width, height: bounds.height, alignment: .topLeading)
+                        .offset(x: bounds.minX, y: bounds.minY)
+                        .allowsHitTesting(false)
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
@@ -481,6 +500,7 @@ struct WorldDotMapView: View {
                 viewportAnimationToken = nil
                 updateViewportWithoutAnimation(normalized)
                 displayedLevel = normalized.level
+                settleRasterIfIdle()
             }
             .onChange(of: selectedMarkerID) { _, markerID in
                 guard let markerID,
@@ -508,6 +528,7 @@ struct WorldDotMapView: View {
             guard !Task.isCancelled else { return }
             paint = prepared
             preparedPaintInputs = inputs
+            settleRasterIfIdle()
         }
     }
 
@@ -534,20 +555,16 @@ struct WorldDotMapView: View {
                             )
                     )
                     .overlay {
+                        // A hairline instead of a per-label shadow: dozens of
+                        // shadowed labels meant dozens of offscreen passes on
+                        // every drag frame.
                         Capsule()
                             .strokeBorder(
-                                marker.isSelected
-                                    ? Color.primary.opacity(0.16)
-                                    : Color.clear,
-                                lineWidth: 0.75
+                                Color.primary.opacity(marker.isSelected ? 0.16 : 0.08),
+                                lineWidth: marker.isSelected ? 0.75 : 0.5
                             )
                     }
             }
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.05),
-                radius: 1.5,
-                y: 0.5
-            )
             .allowsHitTesting(false)
             // Region selection also expands the node list with a spring. At
             // country/detail zoom that spring used to leak into this existing
@@ -599,17 +616,18 @@ struct WorldDotMapView: View {
         viewport: Viewport,
         size: CGSize
     ) -> [PresentedLabel] {
+        let markersByID = Dictionary(labelMarkers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         if let frozenLabels {
             return frozenLabels.map { label in
                 PresentedLabel(
-                    marker: labelMarkers.first(where: { $0.id == label.id }) ?? label.marker,
+                    marker: markersByID[label.id] ?? label.marker,
                     position: label.position(viewport: viewport, in: size)
                 )
             }
         }
 
         return displayItems.compactMap { item in
-            guard let marker = labelMarkers.first(where: { $0.id == item.id }),
+            guard let marker = markersByID[item.id],
                   let placement = placements[item.id] else {
                 return nil
             }
@@ -625,7 +643,7 @@ struct WorldDotMapView: View {
         MagnifyGesture()
             .onChanged { value in
                 if magnifyStartViewport == nil {
-                    takeOverViewport()
+                    takeOverViewport(in: size)
                     magnifyStartViewport = viewport
                 }
                 guard let start = magnifyStartViewport else { return }
@@ -728,7 +746,7 @@ struct WorldDotMapView: View {
         DragGesture(minimumDistance: 1)
             .onChanged { value in
                 if dragStartViewport == nil {
-                    takeOverViewport()
+                    takeOverViewport(in: size)
                     dragStartViewport = viewport
                     previousDragTranslation = .zero
                 }
@@ -765,12 +783,49 @@ struct WorldDotMapView: View {
             }
     }
 
-    private func takeOverViewport() {
+    private func takeOverViewport(in size: CGSize) {
         let visible = viewportPresentation.value
         cancelSelectionRecenter()
         viewportAnimationToken = nil
         updateViewportWithoutAnimation(visible)
         isManipulatingViewport = true
+        // Labels keep their placement for the whole gesture and only move with
+        // the map. Re-planning collisions on every drag frame cost more than
+        // the drag itself; they are laid out again once the map settles.
+        if frozenLabels == nil {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                frozenLabels = captureLabelSnapshot(in: size)
+                labelsFrozenForGesture = true
+            }
+        }
+    }
+
+    private var isViewportMoving: Bool {
+        isManipulatingViewport || viewportAnimationToken != nil || isRecenteringSelection
+    }
+
+    /// Redraw the cached raster (new zoom density, new colours) and re-plan
+    /// gesture-frozen labels, but only once nothing is moving: a full-world
+    /// raster costs several frames, which is invisible on a still map and a
+    /// visible stall during a glide or recentre.
+    private func settleRasterIfIdle() {
+        guard !isViewportMoving else { return }
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            if labelsFrozenForGesture {
+                labelsFrozenForGesture = false
+                frozenLabels = nil
+            }
+            let next = RasterInputs(
+                scale: RenderPlanner.rasterScale(current: raster.scale, viewportScale: viewport.scale, isMoving: false),
+                coveredCells: paint.coveredCells,
+                latencyBands: paint.latencyBands
+            )
+            if next != raster { raster = next }
+        }
     }
 
     private func updateViewportWithoutAnimation(_ value: Viewport) {
@@ -868,6 +923,7 @@ struct WorldDotMapView: View {
                 viewportAnimationToken = nil
                 displayedLevel = target.level
             }
+            settleRasterIfIdle()
             return
         }
 
@@ -897,6 +953,7 @@ struct WorldDotMapView: View {
             withAnimation(.easeOut(duration: 0.14)) {
                 isRecenteringSelection = false
             }
+            settleRasterIfIdle()
         }
     }
 
@@ -953,8 +1010,12 @@ struct WorldDotMapView: View {
                       completionCriteria: .removed, updates) {
             guard viewportAnimationToken == token else { return }
             viewportAnimationToken = nil
+            settleRasterIfIdle()
         }
-        if reduceMotion { viewportPresentation.value = viewport }
+        if reduceMotion {
+            viewportPresentation.value = viewport
+            settleRasterIfIdle()
+        }
     }
 
     /// The rendered transform is also the gesture's source of truth. Recording
@@ -1003,13 +1064,19 @@ struct WorldDotMapView: View {
         }
     }
 
+    /// Inputs of the cached world raster; see `settleRasterIfIdle`.
+    struct RasterInputs: Equatable {
+        var scale: CGFloat
+        var coveredCells: Set<Int>
+        var latencyBands: [Int: MapLatencyBand]
+    }
+
     enum RenderPlanner {
-        static func usesDetailCanvas(
-            detailLevel: DetailLevel,
-            isManipulatingViewport: Bool,
-            isRecenteringSelection _: Bool
-        ) -> Bool {
-            detailLevel != .overview && !isManipulatingViewport
+        /// The raster keeps its density while the map moves — the transform
+        /// scales the existing pixels — and catches up to the viewport once
+        /// it is still.
+        static func rasterScale(current: CGFloat, viewportScale: CGFloat, isMoving: Bool) -> CGFloat {
+            isMoving ? current : viewportScale
         }
 
         static func rasterOrigin(size: CGSize, scale: CGFloat, offset: CGSize) -> CGSize {
@@ -1581,6 +1648,9 @@ struct WorldDotPaint {
     var coveredCells: Set<Int> = []
     var selectedCells: Set<Int> = []
     var latencyBands: [Int: MapLatencyBand] = [:]
+    /// Column and row extent of `selectedCells`, so the selection layer only
+    /// rasterizes the rectangle it draws into.
+    var selectionExtent: (columns: ClosedRange<Int>, rows: ClosedRange<Int>)?
 
     init() {}
     init(grid: WorldDotGrid, markers: [WorldDotMarker]) {
@@ -1590,6 +1660,24 @@ struct WorldDotPaint {
             if marker.isSelected { selectedCells.formUnion(cells) }
             for index in cells { latencyBands[index] = marker.latencyBand }
         }
+        if grid.columns > 0, !selectedCells.isEmpty {
+            let columns = selectedCells.map { $0 % grid.columns }
+            let rows = selectedCells.map { $0 / grid.columns }
+            selectionExtent = (columns.min()! ... columns.max()!, rows.min()! ... rows.max()!)
+        }
+    }
+
+    /// The selected cells' rectangle in map coordinates.
+    func selectionBounds(in layout: WorldDotMapView.Layout) -> CGRect? {
+        guard let selectionExtent, layout.cell > 0 else { return nil }
+        let first = layout.center(column: selectionExtent.columns.lowerBound, row: selectionExtent.rows.lowerBound)
+        let last = layout.center(column: selectionExtent.columns.upperBound, row: selectionExtent.rows.upperBound)
+        return CGRect(
+            x: first.x - layout.cell / 2,
+            y: first.y - layout.cell / 2,
+            width: last.x - first.x + layout.cell,
+            height: last.y - first.y + layout.cell
+        )
     }
     static func key(band: MapLatencyBand?, selected: Bool) -> Int {
         guard let band else { return -1 }
@@ -1656,51 +1744,6 @@ enum WorldDotCellStyle {
     }
 }
 
-/// The expensive dot raster is independent from pan and zoom. Keeping it in an
-/// equatable view lets SwiftUI transform the cached drawing instead of walking
-/// the complete grid for every magnification update.
-private struct WorldDotCanvas: View, Equatable {
-    let grid: WorldDotGrid
-    let layout: WorldDotMapView.Layout
-    let coveredCells: Set<Int>
-    let selectedCells: Set<Int>
-    let latencyBands: [Int: MapLatencyBand]
-    let colorScheme: ColorScheme
-
-    static func == (lhs: WorldDotCanvas, rhs: WorldDotCanvas) -> Bool {
-        lhs.grid.columns == rhs.grid.columns
-            && lhs.grid.rows == rhs.grid.rows
-            && lhs.layout.size == rhs.layout.size
-            && lhs.layout.origin == rhs.layout.origin
-            && lhs.layout.cell == rhs.layout.cell
-            && lhs.coveredCells == rhs.coveredCells
-            && lhs.latencyBands == rhs.latencyBands
-            && lhs.selectedCells == rhs.selectedCells
-            && lhs.colorScheme == rhs.colorScheme
-    }
-
-    var body: some View {
-        Canvas { context, _ in
-            guard !grid.isEmpty else { return }
-
-            var paths: [Int: Path] = [:]
-            for index in grid.landCells {
-                let center = layout.center(
-                    column: index % grid.columns,
-                    row: index / grid.columns
-                )
-                let style = WorldDotCellStyle.resolve(index: index, coveredCells: coveredCells, selectedCells: selectedCells)
-                let diameter = style.overviewDiameter(cell: layout.cell)
-                let key = WorldDotPaint.key(band: latencyBands[index], selected: selectedCells.contains(index))
-                paths[key, default: Path()].addEllipse(in: CGRect(x: center.x - diameter / 2, y: center.y - diameter / 2, width: diameter, height: diameter))
-            }
-            WorldDotPaint.fill(paths, in: &context, colorScheme: colorScheme)
-        }
-    }
-
-
-}
-
 /// Render the full world at the current zoom once. Recentring translates this
 /// crisp cached layer instead of drawing micro dots for every animation frame.
 private struct WorldDotDetailCanvas: View, Equatable {
@@ -1708,7 +1751,6 @@ private struct WorldDotDetailCanvas: View, Equatable {
     let layout: WorldDotMapView.Layout
     let scale: CGFloat
     let coveredCells: Set<Int>
-    let selectedCells: Set<Int>
     let latencyBands: [Int: MapLatencyBand]
     let colorScheme: ColorScheme
 
@@ -1716,7 +1758,7 @@ private struct WorldDotDetailCanvas: View, Equatable {
         lhs.grid.columns == rhs.grid.columns && lhs.grid.rows == rhs.grid.rows
             && lhs.layout.size == rhs.layout.size && lhs.layout.origin == rhs.layout.origin
             && lhs.layout.cell == rhs.layout.cell && lhs.scale == rhs.scale
-            && lhs.coveredCells == rhs.coveredCells && lhs.selectedCells == rhs.selectedCells
+            && lhs.coveredCells == rhs.coveredCells
             && lhs.latencyBands == rhs.latencyBands && lhs.colorScheme == rhs.colorScheme
     }
 
@@ -1735,17 +1777,18 @@ private struct WorldDotDetailCanvas: View, Equatable {
                 let point = layout.center(column: index % grid.columns, row: index / grid.columns)
                 let base = CGPoint(x: point.x * scale, y: point.y * scale)
 
+                // Selection is drawn by `WorldDotSelectionCanvas` on top.
                 let style = WorldDotCellStyle.resolve(
                     index: index,
                     coveredCells: coveredCells,
-                    selectedCells: selectedCells
+                    selectedCells: []
                 )
                 let diameter = style.detailDiameter(
                     cell: layout.cell,
                     scale: scale,
                     subdivision: subdivision
                 )
-                let key = WorldDotPaint.key(band: latencyBands[index], selected: selectedCells.contains(index))
+                let key = WorldDotPaint.key(band: latencyBands[index], selected: false)
                 for offset in offsets {
                     let center = CGPoint(x: base.x + offset.width, y: base.y + offset.height)
                     paths[key, default: Path()].addEllipse(in: CGRect(x: center.x - diameter / 2, y: center.y - diameter / 2, width: diameter, height: diameter))
@@ -1755,6 +1798,54 @@ private struct WorldDotDetailCanvas: View, Equatable {
         }
     }
 
+}
+
+/// Only the selected country's dots, in the selected style. Its larger, darker
+/// dots fully cover the covered-style dots underneath in the world raster, and
+/// it is small enough to redraw inside a recentring animation.
+private struct WorldDotSelectionCanvas: View, Equatable {
+    let grid: WorldDotGrid
+    let layout: WorldDotMapView.Layout
+    let scale: CGFloat
+    let bounds: CGRect
+    let selectedCells: Set<Int>
+    let latencyBands: [Int: MapLatencyBand]
+    let colorScheme: ColorScheme
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.layout.size == rhs.layout.size && lhs.layout.origin == rhs.layout.origin
+            && lhs.layout.cell == rhs.layout.cell && lhs.scale == rhs.scale && lhs.bounds == rhs.bounds
+            && lhs.selectedCells == rhs.selectedCells && lhs.latencyBands == rhs.latencyBands
+            && lhs.colorScheme == rhs.colorScheme
+    }
+
+    var body: some View {
+        Canvas { context, _ in
+            guard !grid.isEmpty else { return }
+            context.translateBy(x: -bounds.minX * scale, y: -bounds.minY * scale)
+
+            let screenCell = layout.cell * scale
+            let subdivision = WorldDotMapView.DetailRenderer.subdivision(forScreenCell: screenCell)
+            let offsets = WorldDotMapView.DetailRenderer.offsets(forScreenCell: screenCell)
+            let diameter = WorldDotCellStyle.selected.detailDiameter(
+                cell: layout.cell,
+                scale: scale,
+                subdivision: subdivision
+            )
+
+            var paths: [Int: Path] = [:]
+            for index in selectedCells {
+                let point = layout.center(column: index % grid.columns, row: index / grid.columns)
+                let base = CGPoint(x: point.x * scale, y: point.y * scale)
+                let key = WorldDotPaint.key(band: latencyBands[index], selected: true)
+                for offset in offsets {
+                    let center = CGPoint(x: base.x + offset.width, y: base.y + offset.height)
+                    paths[key, default: Path()].addEllipse(in: CGRect(x: center.x - diameter / 2, y: center.y - diameter / 2, width: diameter, height: diameter))
+                }
+            }
+            WorldDotPaint.fill(paths, in: &context, colorScheme: colorScheme)
+        }
+    }
 }
 
 private struct WorldDotHitTarget: View {

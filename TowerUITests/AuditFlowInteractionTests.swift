@@ -359,6 +359,53 @@ final class AuditFlowInteractionTests: XCTestCase {
         }
     }
 
+    /// Zoomed map: drags with release glides, then country taps that
+    /// recentre. Used to compare the raster strategy before and after
+    /// 2026-09-27 (renderer swap per gesture vs. one settled raster).
+    func testPerformanceZoomedMapDragging() {
+        let app = launchPerformanceFixture()
+        let japan = app.buttons.matching(NSPredicate(format: "identifier == %@ AND label == %@", "regions-section", "日本")).firstMatch
+        XCTAssertTrue(japan.waitForExistence(timeout: 5))
+        // Selecting recentres at 1.8×; one more pinch at the centre reaches
+        // about 3.2× (a single synthesized pinch tops out near 2×).
+        japan.tap()
+        Thread.sleep(forTimeInterval: 1.5)
+        japan.pinch(withScale: 1.7, velocity: 1)
+        Thread.sleep(forTimeInterval: 1.5)
+        // Horizontal flicks across the middle of the zoomed map card.
+        let frame = japan.frame
+        let y = frame.midY / app.frame.height
+        let left = app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: y))
+        let right = app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: y))
+        let options = XCTMeasureOptions()
+        options.iterationCount = 5
+        measure(metrics: [XCTCPUMetric(application: app)], options: options) {
+            for _ in 0..<3 {
+                right.press(forDuration: 0.01, thenDragTo: left, withVelocity: .fast, thenHoldForDuration: 0)
+                Thread.sleep(forTimeInterval: 0.5)
+                left.press(forDuration: 0.01, thenDragTo: right, withVelocity: .fast, thenHoldForDuration: 0)
+                Thread.sleep(forTimeInterval: 0.5)
+            }
+        }
+    }
+
+    func testPerformanceMapSelectionRecentring() {
+        let app = launchPerformanceFixture()
+        let japan = app.buttons.matching(NSPredicate(format: "identifier == %@ AND label == %@", "regions-section", "日本")).firstMatch
+        let singapore = app.buttons.matching(NSPredicate(format: "identifier == %@ AND label == %@", "regions-section", "新加坡")).firstMatch
+        XCTAssertTrue(japan.waitForExistence(timeout: 5))
+        let options = XCTMeasureOptions()
+        options.iterationCount = 5
+        measure(metrics: [XCTCPUMetric(application: app)], options: options) {
+            for _ in 0..<3 {
+                if japan.isHittable { japan.tap() }
+                Thread.sleep(forTimeInterval: 0.6)
+                if singapore.isHittable { singapore.tap() }
+                Thread.sleep(forTimeInterval: 0.6)
+            }
+        }
+    }
+
     func testPerformanceAuditTabsWithHaptics() { measureTabSwitching(disableHaptics: false) }
     func testPerformanceAuditTabsWithoutHaptics() { measureTabSwitching(disableHaptics: true) }
 

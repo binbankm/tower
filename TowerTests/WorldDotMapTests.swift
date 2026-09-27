@@ -737,8 +737,11 @@ final class WorldDotMapTests: XCTestCase {
             .appendingPathComponent("Tower/Features/Subscriptions/WorldDotMapView.swift")
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
 
-        XCTAssertTrue(source.contains("WorldDotCanvas"))
+        XCTAssertTrue(source.contains("WorldDotDetailCanvas"))
         XCTAssertTrue(source.contains(".equatable()"))
+        // One raster for every gesture: no renderer swap at touch-down/release.
+        XCTAssertFalse(source.contains("usesDetailCanvas"))
+        XCTAssertFalse(source.contains("struct WorldDotCanvas"))
     }
 
     func testDenseAsiaKeepsAtLeastTheHighestPriorityLabels() throws {
@@ -934,12 +937,10 @@ final class WorldDotMapTests: XCTestCase {
         }
     }
 
-    func testSelectionKeepsCrispRendererAtBothZoomLevels() {
-        for level in [WorldDotMapView.DetailLevel.countries, .detail] {
-            for recentring in [true, false] {
-                XCTAssertTrue(WorldDotMapView.RenderPlanner.usesDetailCanvas(detailLevel: level, isManipulatingViewport: false, isRecenteringSelection: recentring))
-                XCTAssertFalse(WorldDotMapView.RenderPlanner.usesDetailCanvas(detailLevel: level, isManipulatingViewport: true, isRecenteringSelection: recentring))
-            }
+    func testRasterKeepsItsDensityWhileTheMapMoves() {
+        for scale in [CGFloat(1), 1.8, 4.2] {
+            XCTAssertEqual(WorldDotMapView.RenderPlanner.rasterScale(current: 1.8, viewportScale: scale, isMoving: true), 1.8)
+            XCTAssertEqual(WorldDotMapView.RenderPlanner.rasterScale(current: 1.8, viewportScale: scale, isMoving: false), scale)
         }
         let size = CGSize(width: 390, height: 280)
         let point = CGPoint(x: 240, y: 90)
@@ -951,6 +952,27 @@ final class WorldDotMapTests: XCTestCase {
                 XCTAssertEqual(point.y * scale + origin.height, expected.y, accuracy: 0.001)
             }
         }
+    }
+
+    func testSelectionLayerBoundsCoverEverySelectedDot() throws {
+        let grid = WorldDotGrid.shared
+        try XCTSkipIf(grid.isEmpty)
+        let markers = [
+            WorldDotMarker(id: "JP", title: "日本", latitude: 36, longitude: 138, weight: 3, isSelected: true),
+            WorldDotMarker(id: "SG", title: "新加坡", latitude: 1.35, longitude: 103.8, weight: 2, isSelected: false)
+        ]
+        let paint = WorldDotPaint(grid: grid, markers: markers)
+        XCTAssertFalse(paint.selectedCells.isEmpty)
+        XCTAssertTrue(paint.selectedCells.isSubset(of: paint.coveredCells))
+        let layout = WorldDotMapView.Layout(size: CGSize(width: 390, height: 260), grid: grid)
+        let bounds = try XCTUnwrap(paint.selectionBounds(in: layout))
+        for index in paint.selectedCells {
+            let center = layout.center(column: index % grid.columns, row: index / grid.columns)
+            let dot = CGRect(x: center.x - layout.cell * 0.45, y: center.y - layout.cell * 0.45,
+                             width: layout.cell * 0.9, height: layout.cell * 0.9)
+            XCTAssertTrue(bounds.insetBy(dx: -0.001, dy: -0.001).contains(dot))
+        }
+        XCTAssertNil(WorldDotPaint(grid: grid, markers: [markers[1]]).selectionBounds(in: layout))
     }
 
     func testTestingProgressDoesNotResizeCountryLabels() {
