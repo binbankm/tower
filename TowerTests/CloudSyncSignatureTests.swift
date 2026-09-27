@@ -59,6 +59,20 @@ struct CloudSyncSignatureTests {
         #expect(!CloudSnapshotMerge.sameContent(original, setting))
     }
 
+    @Test func refreshingARuleSchemeIsNotAChange() {
+        let scheme = RuleScheme(id: "imported", name: "Imported", summary: "", groups: [], rulesets: [],
+                                updatedAt: .distantPast, isBundled: false)
+        var original = snapshot(nodes: [])
+        original.importedSchemes = [scheme]
+        var refreshed = original
+        refreshed.importedSchemes?[0].updatedAt = .now
+        #expect(CloudSnapshotMerge.sameContent(original, refreshed))
+
+        var renamed = original
+        renamed.importedSchemes?[0].name = "Renamed"
+        #expect(!CloudSnapshotMerge.sameContent(original, renamed))
+    }
+
     @Test func recoveryCopiesDifferingOnlyInStatusCollapse() {
         var status = snapshot(nodes: [node("HK 01", server: "hk.example")])
         let first = CloudRecoveryCopy(id: "a", snapshot: status)

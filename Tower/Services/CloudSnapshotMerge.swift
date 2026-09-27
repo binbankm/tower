@@ -29,6 +29,13 @@ enum CloudSnapshotMerge {
         content.resolvedHostCountryDatabaseVersion = nil
         content.selectedTarget = .surge
         content.macClientPreferences?.selectedTarget = .surge
+        // Refreshing a scheme re-downloads rule lists kept on this device only;
+        // the stamp it leaves behind is not a decision another device needs.
+        content.importedSchemes = content.importedSchemes?.map { scheme in
+            var scheme = scheme
+            scheme.updatedAt = nil
+            return scheme
+        }
         content.subscriptions = content.subscriptions.map { source in
             var source = source
             source.lastUpdatedAt = nil
