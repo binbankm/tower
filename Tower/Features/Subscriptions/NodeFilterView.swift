@@ -76,6 +76,24 @@ enum NodeExportGroupSelectionState: Equatable {
     }
 }
 
+/// Memoized country and protocol groups for `NodeFilterSections`. Array and
+/// dictionary equality short-circuit on shared storage, so an unchanged model
+/// makes the check nearly free.
+final class NodeExportGroupCache {
+    private var nodes: [ProxyNode]?
+    private var countryCodes: [UUID: String]?
+    private(set) var countries: [CountryNodeExportGroup] = []
+    private(set) var protocols: [ProtocolNodeExportGroup] = []
+
+    func update(nodes: [ProxyNode], countryCodes: [UUID: String], countryCode: (ProxyNode) -> String?) {
+        guard nodes != self.nodes || countryCodes != self.countryCodes else { return }
+        self.nodes = nodes
+        self.countryCodes = countryCodes
+        countries = NodeExportGroupBuilder.countryGroups(nodes: nodes, countryCode: countryCode)
+        protocols = NodeExportGroupBuilder.protocolGroups(nodes: nodes)
+    }
+}
+
 struct NodeFilterSections: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppModel.self) private var model
@@ -83,6 +101,10 @@ struct NodeFilterSections: View {
 
     @Binding var searchText: String
     @Binding var showsNameFilter: Bool
+    /// Country and protocol groups only change with the nodes or their
+    /// resolved countries, not with each checkbox; rebuilding them copied
+    /// every node several times per tap (device trace, 2026-09-27).
+    @State private var groupCache = NodeExportGroupCache()
 
     var body: some View {
         // Filtering used to run once for the rows, once for the empty check,
@@ -91,10 +113,12 @@ struct NodeFilterSections: View {
         // display name and running four case-insensitive searches, on every
         // keystroke in the search field.
         let filteredNodes = self.filteredNodes
-        let includedFilteredNodeCount = filteredNodes.lazy.filter(model.isNodeIncluded).count
-        let eligibleFilteredNodes = filteredNodes.filter(model.isNodeAllowedByName)
+        let includedIDs = model.includedNodeIDs
+        let allowedIDs = model.nodeNameAllowedIDs
+        let includedFilteredNodeCount = filteredNodes.lazy.filter { includedIDs.contains($0.id) }.count
+        let eligibleFilteredNodes = allowedIDs.map { ids in filteredNodes.filter { ids.contains($0.id) } } ?? filteredNodes
         let allFilteredNodesIncluded = !eligibleFilteredNodes.isEmpty
-            && eligibleFilteredNodes.allSatisfy(model.isNodeIncluded)
+            && eligibleFilteredNodes.allSatisfy { includedIDs.contains($0.id) }
 
         return Group {
             Section {
@@ -183,8 +207,9 @@ struct NodeFilterSections: View {
 
     private var filteredNodes: [ProxyNode] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        // No search: reuse the cached array instead of copying every node.
+        guard !query.isEmpty else { return model.availableNodes }
         return model.availableNodes.filter { node in
-            guard !query.isEmpty else { return true }
             let presentedNode = model.nodeForPresentation(node)
             return [
                 NodeRegionResolver.displayName(for: presentedNode),
@@ -223,14 +248,15 @@ struct NodeFilterSections: View {
     }
 
     private var countryOptions: [CountryNodeExportGroup] {
-        NodeExportGroupBuilder.countryGroups(
-            nodes: model.availableNodes,
-            countryCode: model.countryCode(for:)
-        )
+        groupCache.update(nodes: model.availableNodes, countryCodes: model.nodeIPCountryCodes,
+                          countryCode: model.countryCode(for:))
+        return groupCache.countries
     }
 
     private var protocolOptions: [ProtocolNodeExportGroup] {
-        NodeExportGroupBuilder.protocolGroups(nodes: model.availableNodes)
+        groupCache.update(nodes: model.availableNodes, countryCodes: model.nodeIPCountryCodes,
+                          countryCode: model.countryCode(for:))
+        return groupCache.protocols
     }
 
     private var countryFilter: some View {
@@ -294,20 +320,28 @@ struct NodeFilterSections: View {
         nodes: [ProxyNode],
         kind: ProxyKind? = nil
     ) -> some View {
-        let eligibleNodes = nodes.filter(model.isNodeAllowedByName)
-        let includedCount = eligibleNodes.lazy.filter(model.isNodeIncluded).count
+        // Set lookups only; the eligible array is built when a toggle is used.
+        let includedIDs = model.includedNodeIDs
+        let allowedIDs = model.nodeNameAllowedIDs
+        var eligibleCount = 0
+        var includedCount = 0
+        for node in nodes where allowedIDs?.contains(node.id) ?? true {
+            eligibleCount += 1
+            if includedIDs.contains(node.id) { includedCount += 1 }
+        }
         let selectionState = NodeExportGroupSelectionState(
             includedCount: includedCount,
-            totalCount: eligibleNodes.count
+            totalCount: eligibleCount
         )
         let countSummary = selectionState == .partial
-            ? "\(includedCount)/\(eligibleNodes.count)"
-            : "\(eligibleNodes.count)"
+            ? "\(includedCount)/\(eligibleCount)"
+            : "\(eligibleCount)"
 
         return Toggle(
             isOn: Binding(
                 get: { selectionState.isMenuSelected },
                 set: { shouldInclude in
+                    let eligibleNodes = allowedIDs.map { ids in nodes.filter { ids.contains($0.id) } } ?? nodes
                     model.setNodes(eligibleNodes, included: shouldInclude)
                 }
             )
@@ -322,7 +356,7 @@ struct NodeFilterSections: View {
                 Text("\(title) · \(countSummary)")
             }
         }
-        .disabled(eligibleNodes.isEmpty)
+        .disabled(eligibleCount == 0)
     }
 
     private func nodeRow(_ node: ProxyNode) -> some View {
