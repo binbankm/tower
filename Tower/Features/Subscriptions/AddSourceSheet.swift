@@ -67,9 +67,11 @@ struct AddSourceSheet: View {
         _manualDraft = State(initialValue: editingNode.map { ManualNodeDraft(node: $0) } ?? ManualNodeDraft())
     }
 
-    private var detectedKind: SourceInputKind {
-        detector.detect(sourceValue)
-    }
+    /// Detection parses every node of a pasted batch. It runs once per edit
+    /// of `sourceValue`, not on every render that reads the result.
+    @State private var detectedKind: SourceInputKind = .unknown
+    /// The input `detectedKind` describes; saving waits until they agree.
+    @State private var detectedValue = ""
 
     var body: some View {
         NavigationStack {
@@ -136,6 +138,19 @@ struct AddSourceSheet: View {
             .onChange(of: sourceValue) {
                 cancelClipboardRead()
                 errorMessage = nil
+            }
+            .task(id: sourceValue) {
+                let value = sourceValue
+                let kind: SourceInputKind
+                if value.utf8.count > 4_096 {
+                    let worker = Task.detached(priority: .userInitiated) { SourceInputDetector().detect(value) }
+                    kind = await withTaskCancellationHandler { await worker.value } onCancel: { worker.cancel() }
+                } else {
+                    kind = detector.detect(value)
+                }
+                guard !Task.isCancelled else { return }
+                detectedKind = kind
+                detectedValue = value
             }
             .onChange(of: entryMode) {
                 cancelClipboardRead()
@@ -666,8 +681,9 @@ struct AddSourceSheet: View {
 
     private var isSaveDisabled: Bool {
         if isSaving { return true }
-        if entryMode == .paste { return !detectedKind.isSupported }
-        if entryMode == .scan { return !detectedKind.isSupported }
+        if entryMode == .paste || entryMode == .scan {
+            return detectedValue != sourceValue || !detectedKind.isSupported
+        }
         return manualDraft.server.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || (Int(manualDraft.port).map { !(1 ... 65535).contains($0) } ?? true)
             || isMissingRequiredCredential
@@ -725,8 +741,17 @@ struct AddSourceSheet: View {
     private func requestClipboardContent() {
         guard !didReadPasteboard else { return }
         didReadPasteboard = true
-        focusedField = .source
+        // Focus only once the clipboard has answered. A supported link fills
+        // the field with the keyboard down; focusing first raised it and then
+        // dismissed it again on the most common path.
         readClipboard(automatically: true)
+    }
+
+    /// The automatic read found nothing to fill: hand the field to typing,
+    /// unless the user has already chosen a field themselves.
+    private func focusSourceAfterEmptyClipboard() {
+        guard focusedField == nil else { return }
+        focusedField = .source
     }
 
     private func pasteFromClipboard() {
@@ -748,7 +773,8 @@ struct AddSourceSheet: View {
         guard let provider = UIPasteboard.general.itemProviders.first(where: {
             $0.canLoadObject(ofClass: NSString.self) || $0.canLoadObject(ofClass: NSURL.self)
         }) else {
-            if !automatically { errorMessage = String(localized: "等待有效的订阅链接或节点协议") }
+            if automatically { focusSourceAfterEmptyClipboard() }
+            else { errorMessage = String(localized: "等待有效的订阅链接或节点协议") }
             return
         }
         let completion: @Sendable (NSItemProviderReading?, Error?) -> Void = { object, _ in
@@ -761,10 +787,14 @@ struct AddSourceSheet: View {
                       sourceValue == originalValue else { return }
                 clipboardProgress = nil
                 guard !value.isEmpty else {
-                    if !automatically { errorMessage = String(localized: "等待有效的订阅链接或节点协议") }
+                    if automatically { focusSourceAfterEmptyClipboard() }
+                    else { errorMessage = String(localized: "等待有效的订阅链接或节点协议") }
                     return
                 }
-                guard !automatically || detector.detect(value).isSupported else { return }
+                guard !automatically || detector.detect(value).isSupported else {
+                    focusSourceAfterEmptyClipboard()
+                    return
+                }
                 sourceValue = value
                 if automatically { initialSourceValue = value }
                 focusedField = nil

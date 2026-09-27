@@ -664,6 +664,7 @@ private enum RuleCustomizationDeletion {
 private struct RuleCustomizationSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let scheme: RuleScheme
     @State private var editingGroups: [RuleSchemeGroup] = []
     @State private var initialEditingGroupNames: [String] = []
@@ -718,6 +719,7 @@ private struct RuleCustomizationSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                schemeUsageSection
                 customRuleGroupsSection
                 localRuleSetsSection
                 catalogSections
@@ -981,6 +983,37 @@ private struct RuleCustomizationSheet: View {
             }
         } footer: {
             Text("新建的规则集先保存在本机。点击右侧加号后才会加入当前规则，更新上游方案时不会被覆盖。")
+        }
+    }
+
+    /// Editing a scheme never selects it. Without this, customizing an
+    /// unselected scheme looked like it had no effect on the export.
+    @ViewBuilder
+    private var schemeUsageSection: some View {
+        if model.selectedPresetID != scheme.id {
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label {
+                        Text("导出当前使用「\(model.activeRuleName)」，这里的修改不会影响导出。")
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "info.circle.fill")
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    Button("改用此方案") {
+                        withAnimation(TowerMotion.disclosure(reduceMotion: reduceMotion)) {
+                            model.selectScheme(scheme)
+                        }
+                    }
+                    // Only the button, not the explanatory row, selects.
+                    .buttonStyle(.borderless)
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityIdentifier("customization-use-scheme")
+                }
+                .padding(.vertical, 4)
+            }
+            .transition(.opacity)
         }
     }
 

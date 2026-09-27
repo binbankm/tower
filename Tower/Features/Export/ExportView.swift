@@ -72,6 +72,20 @@ struct ExportView: View {
                                 .accessibilityIdentifier("conversion-status-header")
                                 .padding(.bottom, 18)
                             }
+                            // A failed name condition exports no nodes by design;
+                            // say why here instead of only in the filter screen.
+                            if let error = model.nodeExportNameFilterError {
+                                Label {
+                                    Text("节点名称筛选无法完成，当前不会导出节点：\(error)")
+                                } icon: {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                }
+                                .font(.footnote)
+                                .foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.bottom, 12)
+                                .accessibilityIdentifier("export-name-filter-error")
+                            }
                             ExportContentModePicker()
                                 .padding(.bottom, model.selectedTarget.supportedContentModes.count > 1 ? 12 : 0)
                             if model.exportContentMode(for: model.selectedTarget) == .fullConfiguration {

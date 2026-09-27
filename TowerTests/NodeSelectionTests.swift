@@ -195,4 +195,39 @@ final class NodeSelectionTests: XCTestCase {
         XCTAssertEqual(restored.enabledNodes.count, 3)
         XCTAssertFalse(restored.isNodeIncluded(initial[0]))
     }
+
+    @MainActor
+    func testTogglingNodesReusesNameConditionMatches() throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tower-name-filter-cache-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let store = PersistenceStore(fileURL: fileURL)
+        let source = SubscriptionSource(name: "Airport", urlString: "https://example.com/sub")
+        func node(_ name: String) -> ProxyNode {
+            ProxyNode(sourceID: source.id, kind: .shadowsocks, name: name,
+                server: "example.com", port: 443, cipher: "aes-128-gcm",
+                password: "test", rawURI: "ss://test")
+        }
+        let initial = [node("US IEPL 01"), node("US 普通 02"), node("JP IEPL 03")]
+        try store.save(AppSnapshot(subscriptions: [source], nodes: initial,
+            selectedPresetID: AppModel.defaultRuleSchemeID, selectedTarget: .surge))
+
+        let model = AppModel(persistence: store, arguments: [])
+        try model.setNodeExportNameFilter(.init(pattern: "IEPL", ignoresCase: true))
+        XCTAssertEqual(model.enabledNodes.map(\.name), ["US IEPL 01", "JP IEPL 03"])
+        let evaluations = model.nodeNameFilterEvaluationCount
+
+        for included in [false, true, false] {
+            model.setNode(initial[0], included: included)
+            XCTAssertEqual(model.enabledNodes.map(\.name),
+                           included ? ["US IEPL 01", "JP IEPL 03"] : ["JP IEPL 03"])
+        }
+        XCTAssertEqual(model.nodeNameFilterEvaluationCount, evaluations,
+                       "勾选节点不应重新执行名称匹配")
+        XCTAssertNil(model.nodeExportNameFilterError)
+
+        model.nodes.append(node("SG iepl 04"))
+        XCTAssertEqual(model.enabledNodes.map(\.name), ["JP IEPL 03", "SG iepl 04"])
+        XCTAssertEqual(model.nodeNameFilterEvaluationCount, evaluations + 1)
+    }
 }

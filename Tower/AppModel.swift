@@ -275,24 +275,44 @@ final class AppModel {
         var nameMatchedIDs = Set(available.map(\.id))
         var nameFilterError: String?
         if let filter = inputs.nameFilter {
-            do {
-                let indices = try NodeNameFilterMatcher.preview(
-                    filter.pattern, candidates: available.map { [$0.name] },
-                    caseInsensitive: filter.ignoresCase
-                )
-                nameMatchedIDs = Set(indices.map { available[$0].id })
-            } catch {
-                // A malformed or expensive expression must never silently
-                // broaden an export to every node.
-                nameMatchedIDs = []
-                nameFilterError = error.localizedDescription
-            }
+            (nameMatchedIDs, nameFilterError) = nodeNameMatches(for: filter, in: available)
         }
         let enabled = available.filter { nameMatchedIDs.contains($0.id) && !inputs.excluded.contains($0.id) }
         let result = NodeSelection(available: available, enabled: enabled, local: local,
                                    counts: counts, nameMatchedIDs: nameMatchedIDs,
                                    nameFilterError: nameFilterError)
         nodeSelectionCache = (inputs, result)
+        return result
+    }
+
+    // Name matching depends only on the filter and the available names. Ticking
+    // a node's checkbox invalidates the selection above, but must not rerun a
+    // regular expression over every node on the main actor.
+    private struct NodeNameMatchInputs: Equatable {
+        let filter: NodeExportNameFilter
+        let ids: [UUID]
+        let names: [String]
+    }
+    @ObservationIgnored private var nodeNameMatchCache: (NodeNameMatchInputs, Set<UUID>, String?)?
+    @ObservationIgnored private(set) var nodeNameFilterEvaluationCount = 0
+
+    private func nodeNameMatches(for filter: NodeExportNameFilter, in available: [ProxyNode]) -> (Set<UUID>, String?) {
+        let inputs = NodeNameMatchInputs(filter: filter, ids: available.map(\.id), names: available.map(\.name))
+        if let cached = nodeNameMatchCache, cached.0 == inputs { return (cached.1, cached.2) }
+        nodeNameFilterEvaluationCount += 1
+        let result: (Set<UUID>, String?)
+        do {
+            let indices = try NodeNameFilterMatcher.preview(
+                filter.pattern, candidates: inputs.names.map { [$0] },
+                caseInsensitive: filter.ignoresCase
+            )
+            result = (Set(indices.map { inputs.ids[$0] }), nil)
+        } catch {
+            // A malformed or expensive expression must never silently
+            // broaden an export to every node.
+            result = ([], error.localizedDescription)
+        }
+        nodeNameMatchCache = (inputs, result.0, result.1)
         return result
     }
     @ObservationIgnored private var countryCountCache: ([ProxyNode], [UUID: String], Int)?

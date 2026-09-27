@@ -710,6 +710,7 @@ private struct CountryFlagEmoji: View {
 
 private struct NodeLatencyBadge: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let node: ProxyNode
     let showsUntestedState: Bool
 
@@ -718,34 +719,55 @@ private struct NodeLatencyBadge: View {
         self.showsUntestedState = showsUntestedState
     }
 
+    private enum Phase: Equatable { case none, untested, testing, measured, failed }
+
+    private var phase: Phase {
+        if model.latencyTestingNodeIDs.contains(node.id) { return .testing }
+        if let measurement = model.nodeLatencies[node.id] {
+            return measurement.milliseconds == nil ? .failed : .measured
+        }
+        return showsUntestedState ? .untested : .none
+    }
+
     var body: some View {
-        Group {
-            if model.latencyTestingNodeIDs.contains(node.id) {
+        let phase = phase
+        ZStack(alignment: .trailing) {
+            if phase == .testing {
                 ProgressView()
                     .controlSize(.mini)
-                    .frame(minWidth: 48)
+                    .transition(.opacity)
             } else if let measurement = model.nodeLatencies[node.id] {
                 if let milliseconds = measurement.milliseconds {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text("\(milliseconds) ms")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(latencyColor(milliseconds: milliseconds))
+                            .contentTransition(reduceMotion ? .opacity : .numericText(value: Double(milliseconds)))
                         Text(measurement.method?.rawValue ?? "")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
+                    .transition(.opacity)
                 } else {
                     Text(verbatim: measurement.isApplicable ? String(localized: "不可达") : "—")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(measurement.isApplicable ? MapLatencyBand.unreachable.color() : .secondary)
                         .accessibilityLabel(measurement.errorMessage ?? String(localized: "不可达"))
+                        .transition(.opacity)
                 }
-            } else if showsUntestedState {
+            } else if phase == .untested {
                 Text("待测试")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .transition(.opacity)
             }
         }
+        .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: phase)
+        .animation(TowerMotion.selection(reduceMotion: reduceMotion), value: model.nodeLatencies[node.id]?.milliseconds)
+        // One stable slot while a batch streams results in, so each row's
+        // name keeps its truncation point. Applied outside the animations:
+        // only the badge's contents fade, the row layout never interpolates.
+        .frame(minWidth: phase == .none ? 0 : 56, alignment: .trailing)
         .accessibilityElement(children: .combine)
     }
 }
