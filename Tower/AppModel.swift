@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 enum RuleGroupRenameError: LocalizedError {
     case emptyName
@@ -194,6 +195,13 @@ final class AppModel {
     @ObservationIgnored private let cloudForegroundCheckInterval: TimeInterval
     /// Groups a burst of edits (reordering, several toggles) into one sync.
     private static let cloudUploadDelay: Duration = .seconds(5)
+    /// After a failed sync, edits wait this long before retrying on their own,
+    /// so a stuck iCloud download is not re-attempted after every save.
+    private static let cloudFailureBackoff: TimeInterval = 600
+    @ObservationIgnored private var lastCloudSyncFailureAt: Date?
+    /// Why and how each sync ran, never what was synced: no names, links or
+    /// credentials. Visible in Console and in Instruments' os_log table.
+    private static let cloudLog = Logger(subsystem: "com.jzb.tower", category: "CloudSync")
     @ObservationIgnored private var cloudUploadTask: Task<Void, Never>?
     /// When the state now in memory was last edited. Readable so a test can
     /// confirm a launch restores it: dropping it is what let an older iCloud
@@ -358,6 +366,33 @@ final class AppModel {
         let localRuleSets: [LocalRuleSet]
     }
     @ObservationIgnored private var ruleCountInputs: RuleCountInputs?
+    /// What the materialized and customizable schemes are built from. Every
+    /// save used to drop both caches, so any toggle rebuilt every scheme card
+    /// on the rules screen and the export request, re-reading all rule lists:
+    /// 160–340 ms per save on device (2026-09-27).
+    private struct RulePresentationInputs: Equatable {
+        let counts: RuleCountInputs
+        let selectedGroups: [String: Set<String>]
+        let emojis: [String: Bool]
+    }
+    @ObservationIgnored private var rulePresentationInputs: RulePresentationInputs?
+
+    private func currentRulePresentationInputs() -> RulePresentationInputs {
+        RulePresentationInputs(
+            counts: RuleCountInputs(schemes: importedSchemes, customizations: ruleSchemeCustomizations,
+                                    flows: customRuleFlows, localRuleSets: localRuleSets),
+            selectedGroups: selectedRuleGroups,
+            emojis: ruleGroupEmojisEnabled
+        )
+    }
+
+    /// Call where the rule caches were just emptied for the current state
+    /// (load, applying a snapshot), so the next unrelated save keeps them.
+    private func recordRuleInputs() {
+        let presentation = currentRulePresentationInputs()
+        rulePresentationInputs = presentation
+        ruleCountInputs = presentation.counts
+    }
     private var ruleSchemePresentationRevision = 0
     @ObservationIgnored private var customizableSchemeCache: [String: RuleScheme] = [:]
     @ObservationIgnored private var materializedSchemeCache: [String: RuleScheme] = [:]
@@ -494,6 +529,8 @@ final class AppModel {
         } else if let snapshot = try? self.persistence.load() {
             apply(snapshot)
         }
+        // Nothing has been built from rules yet, so the caches follow these.
+        recordRuleInputs()
 
 
         // Old builds stored this now-removed bundled preset id. Migrate it
@@ -3385,8 +3422,9 @@ final class AppModel {
         // history even for a glance at another app. Local edits upload on
         // their own; this only picks up other devices' changes.
         if let lastCloudSyncAt, Date.now.timeIntervalSince(lastCloudSyncAt) < cloudForegroundCheckInterval {
-            // Checked recently.
+            Self.cloudLog.info("sync: foreground check skipped, checked recently")
         } else {
+            if iCloudSyncEnabled { Self.cloudLog.notice("sync: start reason=foreground") }
             await synchronizeWithCloud()
         }
         guard !Task.isCancelled else { return }
@@ -3475,13 +3513,30 @@ final class AppModel {
             try persistence.writeCloudBaseline(adoption.baselineData)
             let adopted = adoption.adopted
             apply(adopted)
-            lastSyncedCloudSignature = adoption.signature
+            // Compare later edits with what this device itself produces after
+            // applying, not with the merge result: applying can normalise
+            // (orders, platform preferences, defaults), and a mismatch made
+            // every later save look like an edit and sync again.
+            let settled = currentSnapshot(updatedAt: lastLocalEditAt ?? .now)
+            let settledSignature = await Task.detached(priority: .utility) {
+                CloudSnapshotMerge.signature(settled)
+            }.value
+            if settledSignature != adoption.signature {
+                Self.cloudLog.notice("sync: applied state normalised; tracking the applied signature")
+            }
+            lastSyncedCloudSignature = settledSignature
+            lastCloudSyncFailureAt = nil
             synchronizedEditAt = merged.updatedAt
             needsAnotherSync = adoption.needsAnotherSync
             cloudSyncIssue = nil
+            Self.cloudLog.notice("sync: done published=\(publishes, privacy: .public) moreToSync=\(adoption.needsAnotherSync, privacy: .public)")
             if showResult { showToast(String(localized: "已同步到 iCloud"), symbol: "icloud") }
             lastCloudSyncAt = .now
         } catch {
+            if !Self.isCancellationError(error) {
+                lastCloudSyncFailureAt = .now
+                Self.cloudLog.error("sync: failed \(String(describing: error), privacy: .public)")
+            }
             if !Self.isCancellationError(error), iCloudSyncEnabled, cloudSyncGeneration == generation {
                 cloudSyncIssue = error.localizedDescription
             }
@@ -3495,6 +3550,13 @@ final class AppModel {
         persistTask?.cancel()
         persistTask = nil
         pendingPersistenceUpdatedAt = nil
+    }
+
+    /// Whether this device holds a user decision iCloud has not seen yet.
+    func hasUnsyncedCloudChanges() async -> Bool {
+        let snapshot = currentSnapshot(updatedAt: lastLocalEditAt ?? .now)
+        let signature = await Task.detached(priority: .utility) { CloudSnapshotMerge.signature(snapshot) }.value
+        return signature == nil || signature != lastSyncedCloudSignature
     }
 
     /// Uploads after edits settle, so a burst of changes costs one write.
@@ -3515,7 +3577,16 @@ final class AppModel {
             }.value
             guard !Task.isCancelled else { return }
             self.cloudUploadTask = nil
-            if let signature, signature == self.lastSyncedCloudSignature { return }
+            if let signature, signature == self.lastSyncedCloudSignature {
+                Self.cloudLog.info("sync: skipped, no user change since last sync")
+                return
+            }
+            if let failedAt = self.lastCloudSyncFailureAt,
+               Date.now.timeIntervalSince(failedAt) < Self.cloudFailureBackoff {
+                Self.cloudLog.notice("sync: skipped, backing off after a failure")
+                return
+            }
+            Self.cloudLog.notice("sync: start reason=edit hasBaseline=\(self.lastSyncedCloudSignature != nil, privacy: .public)")
             await self.synchronizeWithCloud()
         }
     }
@@ -3729,6 +3800,8 @@ final class AppModel {
            let fallback = visibleClientOrder.first {
             selectedTarget = fallback
         }
+        // Rule caches were emptied above; these are the inputs they now follow.
+        recordRuleInputs()
     }
 
     /// Catalog rules briefly reused broad upstream groups such as `AI 服务`,
@@ -3869,13 +3942,15 @@ final class AppModel {
     /// the default and is stamped with the moment it happened.
     private func persist(invalidateRuleCounts: Bool = true, updatedAt: Date = .now) {
         if invalidateRuleCounts {
-            let inputs = RuleCountInputs(schemes: importedSchemes, customizations: ruleSchemeCustomizations,
-                                         flows: customRuleFlows, localRuleSets: localRuleSets)
-            if inputs != ruleCountInputs {
-                ruleCountInputs = inputs
+            let presentation = currentRulePresentationInputs()
+            if presentation.counts != ruleCountInputs {
+                ruleCountInputs = presentation.counts
                 schemeRuleCountCache.removeAll(keepingCapacity: true)
             }
-            invalidateRuleSchemePresentationCaches()
+            if presentation != rulePresentationInputs {
+                rulePresentationInputs = presentation
+                invalidateRuleSchemePresentationCaches()
+            }
         }
         guard !isDemoMode else { return }
         // Stamp the edit now, but leave the full state walk until after SwiftUI

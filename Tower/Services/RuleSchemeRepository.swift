@@ -53,7 +53,11 @@ struct RuleSchemeRepository {
     /// Rule lines for one ruleset, comments and blank lines already removed.
     func lines(for resource: RuleSchemeRuleset.Resource) -> [String] {
         if let url = resource.domainSetURL {
-            return lines(for: .remote(url)).compactMap { raw in
+            // The source list is cached; its conversion was not, and a domain
+            // set can hold tens of thousands of lines rebuilt on every read.
+            let source = lines(for: .remote(url))
+            if let cached = DomainSetLineCache.shared.lines(for: url, source: source) { return cached }
+            let converted = source.compactMap { raw -> String? in
                 let domain = raw.trimmingCharacters(in: .whitespacesAndNewlines)
                     .trimmingCharacters(in: CharacterSet(charactersIn: "\u{FEFF}"))
                 let suffix = domain.hasPrefix(".")
@@ -62,6 +66,8 @@ struct RuleSchemeRepository {
                       !value.contains(where: { $0.isWhitespace || ",/\"#;".contains($0) }) else { return nil }
                 return "\(suffix ? "DOMAIN-SUFFIX" : "DOMAIN"),\(value)"
             }
+            DomainSetLineCache.shared.store(converted, for: url, source: source)
+            return converted
         }
         switch resource {
         case .inline(let rule):
@@ -712,5 +718,38 @@ private struct BundledClassicalRuleAnalysis {
                 bytes[index] &= UInt8(truncatingIfNeeded: 0xFF << (8 - remaining))
             }
         }
+    }
+}
+
+/// Converted domain-set lines, reused while their source list is the same
+/// cached array (same storage and length).
+final class DomainSetLineCache: @unchecked Sendable {
+    static let shared = DomainSetLineCache()
+
+    private struct SourceKey: Equatable {
+        let address: UnsafeRawPointer?
+        let count: Int
+
+        init(_ lines: [String]) {
+            address = lines.withUnsafeBufferPointer { UnsafeRawPointer($0.baseAddress) }
+            count = lines.count
+        }
+    }
+
+    private let lock = NSLock()
+    private var entries: [URL: (source: SourceKey, lines: [String])] = [:]
+
+    func lines(for url: URL, source: [String]) -> [String]? {
+        let key = SourceKey(source)
+        lock.lock(); defer { lock.unlock() }
+        guard let entry = entries[url], entry.source == key else { return nil }
+        return entry.lines
+    }
+
+    func store(_ lines: [String], for url: URL, source: [String]) {
+        let key = SourceKey(source)
+        lock.lock(); defer { lock.unlock() }
+        if entries.count > 256 { entries.removeAll(keepingCapacity: true) }
+        entries[url] = (key, lines)
     }
 }

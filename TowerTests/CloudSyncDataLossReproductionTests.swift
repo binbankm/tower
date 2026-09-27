@@ -59,6 +59,30 @@ final class CloudSyncDataLossReproductionTests: XCTestCase {
         await model.setICloudSyncEnabled(false)
     }
 
+    /// After a sync, merely using the app (viewing another client, a refresh,
+    /// resolved countries) must not look like an unsynced change.
+    func testSyncedStateIsNotReportedAsChangedWithoutAnEdit() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let previous = CloudSyncPreference.isEnabled()
+        CloudSyncPreference.setEnabled(false)
+        defer { CloudSyncPreference.setEnabled(previous) }
+        let model = AppModel(persistence: PersistenceStore(fileURL: folder.appendingPathComponent("local.json")),
+                             cloudSync: CloudSyncStore(fileURL: folder.appendingPathComponent("cloud.json")), arguments: [])
+        model.setConfigurationName("Phone")
+        await model.setICloudSyncEnabled(true)
+        XCTAssertNotNil(model.lastCloudSyncAt)
+        let unsyncedRightAfterSync = await model.hasUnsyncedCloudChanges()
+        XCTAssertFalse(unsyncedRightAfterSync)
+        model.selectedTarget = .clash
+        let unsyncedAfterBrowsing = await model.hasUnsyncedCloudChanges()
+        XCTAssertFalse(unsyncedAfterBrowsing)
+        model.setConfigurationName("Renamed")
+        let unsyncedAfterEdit = await model.hasUnsyncedCloudChanges()
+        XCTAssertTrue(unsyncedAfterEdit)
+        await model.setICloudSyncEnabled(false)
+    }
+
     func testRestoringUndatedSnapshotCreatesBackup() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
