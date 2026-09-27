@@ -666,7 +666,11 @@ struct ConfigurationGenerator {
         }
         // These clients accept structured node subscriptions. Keep the legacy
         // URI path for ordinary lists; ShadowTLS needs both credential layers.
-        let structuredNodes = supported.contains { $0.shadowTLS != nil || $0.masque?.mode == .keyConnectIP }
+        // Native SS TLS also has no URI form, so it takes Shadowrocket's YAML.
+        let structuredNodes = supported.contains {
+            $0.shadowTLS != nil || $0.masque?.mode == .keyConnectIP
+                || (target == .shadowrocket && isNativeShadowsocksTLS($0))
+        }
         var fileExtension = target.usesClashFormat ? "yaml" : "txt"
 
         let content: String
@@ -823,16 +827,26 @@ struct ConfigurationGenerator {
         // Do not emit ordinary TLS when the source requires Reality.
         if target == .clash, node.usesReality,
            node.kind != .vless || !["", "tcp"].contains(node.transport?.lowercased() ?? "tcp") { return false }
-        // Hako's verified outbound implementations do not consume Reality for
-        // these kinds or native SS TLS. Preserve the source and report skips.
-        if [.clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty].contains(target) {
-            if node.usesReality, [.anytls, .socks5, .http].contains(node.kind) { return false }
-            if node.kind == .shadowsocks, node.tls,
-               (node.plugin ?? "").isEmpty, simpleObfsMode(node) == nil { return false }
-        }
-        // Native SS-over-TLS is distinct from Stash's supported SS plugins.
-        if target == .clash, node.kind == .shadowsocks, node.tls,
-           (node.plugin ?? "").isEmpty, simpleObfsMode(node) == nil { return false }
+        // Mihomo's outbounds (Hako and Clash Mi ship it too) do not consume
+        // Reality for these kinds; the YAML loads and then connects with plain
+        // TLS to the borrowed SNI. Clash Mi users reported exactly 07/09/10
+        // failing, and a mihomo 1.19.31 run reproduces it.
+        if [.clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi].contains(target),
+           node.usesReality, [.anytls, .socks5, .http].contains(node.kind) { return false }
+        // Only Loon's VMess, VLESS, Trojan and AnyTLS take `public-key`. Its
+        // SOCKS5 and HTTP(S) proxies have no Reality field. Karing's sing-box
+        // core has no SOCKS TLS at all, and users saw its HTTP Reality fail.
+        if [.loon, .karing].contains(target), node.usesReality, [.socks5, .http].contains(node.kind) { return false }
+        if target == .karing, node.kind == .socks5, node.tls { return false }
+        // Native SS-over-TLS (no plugin, no simple-obfs) has a field only in
+        // Shadowrocket (`tls: true`) and Quantumult X (`obfs=over-tls`). Every
+        // other writer — Surge, Loon, Stash, mihomo, sing-box, URI lists —
+        // dropped TLS and handed out plain Shadowsocks that cannot connect.
+        if isNativeShadowsocksTLS(node), ![.shadowrocket, .quanx].contains(target) { return false }
+        // Xray's VLESS encryption was run against mihomo 1.19.31 only; other
+        // clients either lack the field or ignore it and send plain VLESS.
+        if node.kind == .vless, node.vlessEncryption != nil,
+           ![.clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi].contains(target) { return false }
         // Stash before iOS 3.6 rejects Snell v4/v5 at configuration load time.
         // Until a client-version preference exists, use the compatible v1-v3
         // baseline. Never rewrite the version: it must match the server.
@@ -848,21 +862,17 @@ struct ConfigurationGenerator {
             guard [4, 5].contains(node.version ?? 4) else { return false }
             if let obfs = node.obfs, !obfs.isEmpty, !["none", "http"].contains(obfs.lowercased()) { return false }
         }
-        // Official Shadowsocks has no native TLS field. Its SIP003 plugins
-        // carry their own TLS; never silently export native SS TLS as plain SS.
-        if [.singBox, .hiddify].contains(target), node.kind == .shadowsocks,
-           node.tls, (node.plugin ?? "").isEmpty, simpleObfsMode(node) == nil { return false }
         // The official SOCKS outbound cannot express TLS. Dropping TLS would
         // change the protocol; exclude the node and keep it in skipped counts.
         if [.singBox, .hiddify].contains(target), node.kind == .socks5, node.tls || node.usesReality { return false }
-        // Surge and Shadowrocket carry Hysteria 2's obfuscator in the key name
-        // — `salamander-password` and a bare `obfsParam` — so neither has any
+        // Surge, Loon and Shadowrocket carry Hysteria 2's obfuscator in the key
+        // name — `salamander-password` and a bare `obfsParam` — so none has any
         // way to say "some other obfuscator". (Surge also documents its own
         // `gecko-password`, but nothing Tower parses produces that name.)
         // Writing one anyway would hand the password to Salamander and produce
         // the "looks right, never connects" outcome, so the node is skipped and
         // counted instead.
-        if node.kind == .hysteria2, [.surge, .surgeMac, .shadowrocket].contains(target),
+        if node.kind == .hysteria2, [.surge, .surgeMac, .shadowrocket, .loon].contains(target),
            let obfs = hysteria2Obfs(node), obfs.type.lowercased() != "salamander" { return false }
         if node.shadowTLS != nil || node.plugin == "shadow-tls" {
             guard node.kind == .shadowsocks, node.plugin == "shadow-tls",
@@ -922,6 +932,12 @@ struct ConfigurationGenerator {
         return true
     }
 
+    /// Shadowsocks wrapped in ordinary TLS by the proxy itself, as opposed to
+    /// a SIP003 plugin or simple-obfs carrying its own TLS.
+    private func isNativeShadowsocksTLS(_ node: ProxyNode) -> Bool {
+        node.kind == .shadowsocks && node.tls && (node.plugin ?? "").isEmpty && simpleObfsMode(node) == nil
+    }
+
     private func canExpressTransport(of node: ProxyNode, on target: ClientTarget) -> Bool {
         guard [.vmess, .vless, .trojan].contains(node.kind) else { return true }
         let transport = node.transport?.lowercased() ?? "tcp"
@@ -939,15 +955,31 @@ struct ConfigurationGenerator {
             return ["ws", "http", "h2", "grpc", "httpupgrade", "xhttp"].contains(transport)
                 && (transport != "xhttp" || node.kind == .vless)
         case .loon:
-            if node.kind == .trojan { return ["ws", "http"].contains(transport) }
+            // Loon reads a Trojan `transport=http` as WebSocket, so only ws is real.
+            if node.kind == .trojan { return transport == "ws" }
             return ["ws", "http"].contains(transport)
         case .quanx:
             return transport == "ws" || (node.kind == .vmess && transport == "http" && !node.tls)
         case .hiddify, .singBox:
-            return ["ws", "http", "h2", "grpc", "httpupgrade"].contains(transport)
+            // sing-box's one `http` transport is HTTP/2 over TLS and HTTP/1.1
+            // without it, so the other two pairings cannot be written.
+            if transport == "http" { return !node.tls }
+            if transport == "h2" { return node.tls }
+            return ["ws", "grpc", "httpupgrade"].contains(transport)
         case .egern:
-            if node.kind == .trojan { return ["ws", "http"].contains(transport) }
-            return ["ws", "http", "h2", "grpc"].contains(transport)
+            // Egern's Trojan has only `websocket`; any other transport was
+            // written as plain Trojan over TCP.
+            if node.kind == .trojan { return transport == "ws" && !node.usesReality }
+            // Egern takes Reality only on its `tls` (TCP) transport. Its gRPC
+            // and HTTP/2 are always ordinary TLS, and HTTP/1 is never TLS, so
+            // any other pairing was written without the security it needs.
+            if node.usesReality { return false }
+            switch transport {
+            case "ws": return true
+            case "http": return !node.tls
+            case "h2", "grpc": return node.tls
+            default: return false
+            }
         case .anywhere:
             return node.kind == .vless && ["ws", "grpc", "httpupgrade", "xhttp"].contains(transport)
         case .v2box:
@@ -2130,13 +2162,22 @@ struct ConfigurationGenerator {
         if node.kind == .vless, let flow = node.flow, !flow.isEmpty {
             values.append("    flow: \(yaml(flow))")
         }
+        if node.kind == .vless, let encryption = node.vlessEncryption {
+            values.append("    encryption: \(yaml(encryption))")
+        }
         appendClashClientFingerprint(node, to: &values)
         if let transport = node.transport, !transport.isEmpty, transport != "tcp" {
             values.append("    network: \(yaml(transport == "httpupgrade" ? "ws" : transport))")
             switch transport {
             case "ws", "httpupgrade":
+                // Stash takes early data as ws-opts fields, not from the path.
+                let separateEarlyData = target == .clash && transport == "ws" ? node.webSocketEarlyData : nil
                 values.append("    ws-opts:")
-                values.append("      path: \(yaml(node.exportablePath ?? "/"))")
+                values.append("      path: \(yaml((separateEarlyData != nil ? node.exportablePathWithoutEarlyData : node.exportablePath) ?? "/"))")
+                if let separateEarlyData {
+                    values.append("      max-early-data: \(separateEarlyData)")
+                    values.append("      early-data-header-name: Sec-WebSocket-Protocol")
+                }
                 if let host = node.exportableTransportHost {
                     values.append("      headers:")
                     values.append("        Host: \(yaml(host))")
@@ -2453,6 +2494,12 @@ struct ConfigurationGenerator {
                 let key = shadowrocket ? "obfsParam" : "salamander-password"
                 components.append("\(key)=\(confValue(obfs.password))")
             }
+            // Hopping servers still answer on the base port, so dropping this
+            // connected — without the hopping that keeps QUIC reachable.
+            let hopping = portHoppingEntries(node)
+            if !shadowrocket, !hopping.isEmpty {
+                components.append("port-hopping=\"\(hopping.joined(separator: ";"))\"")
+            }
             appendSurgeTLS(node, includeTLSFlag: false, to: &components)
         case .hysteria:
             // Shadowrocket only; Surge has no Hysteria 1 server type and
@@ -2630,7 +2677,7 @@ struct ConfigurationGenerator {
         appendSurgeTLS(node, includeTLSFlag: includeTLSFlag, to: &values)
         if node.transport == "ws" {
             values.append("ws=true")
-            appendValue(node.exportablePath ?? "/", key: "ws-path", to: &values)
+            appendValue(node.exportablePathWithoutEarlyData ?? "/", key: "ws-path", to: &values)
             if let host = node.exportableTransportHost {
                 values.append("ws-headers=Host:\(confValue(host))")
             }
@@ -2903,7 +2950,7 @@ struct ConfigurationGenerator {
         case .trojan:
             values = ["trojan", node.server, "\(node.port)", loonQuoted(node.password ?? "")]
             appendValue(node.transport, key: "transport", to: &values)
-            appendValue(node.exportablePath, key: "path", to: &values)
+            appendValue(node.exportablePathWithoutEarlyData, key: "path", to: &values)
             appendValue(node.hostHeader, key: "host", to: &values)
             appendValue(node.alpn, key: "alpn", to: &values)
             if node.skipCertificateVerification { values.append("skip-cert-verify=true") }
@@ -2911,6 +2958,16 @@ struct ConfigurationGenerator {
             values.append("udp=true")
         case .hysteria2:
             values = ["Hysteria2", node.server, "\(node.port)", loonQuoted(node.password ?? "")]
+            // Without this a Salamander server drops every packet: the node
+            // imported cleanly and never connected.
+            if let obfs = hysteria2Obfs(node) {
+                values.append("salamander-password=\(loonQuoted(obfs.password))")
+            }
+            let hopping = portHoppingEntries(node)
+            if !hopping.isEmpty {
+                // Loon's documented range separator is a colon.
+                values.append("server-ports=\(loonQuoted(hopping.map { $0.replacingOccurrences(of: "-", with: ":") }.joined(separator: ",")))")
+            }
             if node.skipCertificateVerification { values.append("skip-cert-verify=true") }
             appendValue(node.sni, key: "tls-name", to: &values)
             values += ["udp=true", "fast-open=true"]
@@ -2994,7 +3051,7 @@ struct ConfigurationGenerator {
             appendValue(node.realityShortID, key: "short-id", to: &values)
         }
         if let flow = node.flow, !flow.isEmpty { values.append("flow=\(confValue(flow))") }
-        appendValue(node.exportablePath, key: "path", to: &values)
+        appendValue(node.exportablePathWithoutEarlyData, key: "path", to: &values)
         appendValue(node.exportableTransportHost, key: "host", to: &values)
         values.append("over-tls=\(node.tls)")
         appendValue(node.sni, key: "tls-name", to: &values)
@@ -3211,7 +3268,7 @@ struct ConfigurationGenerator {
                 ? node.exportableTransportHost
                 : (node.hostHeader ?? node.sni)
             appendValue(transportHost, key: "obfs-host", to: &values)
-            appendValue(node.exportablePath ?? "/", key: "obfs-uri", to: &values)
+            appendValue(node.exportablePathWithoutEarlyData ?? "/", key: "obfs-uri", to: &values)
         } else if node.kind == .vmess, node.transport?.lowercased() == "http" {
             values.append("obfs=http")
             appendValue(node.hostHeader, key: "obfs-host", to: &values)
@@ -3252,6 +3309,17 @@ struct ConfigurationGenerator {
     /// takes every other node in the file down with it. sing-box is the same.
     /// Without the password the node could not have connected either way, so
     /// the obfs layer is dropped rather than half-written.
+    /// Hysteria 2 port-hopping entries, from mihomo's `443,5000-6000` form
+    /// (share links' `mport` uses the same shape). Each client spells the
+    /// list differently, but every entry is a port or a `low-high` range.
+    func portHoppingEntries(_ node: ProxyNode) -> [String] {
+        guard node.kind == .hysteria2 else { return [] }
+        return (node.portHopping ?? "")
+            .split(whereSeparator: { $0 == "," || $0 == ";" })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
     func hysteria2Obfs(_ node: ProxyNode) -> (type: String, password: String)? {
         guard node.kind == .hysteria2,
               let type = node.obfs?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -4049,6 +4117,12 @@ extension ConfigurationGenerator {
             if let obfs = hysteria2Obfs(node) {
                 outbound["obfs"] = ["type": obfs.type, "password": obfs.password]
             }
+            let hopping = portHoppingEntries(node)
+            if !hopping.isEmpty {
+                outbound["server_ports"] = hopping.map { entry in
+                    entry.contains("-") ? entry.replacingOccurrences(of: "-", with: ":") : "\(entry):\(entry)"
+                }
+            }
         case .hysteria:
             outbound["type"] = "hysteria"
             outbound["auth_str"] = node.password ?? ""
@@ -4151,7 +4225,11 @@ extension ConfigurationGenerator {
         switch transport {
         case "ws":
             var websocket: [String: Any] = ["type": "ws"]
-            if let path = node.exportablePath { websocket["path"] = path }
+            if let path = node.exportablePathWithoutEarlyData { websocket["path"] = path }
+            if let earlyData = node.webSocketEarlyData {
+                websocket["max_early_data"] = earlyData
+                websocket["early_data_header_name"] = "Sec-WebSocket-Protocol"
+            }
             if let host = node.exportableTransportHost { websocket["headers"] = ["Host": host] }
             return websocket
         case "grpc":
@@ -4712,6 +4790,8 @@ extension ConfigurationGenerator {
             endpoint()
             body.append("      auth: \(yaml(node.password ?? ""))")
             if let sni = node.sni, !sni.isEmpty { body.append("      sni: \(yaml(sni))") }
+            let hopping = portHoppingEntries(node)
+            if !hopping.isEmpty { body.append("      port_hopping: \(yaml(hopping.joined(separator: ",")))") }
         case .tuic:
             type = "tuic"
             endpoint()
@@ -4801,7 +4881,7 @@ extension ConfigurationGenerator {
     /// node negotiates TLS.
     private func egernTransport(_ node: ProxyNode) -> [String]? {
         if node.kind == .trojan, node.transport == "ws" {
-            var lines = ["      websocket:", "        path: \(yaml(node.exportablePath ?? "/"))"]
+            var lines = ["      websocket:", "        path: \(yaml(node.exportablePathWithoutEarlyData ?? "/"))"]
             if let host = node.exportableTransportHost { lines.append("        host: \(yaml(host))") }
             return lines
         }
@@ -4820,7 +4900,7 @@ extension ConfigurationGenerator {
             }
         case "ws":
             lines.append("        \(node.tls ? "wss" : "ws"):")
-            if let path = node.exportablePath { lines.append("          path: \(yaml(path))") }
+            if let path = node.exportablePathWithoutEarlyData { lines.append("          path: \(yaml(path))") }
             if let host = node.exportableTransportHost {
                 lines.append("          headers:")
                 lines.append("            Host: \(yaml(host))")

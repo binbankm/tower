@@ -59,9 +59,11 @@ final class SingBoxGenerationTests: XCTestCase {
             XCTAssertFalse(result.content.contains("Native SS TLS"))
             XCTAssertTrue(result.content.contains("Plain SS"))
         }
-        for target: ClientTarget in [.shadowrocket, .karing] {
+        // Only Shadowrocket and Quantumult X can say "native TLS" for SS.
+        for target: ClientTarget in [.shadowrocket, .quanx] {
             XCTAssertEqual(generator.generate(nodes: [secure], preset: preset, target: target).supportedNodeCount, 1)
         }
+        XCTAssertEqual(generator.generate(nodes: [secure], preset: preset, target: .karing).supportedNodeCount, 0)
     }
 
     func testShadowsocksWebSocketUsesOnlySIP003Transport() throws {

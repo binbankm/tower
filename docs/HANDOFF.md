@@ -1,5 +1,21 @@
 # 当前交接
 
+## 未发布：协议与导出格式审计第一轮（2026-09-27）
+
+- 方法：在测试 VPS 上保留原 25 个实验入站，另建 `/opt/tower-audit`（sing-box + Xray，systemd 服务 `tower-audit-sing-box`、`tower-audit-xray`；UDP 24060–24069 经 iptables `TOWER_AUDIT` 链转发到 24042，重启后失效），补充 gRPC、HTTP/2、HTTPUpgrade、SS2022（三种算法）、ShadowTLS v3、Hysteria2 Salamander 与端口跳跃、Reality + gRPC/XHTTP、WebSocket 早期数据、HTTP/1.1 伪装、VLESS 加密、Naive。节点经塔台 `LocalCompatibilityCorpusTests`（新增输出跳过原因）导出全部目标，再用 mihomo 1.19.31、sing-box 1.14.2 绑定 en0 绕过本机 Surge，逐节点经 VPS 请求测试地址。服务器地址、凭据和导出文件只在本机 `.artifacts/protocol-audit/` 与 `docs/LOCAL_TEST_INFRASTRUCTURE.md`。
+- 修复（均已实测失败 → 修复后通过，或按客户端文档确认无法表达）：
+  - 解析：VLESS/Trojan 链接 `type=http` 按 Xray 规范为 HTTP/2；`type=tcp&headerType=http` 与 VMess `net=tcp,type=http` 的 HTTP/1.1 伪装以前被丢弃，导出后变成普通 TCP。分享链接改为标准写法（VMess `net:tcp,type:http`；VLESS/Trojan `type=tcp&headerType=http`），不再写会被读成 HTTP/2 的 `net:http`。
+  - 原生 SS TLS 只有 Shadowrocket（`tls: true`）和 QuanX（`obfs=over-tls`）能表达；Surge、Loon、Clash Mi、Karing 和 V2Box/Shadowrocket 分享链接以前都丢掉 TLS 写成普通 SS，现统一跳过。Shadowrocket 仅节点遇到此类节点改用 YAML。
+  - Clash Mi（mihomo 内核）补入 AnyTLS/SOCKS5/HTTP Reality 跳过规则，与交接中 09-06 用户反馈的 07/09/10 失败一致；Loon 与 Karing 跳过 SOCKS5/HTTP Reality（Loon 文档没有该字段，Karing 用户实测失败），Karing 跳过 SOCKS5 TLS。
+  - Loon：Hysteria2 以前漏写 `salamander-password`，混淆节点永远连不上；补上并写 `server-ports`，非 Salamander 混淆跳过。Trojan 只保留 ws（Loon 把 `transport=http` 当 WebSocket）。
+  - Egern：Reality 只能配 TCP，gRPC/HTTP2 固定普通 TLS、HTTP/1 不带 TLS，以前 VLESS Reality + gRPC 会丢 Reality；Trojan 只支持 WebSocket，以前其他传输被写成普通 TCP Trojan。
+  - WebSocket 早期数据 `?ed=`：sing-box/Hiddify 与 Stash 改写为 `max_early_data` / `max-early-data` 字段并去掉路径参数（sing-box 服务端会按完整路径拒绝）；Surge、Loon、QuanX、Egern 去掉该参数；mihomo 与 Shadowrocket 保持原样。
+  - sing-box/Hiddify 的 `http` 传输在有 TLS 时是 HTTP/2、无 TLS 时是 HTTP/1.1，无法表达的另两种组合跳过。
+  - Hysteria2 端口跳跃：以前只有 Clash YAML 保留，现补 Surge `port-hopping`、Loon `server-ports`、sing-box `server_ports`、Egern `port_hopping`。
+  - 新增 `ProxyNode.vlessEncryption`：VLESS `encryption=mlkem768x25519plus…` 以前被当作 none 导出。现从链接和 Clash YAML 读取，仅导出到 mihomo 系目标（已实测连通），其他目标跳过。
+- 验证：`ProtocolAuditTests` 17 项；`testKaringYAMLPreservesRealityOnlyWhereItConnects`、`testNativeShadowsocksTLSIsSkippedWithoutLosingPlainSS` 按新规则更新。1204 项 XCTest（5 跳过、0 失败）与 106 项 Swift Testing 通过。实测：mihomo 目标 41/42、sing-box 目标 38/39 连通，唯一失败为 WireGuard（直连时握手超时，经代理路径可通，判断为本地运营商拦截）。
+- 未完成：图形客户端（Surge、Loon、Shadowrocket、QuanX、Stash、Egern、Karing、V2Box）尚未在 Mac mini 上实测；SSH 通道没有截屏与辅助功能权限。缺失协议评估见本轮报告。
+
 ## 未发布：刷新进度与提示统一到顶部，协议筛选行不再折行（2026-09-27）
 
 - 批量刷新订阅的进度原来显示在底部标签栏上方，而完成提示（「17 个订阅已全部更新」）和规则更新提示显示在顶部，两者位置不一致。现在进度改由根层的 `ToastOverlay` 显示（`towerToast(showsRefreshProgress: true)`），与所有提示共用同一个 `StatusSurface` 外框和 `StatusBadge`。进度徽标是确定进度的圆环；刷新完成时，同一个外框原地换成完成提示，不再先消失再出现。外框按内容宽度显示，停在「管理」和「+」之间，不挡导航按钮。只在订阅页显示；单个订阅刷新时仍由卡片上的按钮转圈。移除了 `subscriptionRefreshProgress()` 修饰符和底部的胶囊进度条。UI 测试 `testSubscriptionRefreshShowsTopStatusAndCanCancel` 检查进度位于顶部、不遮挡两个导航按钮，并可以取消；测试用抓取延迟由 8 秒改为 15 秒。

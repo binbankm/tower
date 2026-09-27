@@ -1082,9 +1082,16 @@ struct SubscriptionParser {
         }
 
         let tlsValue = stringValue(json["tls"])?.lowercased()
-        let rawTransport = stringValue(json["net"])
-            ?? stringValue(json["network"])
-            ?? stringValue(json["type"])
+        let network = stringValue(json["net"]) ?? stringValue(json["network"])
+        let headerType = stringValue(json["type"])
+        let transport: String? = switch (network?.lowercased(), headerType?.lowercased()) {
+        // v2rayN's HTTP/1.1 header obfuscation is `net: tcp` plus `type: http`;
+        // reading only `net` imported it as plain TCP, which never connects.
+        case (nil, "http"), ("tcp", "http"), ("raw", "http"): "http"
+        // Xray names its HTTP/2 transport `http`; `h2` is the other spelling.
+        case ("http", _): "h2"
+        default: normalizedVMessTransport(network ?? headerType)
+        }
         return ProxyNode(
             sourceID: sourceID,
             kind: .vmess,
@@ -1093,7 +1100,7 @@ struct SubscriptionParser {
             port: port,
             cipher: stringValue(json["scy"]) ?? "auto",
             uuid: uuid,
-            transport: normalizedVMessTransport(rawTransport) ?? "tcp",
+            transport: transport ?? "tcp",
             tls: tlsValue == "tls" || tlsValue == "true",
             sni: stringValue(json["sni"]),
             hostHeader: stringValue(json["host"]),
@@ -1226,6 +1233,23 @@ struct SubscriptionParser {
         case "none": nil
         default: value
         }
+    }
+
+    /// The transport a VLESS or Trojan share link names. The Xray link
+    /// standard gives `type=http` to its HTTP/2 transport, and spells HTTP/1.1
+    /// header obfuscation as `type=tcp` with `headerType=http`. Reading
+    /// `http` as HTTP/1.1 and ignoring `headerType` turned both into a
+    /// different wire protocol.
+    private func standardLinkTransport(
+        _ transport: String?,
+        type: String?,
+        headerType: String?,
+        kind: ProxyKind
+    ) -> String? {
+        guard [.vless, .trojan].contains(kind) else { return transport }
+        if type?.lowercased() == "http" { return "h2" }
+        if transport == nil, headerType?.lowercased() == "http" { return "http" }
+        return transport
     }
 
     private func normalizedTransport(_ value: String?) -> String? {
@@ -1414,11 +1438,16 @@ struct SubscriptionParser {
         let trojanPlugin = kind == .trojan
             ? query["plugin"].flatMap(shadowrocketTrojanWebSocketOptions)
             : nil
-        let transport = normalizedTransport(
-            trojanPlugin?.transport
-                ?? query["type"]
-                ?? query["network"]
-                ?? (query["obfs"]?.contains("ws") == true ? "ws" : nil)
+        let transport = standardLinkTransport(
+            normalizedTransport(
+                trojanPlugin?.transport
+                    ?? query["type"]
+                    ?? query["network"]
+                    ?? (query["obfs"]?.contains("ws") == true ? "ws" : nil)
+            ),
+            type: trojanPlugin == nil ? query["type"] : nil,
+            headerType: query["headertype"],
+            kind: kind
         )
         let security = (query["security"] ?? query["tls"] ?? "").lowercased()
         // Shadowrocket has two VLESS URL dialects. Its Base64-authority form
@@ -1546,8 +1575,17 @@ struct SubscriptionParser {
                 ?? query["port-hopping"],
             upMbps: kind == .hysteria ? mbps(query["upmbps"] ?? query["up"]) : nil,
             downMbps: kind == .hysteria ? mbps(query["downmbps"] ?? query["down"]) : nil,
-            rawURI: raw
+            rawURI: raw,
+            vlessEncryption: kind == .vless ? vlessEncryption(query["encryption"]?.removingPercentEncoding) : nil
         )
+    }
+
+    /// VLESS encryption other than `none`. Dropping it produced a node that
+    /// looked complete and could never handshake.
+    private func vlessEncryption(_ value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty, value.lowercased() != "none" else { return nil }
+        return value
     }
 
     /// Shadowrocket serializes Trojan WebSocket as a SIP003-looking plugin:
@@ -1908,7 +1946,8 @@ struct SubscriptionParser {
                 wireGuardDNS: kind == .wireguard
                     ? csvValues(dictionary["dns"] ?? "").joined(separator: ",")
                     : nil,
-                rawURI: "clash://local/\(UUID().uuidString)"
+                rawURI: "clash://local/\(UUID().uuidString)",
+                vlessEncryption: kind == .vless ? vlessEncryption(dictionary["encryption"]) : nil
             ))
         }
         return .init(

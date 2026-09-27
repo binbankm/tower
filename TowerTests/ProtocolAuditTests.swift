@@ -1,0 +1,260 @@
+import XCTest
+@testable import Tower
+
+/// Findings from the 2026-09-27 protocol audit. Each node shape here was run
+/// through Tower's exports and then through mihomo 1.19.31 / sing-box 1.14.2
+/// against a test server; every case below failed to connect before its fix.
+final class ProtocolAuditTests: XCTestCase {
+    private let parser = SubscriptionParser()
+    private let uuid = "52396e06-041a-4cc2-be5c-8525eb457809"
+
+    private func content(_ nodes: [ProxyNode], _ target: ClientTarget) -> String {
+        ConfigurationGenerator().generate(nodes: nodes, preset: RulePreset.builtIns[0], target: target).content
+    }
+
+    private func nodesOnly(_ nodes: [ProxyNode], _ target: ClientTarget) -> GeneratedConfiguration {
+        ConfigurationGenerator().generateNodeSubscription(nodes: nodes, target: target, profileName: "Audit")
+    }
+
+    private func vmessLink(_ fields: [String: String]) -> String {
+        var object = ["v": "2", "ps": "VMess", "add": "vm.example.com", "port": "80", "id": uuid, "aid": "0"]
+        object.merge(fields) { _, new in new }
+        let data = try! JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+        return "vmess://" + data.base64EncodedString()
+    }
+
+    // MARK: - HTTP/1.1 obfuscation and HTTP/2 in share links
+
+    func testVLESSTypeHTTPIsTheHTTP2Transport() throws {
+        // The Xray link standard names its HTTP/2 transport `http`.
+        let node = try XCTUnwrap(parser.parseURI(
+            "vless://\(uuid)@v.example.com:443?security=tls&sni=v.example.com&type=http&path=%2Fh2&host=v.example.com#H2"
+        ))
+        XCTAssertEqual(node.transport, "h2")
+        let trojan = try XCTUnwrap(parser.parseURI("trojan://pw@t.example.com:443?type=http&path=%2Fh2#T"))
+        XCTAssertEqual(trojan.transport, "h2")
+    }
+
+    func testVLESSHeaderTypeHTTPKeepsTheObfuscation() throws {
+        let node = try XCTUnwrap(parser.parseURI(
+            "vless://\(uuid)@v.example.com:80?security=none&type=tcp&headerType=http&path=%2Fobfs&host=cover.example.com#Obfs"
+        ))
+        XCTAssertEqual(node.transport, "http")
+        XCTAssertEqual(node.path, "/obfs")
+        XCTAssertEqual(node.hostHeader, "cover.example.com")
+    }
+
+    func testVMessTCPWithHTTPHeaderKeepsTheObfuscation() throws {
+        let obfs = try XCTUnwrap(parser.parseURI(vmessLink(["net": "tcp", "type": "http", "path": "/obfs", "host": "cover.example.com"])))
+        XCTAssertEqual(obfs.transport, "http")
+        XCTAssertEqual(obfs.path, "/obfs")
+        let h2 = try XCTUnwrap(parser.parseURI(vmessLink(["net": "http", "tls": "tls", "path": "/h2"])))
+        XCTAssertEqual(h2.transport, "h2")
+        let plain = try XCTUnwrap(parser.parseURI(vmessLink(["net": "tcp", "type": "none"])))
+        XCTAssertEqual(plain.transport, "tcp")
+    }
+
+    func testShareLinksWriteHTTPObfuscationTheStandardWay() throws {
+        let vmess = try XCTUnwrap(parser.parseURI(vmessLink(["net": "tcp", "type": "http", "path": "/obfs", "host": "cover.example.com"])))
+        let link = ProxyNodeShareLinkGenerator().canonicalLink(for: vmess)
+        let payload = try XCTUnwrap(Data(base64Encoded: String(link.dropFirst("vmess://".count))))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: payload) as? [String: Any])
+        XCTAssertEqual(json["net"] as? String, "tcp")
+        XCTAssertEqual(json["type"] as? String, "http")
+        // Re-reading the link must give the same transport back.
+        XCTAssertEqual(parser.parseURI(link)?.transport, "http")
+
+        let vless = try XCTUnwrap(parser.parseURI(
+            "vless://\(uuid)@v.example.com:80?type=tcp&headerType=http&path=%2Fobfs#Obfs"
+        ))
+        let vlessLink = ProxyNodeShareLinkGenerator().canonicalLink(for: vless)
+        XCTAssertTrue(vlessLink.contains("type=tcp"), vlessLink)
+        XCTAssertTrue(vlessLink.contains("headerType=http"), vlessLink)
+        XCTAssertEqual(parser.parseURI(vlessLink)?.transport, "http")
+    }
+
+    // MARK: - Native Shadowsocks TLS
+
+    private var nativeTLSShadowsocks: ProxyNode {
+        ProxyNode(kind: .shadowsocks, name: "SS TLS", server: "ss.example.com", port: 443,
+                  cipher: "aes-128-gcm", password: "pw", tls: true, sni: "ss.example.com", rawURI: "")
+    }
+
+    func testNativeShadowsocksTLSIsNeverExportedAsPlainShadowsocks() {
+        // Surge, Loon, Clash Mi, Karing and URI lists wrote it without TLS.
+        for target in [ClientTarget.surge, .surgeMac, .loon, .clashMi, .karing, .clash, .egern, .singBox] {
+            XCTAssertEqual(
+                ConfigurationGenerator().generate(nodes: [nativeTLSShadowsocks], preset: RulePreset.builtIns[0], target: target).supportedNodeCount,
+                0, "\(target.name) 不能表达原生 SS TLS"
+            )
+        }
+        XCTAssertEqual(nodesOnly([nativeTLSShadowsocks], .v2box).supportedNodeCount, 0)
+    }
+
+    func testNativeShadowsocksTLSStaysInShadowrocketAndQuantumultX() {
+        XCTAssertTrue(content([nativeTLSShadowsocks], .shadowrocket).contains("tls: true"))
+        XCTAssertTrue(content([nativeTLSShadowsocks], .quanx).contains("obfs=over-tls"))
+        // A plain URI cannot say TLS, so Shadowrocket's node list switches to YAML.
+        let list = nodesOnly([nativeTLSShadowsocks], .shadowrocket)
+        XCTAssertEqual(list.supportedNodeCount, 1)
+        XCTAssertTrue(list.content.hasPrefix("proxies:"), list.content)
+        XCTAssertTrue(list.content.contains("tls: true"), list.content)
+    }
+
+    // MARK: - Reality where the client has no field for it
+
+    private func reality(_ kind: ProxyKind) -> ProxyNode {
+        ProxyNode(kind: kind, name: "\(kind.rawValue) Reality", server: "r.example.com", port: 443,
+                  password: "pw", username: kind == .anytls ? nil : "user", tls: true, sni: "cover.example.com",
+                  realityPublicKey: "LgJ9bNTyUqBLFkDA12-QgEL7c1yQ1ztk-V1Q-3OLXSk", realityShortID: "abcd",
+                  fingerprint: "chrome", rawURI: "")
+    }
+
+    func testClashMiSkipsRealityThatMihomoIgnores() {
+        // Clash Mi users saw 07/09/10 fail; mihomo loads the YAML and then
+        // connects with plain TLS to the borrowed SNI.
+        for kind in [ProxyKind.anytls, .socks5, .http] {
+            XCTAssertFalse(content([reality(kind)], .clashMi).contains("r.example.com"), "\(kind)")
+        }
+    }
+
+    func testLoonAndKaringSkipSOCKS5AndHTTPReality() {
+        for target in [ClientTarget.loon, .karing] {
+            for kind in [ProxyKind.socks5, .http] {
+                XCTAssertFalse(content([reality(kind)], target).contains("r.example.com"), "\(target.name) \(kind)")
+            }
+        }
+        // Loon's Trojan and AnyTLS do take Reality.
+        XCTAssertTrue(content([reality(.anytls)], .loon).contains("public-key="))
+    }
+
+    // MARK: - Loon
+
+    private func hysteria2(obfs: String? = "salamander", hopping: String? = nil) -> ProxyNode {
+        ProxyNode(kind: .hysteria2, name: "HY2", server: "hy.example.com", port: 443, password: "pw",
+                  tls: true, sni: "hy.example.com", obfs: obfs, obfsParam: obfs == nil ? nil : "obfs-secret",
+                  portHopping: hopping, rawURI: "")
+    }
+
+    func testLoonKeepsHysteria2SalamanderAndPortHopping() {
+        let loon = content([hysteria2(hopping: "20000-20100,443")], .loon)
+        XCTAssertTrue(loon.contains("salamander-password=\"obfs-secret\""), loon)
+        XCTAssertTrue(loon.contains("server-ports=\"20000:20100,443\""), loon)
+        // Only Salamander has a Loon key; another obfuscator is skipped.
+        XCTAssertFalse(content([hysteria2(obfs: "gecko")], .loon).contains("hy.example.com"))
+    }
+
+    func testLoonTrojanOnlyWritesWebSocket() {
+        // Loon reads a Trojan `transport=http` as WebSocket.
+        let trojan = ProxyNode(kind: .trojan, name: "T", server: "t.example.com", port: 443, password: "pw",
+                               transport: "http", tls: true, path: "/x", rawURI: "")
+        XCTAssertFalse(content([trojan], .loon).contains("t.example.com"))
+    }
+
+    // MARK: - Hysteria 2 port hopping
+
+    func testPortHoppingReachesEveryClientThatHasIt() throws {
+        let node = hysteria2(hopping: "20000-20100,443")
+        XCTAssertTrue(content([node], .surge).contains("port-hopping=\"20000-20100;443\""))
+        XCTAssertTrue(content([node], .egern).contains("port_hopping: \"20000-20100,443\""))
+        let singBox = content([node], .singBox)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(singBox.utf8)) as? [String: Any])
+        let outbound = try XCTUnwrap((json["outbounds"] as? [[String: Any]])?.first { $0["type"] as? String == "hysteria2" })
+        XCTAssertEqual(outbound["server_ports"] as? [String], ["20000:20100", "443:443"])
+    }
+
+    // MARK: - Egern transports
+
+    func testEgernOnlyPairsRealityWithTCP() {
+        let grpc = ProxyNode(kind: .vless, name: "Reality gRPC", server: "e.example.com", port: 443, uuid: uuid,
+                             transport: "grpc", tls: true, sni: "cover.example.com", path: "svc",
+                             realityPublicKey: "LgJ9bNTyUqBLFkDA12-QgEL7c1yQ1ztk-V1Q-3OLXSk", rawURI: "")
+        XCTAssertFalse(content([grpc], .egern).contains("e.example.com"))
+        let trojanHTTP = ProxyNode(kind: .trojan, name: "T", server: "t.example.com", port: 443, password: "pw",
+                                   transport: "http", tls: true, rawURI: "")
+        XCTAssertFalse(content([trojanHTTP], .egern).contains("t.example.com"))
+    }
+
+    // MARK: - WebSocket early data
+
+    private var earlyData: ProxyNode {
+        ProxyNode(kind: .vmess, name: "ED", server: "ws.example.com", port: 443, uuid: uuid, transport: "ws",
+                  tls: true, sni: "ws.example.com", hostHeader: "ws.example.com", path: "/ws?ed=2048", rawURI: "")
+    }
+
+    func testSingBoxAndStashTakeEarlyDataAsSettings() throws {
+        let singBox = content([earlyData], .singBox)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(singBox.utf8)) as? [String: Any])
+        let outbound = try XCTUnwrap((json["outbounds"] as? [[String: Any]])?.first { $0["type"] as? String == "vmess" })
+        let transport = try XCTUnwrap(outbound["transport"] as? [String: Any])
+        XCTAssertEqual(transport["path"] as? String, "/ws")
+        XCTAssertEqual(transport["max_early_data"] as? Int, 2048)
+        XCTAssertEqual(transport["early_data_header_name"] as? String, "Sec-WebSocket-Protocol")
+
+        let stash = content([earlyData], .clash)
+        XCTAssertTrue(stash.contains("path: \"/ws\""), stash)
+        XCTAssertTrue(stash.contains("max-early-data: 2048"), stash)
+        // Mihomo reads `?ed=` from the path itself.
+        XCTAssertTrue(content([earlyData], .clashApple).contains("path: \"/ws?ed=2048\""))
+    }
+
+    func testClientsWithoutEarlyDataGetTheBarePath() {
+        XCTAssertTrue(content([earlyData], .surge).contains("ws-path=/ws,"))
+        XCTAssertTrue(content([earlyData], .loon).contains("path=/ws,"))
+        XCTAssertTrue(content([earlyData], .quanx).contains("obfs-uri=/ws,"))
+        XCTAssertTrue(content([earlyData], .egern).contains("path: \"/ws\""))
+    }
+
+    func testEarlyDataKeepsOtherPathQueries() {
+        var node = earlyData
+        node.path = "/ws?token=a&ed=1024"
+        XCTAssertEqual(node.webSocketEarlyData, 1024)
+        XCTAssertEqual(node.exportablePathWithoutEarlyData, "/ws?token=a")
+        node.path = "/plain"
+        XCTAssertNil(node.webSocketEarlyData)
+        XCTAssertEqual(node.exportablePathWithoutEarlyData, "/plain")
+    }
+
+    // MARK: - VLESS encryption
+
+    func testVLESSEncryptionIsKeptAndOnlyExportedWhereItWorks() throws {
+        let key = "mlkem768x25519plus.native.0rtt.fixture-key"
+        let node = try XCTUnwrap(parser.parseURI(
+            "vless://\(uuid)@v.example.com:443?encryption=\(key)&security=none&type=tcp#Enc"
+        ))
+        XCTAssertEqual(node.vlessEncryption, key)
+        XCTAssertNil(parser.parseURI("vless://\(uuid)@v.example.com:443?encryption=none#Plain")?.vlessEncryption)
+
+        XCTAssertTrue(content([node], .clashApple).contains("encryption: \"\(key)\""))
+        for target in [ClientTarget.surge, .loon, .quanx, .singBox, .shadowrocket, .egern] {
+            XCTAssertFalse(content([node], target).contains("v.example.com"), target.name)
+        }
+        let link = ProxyNodeShareLinkGenerator().canonicalLink(for: node)
+        XCTAssertEqual(parser.parseURI(link)?.vlessEncryption, key)
+
+        let yaml = """
+        proxies:
+          - name: Enc
+            type: vless
+            server: v.example.com
+            port: 443
+            uuid: \(uuid)
+            encryption: \(key)
+        """
+        XCTAssertEqual(parser.parse(data: Data(yaml.utf8)).nodes.first?.vlessEncryption, key)
+    }
+
+    // MARK: - sing-box's single HTTP transport
+
+    func testSingBoxSkipsHTTPTransportPairingsItCannotSpell() {
+        let obfsOverTLS = ProxyNode(kind: .vmess, name: "H1 TLS", server: "a.example.com", port: 443, uuid: uuid,
+                                    transport: "http", tls: true, rawURI: "")
+        let cleartextH2 = ProxyNode(kind: .vmess, name: "H2C", server: "b.example.com", port: 80, uuid: uuid,
+                                    transport: "h2", rawURI: "")
+        for target in [ClientTarget.singBox, .hiddify] {
+            let text = content([obfsOverTLS, cleartextH2], target)
+            XCTAssertFalse(text.contains("a.example.com"), target.name)
+            XCTAssertFalse(text.contains("b.example.com"), target.name)
+        }
+    }
+}

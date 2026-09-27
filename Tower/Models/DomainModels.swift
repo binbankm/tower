@@ -572,6 +572,9 @@ struct ProxyNode: Identifiable, Codable, Hashable {
     var certificateFingerprint: String?
     var fingerprint: String?
     var flow: String?
+    /// Xray's VLESS encryption (`mlkem768x25519plus…`); nil means `none`.
+    /// A node that needs it cannot connect as plain VLESS.
+    var vlessEncryption: String?
     var skipCertificateVerification: Bool
     var alterID: Int?
     var protocolName: String?
@@ -678,7 +681,8 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         wireGuardPersistentKeepalive: Int? = nil,
         wireGuardDNS: String? = nil,
         rawURI: String,
-        isSubscriptionMetadata: Bool? = nil
+        isSubscriptionMetadata: Bool? = nil,
+        vlessEncryption: String? = nil
     ) {
         self.id = id
         self.sourceID = sourceID
@@ -734,6 +738,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         self.wireGuardDNS = wireGuardDNS
         self.rawURI = rawURI
         self.isSubscriptionMetadata = isSubscriptionMetadata
+        self.vlessEncryption = vlessEncryption
     }
 
     var endpoint: String {
@@ -756,7 +761,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         ])
         fields.append(contentsOf: [
             realityPublicKey ?? "", realityShortID ?? "", fingerprint ?? "", flow ?? "",
-            skipCertificateVerification ? "1" : "0"
+            skipCertificateVerification ? "1" : "0", vlessEncryption ?? ""
         ])
         fields.append(contentsOf: [
             alterID.map(String.init) ?? "", protocolName ?? "", protocolParam ?? "",
@@ -817,6 +822,33 @@ struct ProxyNode: Identifiable, Codable, Hashable {
     var exportablePath: String? {
         guard let path, !path.isEmpty else { return nil }
         return path.hasPrefix("/") ? path : "/" + path
+    }
+
+    /// Xray-style links put WebSocket early data in the path as `?ed=2048`.
+    /// Mihomo and Shadowrocket read it from there; other clients either take
+    /// it as separate settings or not at all.
+    var webSocketEarlyData: Int? {
+        earlyDataSplit?.earlyData
+    }
+
+    /// `exportablePath` without the `ed` hint. A client that does not
+    /// understand it sends it literally, and a server matching the whole path
+    /// (sing-box does) then rejects every request.
+    var exportablePathWithoutEarlyData: String? {
+        earlyDataSplit?.path ?? exportablePath
+    }
+
+    private var earlyDataSplit: (path: String, earlyData: Int)? {
+        guard let path = exportablePath, let mark = path.firstIndex(of: "?"),
+              var components = URLComponents(string: "x" + path[mark...]),
+              let items = components.queryItems,
+              let index = items.firstIndex(where: { $0.name == "ed" }),
+              let earlyData = items[index].value.flatMap(Int.init), earlyData > 0 else { return nil }
+        var remaining = items
+        remaining.remove(at: index)
+        components.queryItems = remaining.isEmpty ? nil : remaining
+        let query = components.percentEncodedQuery.map { "?" + $0 } ?? ""
+        return (String(path[..<mark]) + query, earlyData)
     }
 
     /// The HTTP Host value a generated transport should use.

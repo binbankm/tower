@@ -167,8 +167,10 @@ struct ProxyNodeShareLinkGenerator {
             "id": uuid,
             "aid": String(node.alterID ?? 0),
             "scy": node.cipher ?? "auto",
-            "net": node.transport ?? "tcp",
-            "type": "none",
+            // HTTP/1.1 header obfuscation is `net: tcp` plus `type: http` in
+            // v2rayN's format; `net: http` means Xray's HTTP/2 transport.
+            "net": node.transport == "http" ? "tcp" : (node.transport ?? "tcp"),
+            "type": node.transport == "http" ? "http" : "none",
             "tls": node.tls ? "tls" : ""
         ]
         if let sni = node.sni { object["sni"] = sni }
@@ -215,8 +217,16 @@ struct ProxyNodeShareLinkGenerator {
         }
 
         var queryItems: [URLQueryItem] = []
-        if let transport = node.transport, !transport.isEmpty {
+        if node.transport == "http" {
+            // The link standard's `type=http` is HTTP/2; HTTP/1.1 header
+            // obfuscation is TCP with an HTTP header.
+            queryItems.append(URLQueryItem(name: "type", value: "tcp"))
+            queryItems.append(URLQueryItem(name: "headerType", value: "http"))
+        } else if let transport = node.transport, !transport.isEmpty {
             queryItems.append(URLQueryItem(name: "type", value: transport))
+        }
+        if node.kind == .vless, let encryption = node.vlessEncryption {
+            queryItems.append(URLQueryItem(name: "encryption", value: encryption))
         }
         if node.transport == "xhttp", let mode = node.transportMode, !mode.isEmpty {
             queryItems.append(URLQueryItem(name: "mode", value: mode))
