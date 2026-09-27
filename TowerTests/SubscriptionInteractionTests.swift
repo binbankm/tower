@@ -401,10 +401,10 @@ final class SubscriptionInteractionTests: XCTestCase {
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
 
         XCTAssertTrue(
-            source.contains("NodeMapOverview(nodes: model.enabledNodes)"),
+            source.contains("NodeMapOverview(nodes: model.enabledNodes"),
             "首页地图只能展示用户当前勾选、会被导出的节点"
         )
-        XCTAssertFalse(source.contains("NodeMapOverview(nodes: model.availableNodes)"))
+        XCTAssertFalse(source.contains("NodeMapOverview(nodes: model.availableNodes"))
         #else
         throw XCTSkip("该测试检查开发源码中的首页地图数据源，只在模拟器构建环境运行")
         #endif
@@ -1166,8 +1166,8 @@ final class SubscriptionInteractionTests: XCTestCase {
 
         XCTAssertFalse(home.contains("EnabledFirstOrdering"))
         XCTAssertFalse(management.contains("EnabledFirstOrdering"))
-        XCTAssertTrue(home.contains("private var displayedSubscriptions: [SubscriptionSource] {\n        model.subscriptions"))
-        XCTAssertTrue(home.contains("private var displayedLocalNodes: [ProxyNode] {\n        model.localNodes"))
+        XCTAssertTrue(home.contains("ForEach(model.subscriptions)"))
+        XCTAssertTrue(home.contains("ForEach(model.localNodes)"))
         XCTAssertTrue(management.contains("private var displayedSubscriptions: [SubscriptionSource] {\n        filteredSubscriptions"))
         XCTAssertTrue(management.contains("private var displayedLocalNodes: [ProxyNode] {\n        filteredLocalNodes"))
         XCTAssertTrue(nodeFilter.contains("ForEach(filteredNodes)"))

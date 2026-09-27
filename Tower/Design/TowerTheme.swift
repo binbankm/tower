@@ -64,6 +64,22 @@ enum TowerMotion {
             ? .easeOut(duration: reducedMotionDuration)
             : .interactiveSpring(response: disclosureResponse, dampingFraction: 1)
     }
+
+    /// Floating surfaces — toasts, task and failure cards, the desktop
+    /// welcome panel, QR panels — enter and leave on one shared curve and
+    /// scale instead of each picking its own nearly-equal spring.
+    static let surfaceResponse = 0.34
+    static let surfaceEntryScale: CGFloat = 0.96
+
+    static func surface(reduceMotion: Bool) -> Animation {
+        reduceMotion
+            ? .easeOut(duration: reducedMotionDuration)
+            : .spring(response: surfaceResponse, dampingFraction: 1)
+    }
+
+    static func surfaceTransition(reduceMotion: Bool) -> AnyTransition {
+        reduceMotion ? .opacity : .scale(scale: surfaceEntryScale).combined(with: .opacity)
+    }
 }
 
 struct TowerCardModifier: ViewModifier {
@@ -304,7 +320,15 @@ struct SelectionIndicator: View {
 /// A custom style owns its own accessibility, and the style cannot turn the
 /// configuration's label view into the `Text` that `accessibilityLabel` wants,
 /// so callers name the control themselves.
+extension EnvironmentValues {
+    /// True inside `CardSwipeDeletion`'s hidden sizing copy. Side effects —
+    /// haptics, lookups — must run only in the visible, interactive copy.
+    @Entry var isSwipeSizingCopy = false
+}
+
 struct CheckmarkToggleStyle: ToggleStyle {
+    @Environment(\.isSwipeSizingCopy) private var isSwipeSizingCopy
+
     func makeBody(configuration: Configuration) -> some View {
         Button {
             configuration.isOn.toggle()
@@ -317,7 +341,7 @@ struct CheckmarkToggleStyle: ToggleStyle {
         .accessibilityAddTraits(.isToggle)
         // Every other choice in the app taps back — the tab bar, the rule
         // list, the client picker. This one was the exception.
-        .sensoryFeedback(.selection, trigger: configuration.isOn)
+        .sensoryFeedback(.selection, trigger: configuration.isOn) { _, _ in !isSwipeSizingCopy }
     }
 }
 
@@ -424,12 +448,32 @@ struct TaskModalSurface: ViewModifier {
 struct CardSwipeDeletion: ViewModifier {
     let onDelete: (() -> Void)?
 
+    // Development-only A/B control for device scroll profiling, like
+    // `--disable-tab-haptics`. Release builds always keep swipe deletion.
+    //
+    // Simulator A/B (2026-09-27, 40 local nodes): scrolling that region costs
+    // ~70% more CPU instructions with swipe deletion, almost all of it the
+    // per-card List; dropping the hidden sizing copy after measuring saved
+    // only ~3% and lagged height changes by a frame, so it was not kept.
+    // A custom pan was tried before and removed (it dragged expanded content
+    // and pushed the button off screen). Measure on a device before changing.
+    private static var isDisabledForProfiling: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--disable-card-swipe")
+        #else
+        false
+        #endif
+    }
+
     @ViewBuilder
     func body(content: Content) -> some View {
-        if let onDelete {
+        if let onDelete, !Self.isDisabledForProfiling {
             // The invisible copy supplies the controls' intrinsic height, including
             // Dynamic Type. The native list never measures the expanded details.
             content.hidden().accessibilityHidden(true)
+                // The sizing copy observes the same model as the visible row;
+                // without this its haptics and lookups would run a second time.
+                .environment(\.isSwipeSizingCopy, true)
                 .overlay {
                     List {
                         content

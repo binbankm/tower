@@ -12,20 +12,19 @@ struct SubscriptionsView: View {
     @State private var editingLocalNode: ProxyNode?
 
     var body: some View {
-        ScrollViewReader { _ in
+        ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 22) {
-                    Color.clear
-                        .frame(height: 0)
-                        .id(SubscriptionScrollTarget.top)
                     if TowerPlatform.isMac {
                         macHeader
                         if isMacMapExpanded {
-                            NodeMapOverview(nodes: model.enabledNodes)
-                                .equatable()
-                                .frame(maxWidth: .infinity)
-                                .transition(.opacity)
-                                .accessibilityIdentifier("inline-node-map")
+                            NodeMapOverview(nodes: model.enabledNodes) {
+                                proxy.scrollTo(SubscriptionScrollTarget.selectedRegionNodes)
+                            }
+                            .equatable()
+                            .frame(maxWidth: .infinity)
+                            .transition(.opacity)
+                            .accessibilityIdentifier("inline-node-map")
                         }
                         if !model.subscriptions.isEmpty || !model.localNodes.isEmpty {
                             MacSubscriptionSummary { metric in
@@ -36,8 +35,10 @@ struct SubscriptionsView: View {
                         SubscriptionOverviewCard { metric in
                             sourceManagementRoute = metric.managementRoute
                         }
-                        NodeMapOverview(nodes: model.enabledNodes)
-                            .equatable()
+                        NodeMapOverview(nodes: model.enabledNodes) {
+                            proxy.scrollTo(SubscriptionScrollTarget.selectedRegionNodes)
+                        }
+                        .equatable()
                     }
 
                     if model.subscriptions.isEmpty && model.localNodes.isEmpty {
@@ -152,7 +153,7 @@ struct SubscriptionsView: View {
             Spacer(minLength: 12)
             if !model.enabledNodes.isEmpty {
                 Button {
-                    withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 1)) {
+                    withAnimation(TowerMotion.disclosure(reduceMotion: reduceMotion)) {
                         isMacMapExpanded.toggle()
                     }
                 } label: {
@@ -177,7 +178,9 @@ struct SubscriptionsView: View {
         if !model.subscriptions.isEmpty {
             LazyVStack(spacing: 12) {
                 SectionHeading(title: "订阅", detail: String(localized: "\(model.subscriptions.count) 个来源"))
-                ForEach(displayedSubscriptions) { source in
+                // Always the user's own order; enabled sources are not
+                // floated to the top.
+                ForEach(model.subscriptions) { source in
                     SubscriptionCard(source: source) {
                         model.startSubscriptionRefresh(sourceIDs: [source.id], singleSource: true)
                     } onEdit: {
@@ -198,7 +201,7 @@ struct SubscriptionsView: View {
         if !model.localNodes.isEmpty {
             LazyVStack(spacing: 12) {
                 SectionHeading(title: "自有节点", detail: String(localized: "\(model.localNodes.count) 个"))
-                ForEach(displayedLocalNodes) { node in
+                ForEach(model.localNodes) { node in
                     LocalNodeCard(node: node) {
                         editingLocalNode = node
                     } onDelete: {
@@ -209,14 +212,6 @@ struct SubscriptionsView: View {
             .id(SubscriptionScrollTarget.localNodes)
             .accessibilityIdentifier("local-nodes-section")
         }
-    }
-
-    private var displayedSubscriptions: [SubscriptionSource] {
-        model.subscriptions
-    }
-
-    private var displayedLocalNodes: [ProxyNode] {
-        model.localNodes
     }
 }
 
@@ -236,30 +231,35 @@ private struct SubscriptionRefreshReportHost: View {
     var body: some View {
         ZStack {
             if let report = model.subscriptionRefreshReport {
-                SubscriptionRefreshReportOverlay(report: report)
+                // The dimmer only fades; the card enters like every other
+                // floating task surface.
+                Color.black.opacity(0.28)
+                    .ignoresSafeArea()
+                    .onTapGesture { dismiss() }
                     .transition(.opacity)
                     .zIndex(10)
+                SubscriptionRefreshReportOverlay(report: report, onDismiss: dismiss)
+                    .transition(TowerMotion.surfaceTransition(reduceMotion: reduceMotion))
+                    .zIndex(11)
             }
         }
-        .animation(
-            reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.18),
-            value: model.subscriptionRefreshReport?.id
-        )
+        .animation(TowerMotion.surface(reduceMotion: reduceMotion), value: model.subscriptionRefreshReport?.id)
+    }
+
+    private func dismiss() {
+        withAnimation(TowerMotion.surface(reduceMotion: reduceMotion)) {
+            model.dismissSubscriptionRefreshReport()
+        }
     }
 }
 
 private struct SubscriptionRefreshReportOverlay: View {
-    @Environment(AppModel.self) private var model
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let report: SubscriptionRefreshReport
+    let onDismiss: () -> Void
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.28)
-                .ignoresSafeArea()
-                .onTapGesture { dismiss() }
-
             VStack(spacing: 18) {
                 HStack(alignment: .top, spacing: 13) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -309,7 +309,7 @@ private struct SubscriptionRefreshReportOverlay: View {
                     }
                 .frame(maxHeight: min(CGFloat(report.failures.count) * 112, 330))
 
-                Button(action: dismiss) {
+                Button(action: onDismiss) {
                     Text("完成")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
@@ -333,19 +333,12 @@ private struct SubscriptionRefreshReportOverlay: View {
         }
         .ignoresSafeArea()
     }
-
-    private func dismiss() {
-        withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.18)) {
-            model.dismissSubscriptionRefreshReport()
-        }
-    }
 }
 
 enum SubscriptionScrollTarget: Hashable {
-    /// An anchor at the very top of the list, so a finished refresh has
-    /// somewhere to return to.
-    case top
     case subscriptions
+    /// The top of a map region's node list, revealed after selecting it.
+    case selectedRegionNodes
     case nodes
     case regions
     case localNodes
@@ -754,7 +747,9 @@ private struct SubscriptionCard: View {
                 } label: {
                     Label("测速", systemImage: "gauge.with.dots.needle.50percent")
                 }
-                .disabled(model.nodes(for: source).isEmpty)
+                // The cached count, not `nodes(for:)`: this menu is built on
+                // every render of every card, expanded or not.
+                .disabled(metrics.nodeCount == 0)
                 Button {
                     sharePayload = SharePayloadFactory.subscription(source)
                 } label: {

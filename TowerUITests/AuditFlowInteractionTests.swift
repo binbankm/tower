@@ -257,13 +257,15 @@ final class AuditFlowInteractionTests: XCTestCase {
         if deny.waitForExistence(timeout: 3) { deny.tap() }
     }
 
-    private func launchPerformanceFixture(disableTabHaptics: Bool = false) -> XCUIApplication {
+    private func launchPerformanceFixture(disableTabHaptics: Bool = false,
+                                          disableCardSwipe: Bool = false) -> XCUIApplication {
         handleClipboardPermission()
         let app = XCUIApplication()
         app.launchEnvironment["TOWER_UI_TEST_RUN"] = UUID().uuidString
         app.launchEnvironment["TOWER_PERFORMANCE_NODE_COUNT"] = "1000"
         app.launchArguments = ["-hasSeenWelcome", "YES", "-AppleLanguages", "(zh-Hans)"]
         if disableTabHaptics { app.launchArguments.append("--disable-tab-haptics") }
+        if disableCardSwipe { app.launchArguments.append("--disable-card-swipe") }
         app.launch()
         // Leave a short unmeasured attach window for the device frame profiler.
         Thread.sleep(forTimeInterval: 5)
@@ -332,6 +334,25 @@ final class AuditFlowInteractionTests: XCTestCase {
         options.iterationCount = 3
         // Keep the deceleration baseline while also measuring finger tracking.
         measure(metrics: [XCTOSSignpostMetric.scrollDecelerationMetric, XCTOSSignpostMetric.scrollingAndDecelerationMetric, XCTCPUMetric(application: app)], options: options) {
+            for _ in 0..<3 { app.swipeUp(); app.swipeDown() }
+        }
+    }
+
+    /// A/B for `CardSwipeDeletion`: every card carries a hidden sizing copy
+    /// and its own List. Compare on a device before changing the design.
+    func testPerformanceAuditLocalNodesWithCardSwipe() { measureLocalNodeScrolling(disableCardSwipe: false) }
+    func testPerformanceAuditLocalNodesWithoutCardSwipe() { measureLocalNodeScrolling(disableCardSwipe: true) }
+
+    private func measureLocalNodeScrolling(disableCardSwipe: Bool) {
+        let app = launchPerformanceFixture(disableCardSwipe: disableCardSwipe)
+        let localNodes = app.descendants(matching: .any)["local-nodes-section"]
+        for _ in 0..<30 where !(localNodes.exists && localNodes.isHittable) { app.swipeUp() }
+        XCTAssertTrue(localNodes.exists)
+        let options = XCTMeasureOptions()
+        options.iterationCount = 5
+        var metrics: [any XCTMetric] = [XCTOSSignpostMetric.scrollingAndDecelerationMetric, XCTCPUMetric(application: app)]
+        if #available(iOS 26.0, *) { metrics.append(XCTHitchMetric(application: app)) }
+        measure(metrics: metrics, options: options) {
             for _ in 0..<3 { app.swipeUp(); app.swipeDown() }
         }
     }

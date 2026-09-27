@@ -937,13 +937,9 @@ private struct URLPanel: View {
                     model.showToast(String(localized: "局域网订阅链接已复制"), symbol: "doc.on.doc.fill")
                 }
                 action("二维码", symbol: "qrcode", isOn: isShowingQRCode) {
-                    withAnimation(
-                        reduceMotion
-                            ? .easeOut(duration: 0.18)
-                            // Nothing here was thrown by a gesture, so the
-                            // panel settles without overshoot.
-                            : .spring(response: 0.34, dampingFraction: 1)
-                    ) {
+                    // Nothing here was thrown by a gesture, so the panel
+                    // settles without overshoot.
+                    withAnimation(TowerMotion.surface(reduceMotion: reduceMotion)) {
                         isShowingQRCode.toggle()
                     }
                 }
@@ -957,7 +953,7 @@ private struct URLPanel: View {
             if isShowingQRCode {
                 qrCode
                     .frame(maxWidth: .infinity)
-                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
+                    .transition(TowerMotion.surfaceTransition(reduceMotion: reduceMotion))
             }
         }
         .padding(13)

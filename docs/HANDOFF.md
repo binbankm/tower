@@ -1,5 +1,11 @@
 # 当前交接
 
+## 未发布：动画审查剩余 6 项（2026-09-27）
+
+- 详情见 [animation-plans/README.md](../animation-plans/README.md) 的「第二轮实施结果」。浮层动画统一使用 `TowerMotion.surface` / `surfaceTransition`；订阅卡片长按菜单改用缓存计数；订阅和地区列表的节点行轻点打开详情；删除死代码；地图选中国家后把节点列表滚进视野；由测速按钮发起的整批测速完成时给成功触感。
+- `CardSwipeDeletion`：模拟器对照显示，滚动自有节点区域时 CPU 指令约多 70%，主要来自每张卡片各自的 List。去掉隐藏副本的方案只省约 3%，未采用。原生滑动删除保留，等真机数据再决定。真机测量需要在 iPhone「设置 → 开发者」里打开「启用 UI 自动化」，然后运行 `testPerformanceAuditLocalNodesWithCardSwipe` / `WithoutCardSwipe`。隐藏副本里重复的触感和 IP 查询已修复。
+- TowerTests 1178 项 XCTest（5 项跳过、0 失败）与 100 项 Swift Testing 全部通过；本地化检查 1035/1035。界面测试提前停止，失败项已单独复核：两项是偶发失败，`testPersistentExportNameFilter` 是 `bac4ff9` 上就存在的过期断言（等待已不显示的“筛选持续生效”）。
+
 ## 未发布：动画与交互审查修复 5 项（2026-09-27）
 
 - 审查报告与五份实施计划见 [animation-plans/README.md](../animation-plans/README.md)。此前工作区的未提交改动已原样提交为检查点 `bac4ff9`，本轮修复单独提交在它之后。

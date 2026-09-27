@@ -67,9 +67,7 @@ struct AppRootView: View {
                     .accessibilityHidden(model.isReplayingMacOnboarding)
             } else {
                 WelcomeView {
-                    withAnimation(
-                        reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.4, dampingFraction: 1)
-                    ) {
+                    withAnimation(TowerMotion.surface(reduceMotion: reduceMotion)) {
                         hasSeenWelcome = true
                     }
                 }
@@ -134,13 +132,13 @@ private struct MacOnboardingOverlay: View {
                         .shadow(color: .black.opacity(0.15), radius: 24, y: 12)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
+                .transition(TowerMotion.surfaceTransition(reduceMotion: reduceMotion))
                 .zIndex(1)
             }
         }
         .allowsHitTesting(isPresented)
         .onChange(of: model.isReplayingMacOnboarding, initial: true) { _, value in
-            withTransaction(Transaction(animation: TowerMotion.disclosure(reduceMotion: reduceMotion))) {
+            withTransaction(Transaction(animation: TowerMotion.surface(reduceMotion: reduceMotion))) {
                 isPresented = value
             }
         }
@@ -212,9 +210,7 @@ private struct ToastOverlay: View {
     }
 
     private var appearance: Animation {
-        reduceMotion
-            ? .easeOut(duration: 0.15)
-            : .spring(response: 0.35, dampingFraction: 1)
+        TowerMotion.surface(reduceMotion: reduceMotion)
     }
 }
 
@@ -264,7 +260,7 @@ private struct SubscriptionRefreshProgressModifier: ViewModifier {
                             onCancel: model.cancelSubscriptionRefresh
                         )
                         .padding(24)
-                        .transition(reduceMotion ? .opacity : .scale(scale: 0.92).combined(with: .opacity))
+                        .transition(TowerMotion.surfaceTransition(reduceMotion: reduceMotion))
                         .zIndex(1)
                     }
                 }
@@ -273,11 +269,11 @@ private struct SubscriptionRefreshProgressModifier: ViewModifier {
             }
             .onChange(of: progress, initial: true) { _, newProgress in
                 let visibilityChanged = (presentedProgress == nil) != (newProgress == nil)
-                let animation: Animation = reduceMotion
-                    ? .easeInOut(duration: 0.18)
-                    : visibilityChanged
-                        ? .spring(response: 0.36, dampingFraction: 1)
-                        : .easeInOut(duration: 0.2)
+                // Entering/leaving uses the shared surface curve; progress text
+                // morphing in place keeps a short ease-in-out.
+                let animation: Animation = visibilityChanged || reduceMotion
+                    ? TowerMotion.surface(reduceMotion: reduceMotion)
+                    : .easeInOut(duration: 0.2)
                 // A fresh transaction also clears disablesAnimations inherited
                 // from UIKit's refresh handling, without animating model writes.
                 withTransaction(Transaction(animation: animation)) {

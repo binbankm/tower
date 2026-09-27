@@ -125,7 +125,9 @@ final class RepositoryConsistencyTests: XCTestCase {
 
     func testSubscriptionRefreshReportUsesOneVisibilityState() throws {
         let source = try sourceText("Tower/Features/Subscriptions/SubscriptionsView.swift")
-        let overlayStart = try XCTUnwrap(source.range(of: "private struct SubscriptionRefreshReportOverlay: View"))
+        // The host owns the dimmer and the single dismiss path; the card only
+        // renders. Check both so a second visibility source cannot creep in.
+        let overlayStart = try XCTUnwrap(source.range(of: "private struct SubscriptionRefreshReportHost: View"))
         let nextViewStart = try XCTUnwrap(source.range(of: "enum SubscriptionScrollTarget: Hashable"))
         let overlaySource = String(source[overlayStart.lowerBound..<nextViewStart.lowerBound])
 

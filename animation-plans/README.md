@@ -64,3 +64,15 @@
 新增 3 条文案，15 种语言为人工翻译，术语沿用目录中已有的译法（例如“规则方案”译为 Rule profile）。
 
 验证（正式版 Xcode 27.1，iPhone 17 模拟器）：TowerTests 1178 项 XCTest（5 项跳过、0 失败）与 100 项 Swift Testing 全部通过；`check_localization.sh` 提取 1034 条，全部通过。模拟器测试不能替代真机验收：003 的批量测速观感、004 的剪贴板与键盘表现，都需要按各计划的 Feel check 在真机确认。
+
+### 第二轮实施结果（2026-09-27，表中第 6–10 项及两个新增动画）
+
+- 第 6 项（`CardSwipeDeletion`）：先测量再决定。新增仅 Debug 生效的 `--disable-card-swipe` 对照开关，以及 `testPerformanceAuditLocalNodesWithCardSwipe` / `WithoutCardSwipe` 两条滚动测试（1,000 节点测试数据，其中 40 个自有节点，数据存在隔离的临时文件里）。iPhone 17 模拟器对照：滚动自有节点区域时，CPU 指令数平均 2,458 万 kI 对 1,437 万 kI，带滑动删除约多 70%，几乎都来自每张卡片各自的 `List`。试过“量到行高后去掉隐藏副本”，只省约 3%，而且卡片高度变化时会晚一帧，所以没有保留。自定义横向拖动手势之前试过、又因展开内容跟着横移而移除（见 HANDOFF），所以保留原生滑动删除，等真机数据再决定是否重写。真机测量这次没做成：测试运行器被拒绝连接，需要在 iPhone 的「设置 → 开发者」里打开「启用 UI 自动化」后重试。已确定的问题已修复：新增环境值 `isSwipeSizingCopy`，隐藏副本不再重复触发勾选触感和 IP 国家查询。
+- 第 7 项：`TowerMotion` 新增 `surface(reduceMotion:)`（弹簧响应 0.34、无回弹；减弱动态时 0.14 秒 easeOut）和 `surfaceTransition(reduceMotion:)`（缩放到 0.96 并淡入淡出）。Toast、刷新进度卡、导入任务卡、Mac 引导浮层、局域网二维码、欢迎页收起都已改用它们。刷新失败报告把遮罩和卡片拆开：遮罩只淡变，卡片与其他浮层一致；关闭入口仍只有一个。Mac 地图展开改用 `disclosure`。欢迎页退出时放大到 1.04 的过渡保留不变。
+- 第 8 项：订阅卡片长按菜单改用缓存的节点数 `metrics.nodeCount`。
+- 第 9 项：`CompactNodeRow` 的图标、名称和延迟区域点一下就打开“节点详情”，按下时有透明度反馈，并加了无障碍提示“轻点查看节点详情”；分享按钮和长按菜单不变。
+- 第 10 项：删除 `SubscriptionScrollTarget.top` 锚点、`NodeRegionDetailLine`，以及首页两个直通属性 `displayedSubscriptions` / `displayedLocalNodes`（源码守卫测试改为检查 `ForEach(model.subscriptions)`，意图不变）。`ScrollViewReader` 保留，改用于下面的地区滚动。
+- 新增：在地图上选中国家后，如果它的节点列表标题和前几行不在屏幕内，就以最小幅度滚进视野（`SubscriptionScrollTarget.selectedRegionNodes`）；已经可见时不滚动；减弱动态时直接跳到位置，不做滚动动画。
+- 新增：由地图“测速”按钮发起的整批测速完成时，给一次成功触感；中途停止或其他地方的单节点重测不触发。
+
+验证：TowerTests 1178 项 XCTest（5 项跳过、0 失败）与 100 项 Swift Testing 全部通过；本地化检查 1035/1035。界面交互测试按用户要求提前停止（已完成 25 项，其中 22 项通过）。三项失败单独重跑：`testManualDoneDismissesKeyboard`、`testFilterAtAccessibilityTextSize` 重跑通过，是偶发失败；`testPersistentExportNameFilter` 在修复前的提交 `bac4ff9` 上同样失败，原因是测试在等一句界面已不再显示的“筛选持续生效”，属于既有的过期断言，已单独列为后续任务。

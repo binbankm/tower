@@ -193,11 +193,11 @@ struct ImportRuleSchemeSheet: View {
                             }
                         }
                         .padding(24)
-                        .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
+                        .transition(TowerMotion.surfaceTransition(reduceMotion: reduceMotion))
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.3, dampingFraction: 1),
+                .animation(TowerMotion.surface(reduceMotion: reduceMotion),
                     value: showsTaskOverlay)
                 .animation(.easeOut(duration: reduceMotion ? 0.12 : 0.18), value: errorMessage != nil)
             }

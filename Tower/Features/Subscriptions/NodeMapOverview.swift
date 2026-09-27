@@ -46,9 +46,16 @@ struct NodeMapOverview: View, Equatable {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     let nodes: [ProxyNode]
+    /// Scrolls the hosting page so a newly selected region's list is on
+    /// screen. The list opens below the map and can start under the fold.
+    var revealRegionNodes: (() -> Void)? = nil
 
     @State private var selectedRegionCode: String?
     @State private var preparedRevision: NodeMapPresentation.Inputs?
+    /// Only a batch started from the test button earns a completion haptic;
+    /// stopping it, or a single node's retest elsewhere, stays silent.
+    @State private var awaitsLatencyCompletion = false
+    @State private var latencyCompletionFeedback = 0
     @State private var presentation = NodeMapPresentation(nodes: [], countryCodes: [:])
 
     var body: some View {
@@ -104,13 +111,35 @@ struct NodeMapOverview: View, Equatable {
             guard let selectedRegionCode, !clusterIDs.contains(selectedRegionCode) else { return }
             self.selectedRegionCode = nil
         }
+        .onChange(of: isTestingAnyNode) { wasTesting, isTesting in
+            guard wasTesting, !isTesting else { return }
+            if awaitsLatencyCompletion { latencyCompletionFeedback += 1 }
+            awaitsLatencyCompletion = false
+        }
+        .sensoryFeedback(.success, trigger: latencyCompletionFeedback)
+    }
+
+    private var isTestingAnyNode: Bool {
+        nodes.contains { model.latencyTestingNodeIDs.contains($0.id) }
     }
 
     private func map(clusters: [NodeRegionCluster]) -> some View {
         WorldDotMapView(markers: markers(from: clusters)) { id in
+            let isSelecting = selectedRegionCode != id
             withAnimation(TowerMotion.disclosure(reduceMotion: reduceMotion)) {
                 // Tapping the selected marker again collapses its node list.
-                selectedRegionCode = selectedRegionCode == id ? nil : id
+                selectedRegionCode = isSelecting ? id : nil
+            }
+            guard isSelecting, let revealRegionNodes else { return }
+            // Let the inserted list reach layout before asking the page to
+            // reveal it; the scroll is minimal and does nothing when the
+            // heading and first rows are already visible.
+            Task { @MainActor in
+                await Task.yield()
+                guard selectedRegionCode == id else { return }
+                withAnimation(reduceMotion ? nil : TowerMotion.disclosure(reduceMotion: false)) {
+                    revealRegionNodes()
+                }
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -130,8 +159,13 @@ struct NodeMapOverview: View, Equatable {
 
         return Button {
             guard !nodes.isEmpty else { return }
-            if isTestingAnyNode { model.cancelLatencyTests() }
-            else { Task { await model.testLatencies(nodes, force: true) } }
+            if isTestingAnyNode {
+                awaitsLatencyCompletion = false
+                model.cancelLatencyTests()
+            } else {
+                awaitsLatencyCompletion = true
+                Task { await model.testLatencies(nodes, force: true) }
+            }
         } label: {
             HStack(spacing: 7) {
                 ZStack {
@@ -327,6 +361,14 @@ private struct SelectedRegionNodes: View {
             }
         }
         .padding(.top, 2)
+        // What the page reveals after a map selection: the heading plus the
+        // first few rows, not the whole list, so the map stays in view.
+        .background(alignment: .top) {
+            Color.clear
+                .frame(height: 44 + CGFloat(min(cluster.nodes.count, 3)) * 60)
+                .id(SubscriptionScrollTarget.selectedRegionNodes)
+                .accessibilityHidden(true)
+        }
     }
 
     private var regionMedianLatency: Int? {
@@ -349,26 +391,36 @@ struct CompactNodeRow: View {
     var body: some View {
         let presentedNode = model.nodeForPresentation(node)
         HStack(spacing: 8) {
-            NodeRegionLogo(
-                node: node,
-                resolvesRegionOnAppear: resolvesRegionOnAppear,
-                diameter: 34
-            )
+            // A tap opens the same details the context menu offers; before,
+            // these rows ignored taps while local node rows expanded on tap.
+            Button { showsDetails = true } label: {
+                HStack(spacing: 8) {
+                    NodeRegionLogo(
+                        node: node,
+                        resolvesRegionOnAppear: resolvesRegionOnAppear,
+                        diameter: 34
+                    )
 
-            VStack(alignment: .leading, spacing: 3) {
-                NodeDisplayNameLabel(node: presentedNode)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                Text(node.protocolSummary)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.18)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    VStack(alignment: .leading, spacing: 3) {
+                        NodeDisplayNameLabel(node: presentedNode)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                        Text(node.protocolSummary)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .tracking(0.18)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                    }
+
+                    Spacer(minLength: 6)
+                    NodeLatencyBadge(node: node, showsUntestedState: false)
+                }
+                .contentShape(Rectangle())
             }
-
-            Spacer(minLength: 6)
-            NodeLatencyBadge(node: node, showsUntestedState: false)
+            .buttonStyle(SelectionIndicatorButtonStyle())
+            .foregroundStyle(.primary)
+            .accessibilityHint("轻点查看节点详情")
 
             Button {
                 guard let latest = model.nodes.first(where: { $0.id == node.id }) else { return }
@@ -584,6 +636,7 @@ private struct NodeDisplayNameLabel: View {
 
 private struct NodeRegionLogo: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.isSwipeSizingCopy) private var isSwipeSizingCopy
     let node: ProxyNode
     let resolvesRegionOnAppear: Bool
     let diameter: CGFloat
@@ -601,7 +654,8 @@ private struct NodeRegionLogo: View {
                 .task(id: node.server) {
                     // A name that already answers makes the lookup pointless
                     // work, and domain nodes would also need DNS resolution.
-                    guard NodeRegionResolver.countryCode(for: node) == nil else { return }
+                    guard !isSwipeSizingCopy,
+                          NodeRegionResolver.countryCode(for: node) == nil else { return }
                     model.resolveIPCountry(for: node)
                 }
         } else {
@@ -654,25 +708,6 @@ private struct NodeCountryDetailLine: View {
                 CountryFlagEmoji(countryCode: countryCode, size: 15)
                     .frame(width: 19, height: 16)
                 Text(AppLocalization.regionName(for: countryCode))
-            }
-            .multilineTextAlignment(.trailing)
-        }
-        .font(.caption)
-    }
-}
-
-private struct NodeRegionDetailLine: View {
-    let region: NodeRegion
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("地区")
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
-            HStack(spacing: 5) {
-                RegionFlagEmoji(region: region, size: 15)
-                    .frame(width: 19, height: 16)
-                Text(region.localizedName)
             }
             .multilineTextAlignment(.trailing)
         }
