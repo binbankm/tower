@@ -834,6 +834,8 @@ struct SubscriptionParser {
         let query = Dictionary((components.queryItems ?? []).map {
             ($0.name.lowercased(), $0.value ?? "")
         }) { _, new in new }
+        // An AmneziaWG link cannot be expressed as plain WireGuard.
+        guard !query.keys.contains(where: Self.isAmneziaWireGuardKey) else { return nil }
         let addresses = csvValues(query["address"] ?? query["addresses"] ?? "")
         let ipv4 = addresses.first { !$0.contains(":") }
         let ipv6 = addresses.first { $0.contains(":") }
@@ -1836,6 +1838,12 @@ struct SubscriptionParser {
                 rejected += 1
                 continue
             }
+            // AmneziaWG changes the handshake; as plain WireGuard the node
+            // would import cleanly and never connect.
+            if kind == .wireguard, dictionary.keys.contains(where: Self.isAmneziaWireGuardKey) {
+                rejected += 1
+                continue
+            }
 
             // Keep the plugin and its independent credentials. Unsupported
             // plugins are rejected instead of being flattened into plain SS.
@@ -2212,6 +2220,14 @@ struct SubscriptionParser {
         }
         flushSurrogate()
         return output
+    }
+
+    /// Keys that only AmneziaWG carries: mihomo's `amnezia-wg-option` block
+    /// and its junk-packet / header parameters.
+    static func isAmneziaWireGuardKey(_ key: String) -> Bool {
+        let key = key.lowercased()
+        return key.hasPrefix("amnezia-wg-option")
+            || ["jc", "jmin", "jmax", "s1", "s2", "h1", "h2", "h3", "h4"].contains(key)
     }
 
     private func clashKind(_ value: String) -> ProxyKind? {

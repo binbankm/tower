@@ -301,6 +301,40 @@ final class ProtocolAuditTests: XCTestCase {
         }
     }
 
+    // MARK: - AmneziaWG
+
+    func testAmneziaWireGuardIsRejectedRatherThanImportedAsWireGuard() {
+        let block = """
+        proxies:
+          - name: AWG
+            type: wireguard
+            server: wg.example.com
+            port: 51820
+            ip: 10.0.0.2
+            private-key: cHJpdmF0ZQ==
+            public-key: cHVibGlj
+            amnezia-wg-option:
+              jc: 4
+              jmin: 40
+              jmax: 70
+          - name: WG
+            type: wireguard
+            server: wg.example.com
+            port: 51820
+            ip: 10.0.0.2
+            private-key: cHJpdmF0ZQ==
+            public-key: cHVibGlj
+        """
+        let parsed = parser.parse(data: Data(block.utf8))
+        XCTAssertEqual(parsed.nodes.map(\.name), ["WG"])
+        XCTAssertEqual(parsed.rejectedLineCount, 1)
+
+        let inline = "proxies:\n  - {name: AWG, type: wireguard, server: wg.example.com, port: 51820, ip: 10.0.0.2, private-key: cHJpdmF0ZQ==, public-key: cHVibGlj, amnezia-wg-option: {jc: 4, jmin: 40, jmax: 70}}\n"
+        XCTAssertTrue(parser.parse(data: Data(inline.utf8)).nodes.isEmpty)
+
+        XCTAssertNil(parser.parseURI("wireguard://cHJpdmF0ZQ==@wg.example.com:51820?publickey=cHVibGlj&address=10.0.0.2&jc=4&jmin=40&jmax=70#AWG"))
+    }
+
     // MARK: - Shadowsocks ciphers
 
     func testShadowsocks2022ChaChaOnlyGoesWhereItIsImplemented() {

@@ -23,6 +23,7 @@
   - mihomo 与 Stash 的 SOCKS5 没有 SNI 字段（mihomo 源码 `ServerName: option.Server`），SNI 与服务器地址不同的 SOCKS5 TLS 节点在这两类目标上跳过。
   - VMess/VLESS/Trojan 的 WebSocket、HTTP/2、HTTPUpgrade 在开启 TLS 但没有 SNI 时，按 v2rayN 的约定用 Host 作 SNI：Surge、Loon、QuanX、Egern 以前会把 IP 当 SNI。mihomo 与 sing-box 本来就会这样处理（实测连通）。
 - 第四轮：Hysteria 2 官方 URI 可把端口跳跃写在地址里（`host:443,20000-30000`），以前整条链接被当作无法识别；现取第一个端口为主端口、完整列表为端口跳跃（含 IPv6）。往返测试：塔台导出的 54 条分享链接重新导入后全部解析，mihomo 实测除 WireGuard 外全部连通。
+- AmneziaWG（mihomo `amnezia-wg-option`、链接中的 `jc`/`jmin`/`jmax`/`s1`/`s2`/`h1`–`h4`）以前被当作普通 WireGuard 导入，导出后必然握手失败；现在拒收并计入无法识别。
 - 验证：`ProtocolAuditTests` 17 项；`testKaringYAMLPreservesRealityOnlyWhereItConnects`、`testNativeShadowsocksTLSIsSkippedWithoutLosingPlainSS` 按新规则更新。第二轮后 1208 项 XCTest（5 跳过、0 失败）与 106 项 Swift Testing 通过，`ProtocolAuditTests` 第二轮增至 21 项、第三轮 24 项（1211 项 XCTest 全部通过），`TUICHysteriaTests` 两项改为分别断言 mihomo 与 Stash 字段。实测：mihomo 目标 41/42、sing-box 目标 38/39 连通，唯一失败为 WireGuard（直连时握手超时，经代理路径可通，判断为本地运营商拦截）。
 - 未完成：图形客户端（Surge、Loon、Shadowrocket、QuanX、Stash、Egern、Karing、V2Box）尚未在 Mac mini 上实测；SSH 通道没有截屏与辅助功能权限。缺失协议评估见本轮报告。
 
