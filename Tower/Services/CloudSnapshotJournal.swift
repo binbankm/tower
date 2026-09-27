@@ -30,9 +30,13 @@ struct CloudSnapshotJournal {
 
     func commits() throws -> [String: Commit] {
         guard FileManager.default.fileExists(atPath: directory.path) else { return [:] }
-        let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.ubiquitousItemDownloadingStatusKey])
+        let files = try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.ubiquitousItemDownloadingStatusKey, .contentModificationDateKey, .fileSizeKey]
+        )
         var result: [String: Commit] = [:]
         let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        var listed = Set<String>()
         for file in files {
             if file.pathExtension == "icloud" {
                 let name = file.deletingPathExtension().lastPathComponent
@@ -41,14 +45,23 @@ struct CloudSnapshotJournal {
                 throw CloudSyncError.downloading
             }
             guard ["json", "pruned"].contains(file.pathExtension) else { continue }
-            try Self.requireDownloaded(file)
-            let commit = try decoder.decode(Commit.self, from: Data(contentsOf: file))
-            guard UUID(uuidString: commit.id) != nil, file.deletingPathExtension().lastPathComponent == commit.id else { throw CloudSyncError.conflict }
+            let stamp = CloudCommitCache.Stamp(file)
+            listed.insert(file.path)
+            let commit: Commit
+            if let cached = CloudCommitCache.shared.commit(at: file.path, stamp: stamp) {
+                commit = cached
+            } else {
+                try Self.requireDownloaded(file)
+                commit = try decoder.decode(Commit.self, from: Data(contentsOf: file))
+                guard UUID(uuidString: commit.id) != nil, file.deletingPathExtension().lastPathComponent == commit.id else { throw CloudSyncError.conflict }
+                CloudCommitCache.shared.store(commit, at: file.path, stamp: stamp)
+            }
             // A pruning marker wins if iCloud delivers an old full file again.
             if file.pathExtension == "pruned" || result[commit.id] == nil {
                 result[commit.id] = commit
             }
         }
+        CloudCommitCache.shared.retain(only: listed, in: directory.path)
         // Missing parents may simply still be travelling through iCloud.
         guard result.values.allSatisfy({ $0.parents.allSatisfy { result[$0] != nil } }) else { throw CloudSyncError.downloading }
         return result
@@ -152,5 +165,51 @@ struct CloudSnapshotJournal {
         }
         if let coordinationError { throw coordinationError }
         if let writeError { throw writeError }
+    }
+}
+
+/// Parsed journal records, reused across reads.
+///
+/// Every record file is written once under a unique id — pruning writes a
+/// separate `.pruned` marker rather than rewriting — so a file with the same
+/// path, date and size has the same content. A sync used to list and fully
+/// decode the whole journal four or five times (download, commit, prune),
+/// including ten complete snapshots and every pruning marker, and asked iCloud
+/// for each file's download status: about 1.5 s of CPU per sync on device
+/// (2026-09-27). Only new files are read now.
+final class CloudCommitCache: @unchecked Sendable {
+    struct Stamp: Equatable {
+        let modifiedAt: Date?
+        let size: Int?
+
+        init(_ url: URL) {
+            let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+            modifiedAt = values?.contentModificationDate
+            size = values?.fileSize
+        }
+    }
+
+    static let shared = CloudCommitCache()
+
+    private let lock = NSLock()
+    private var entries: [String: (stamp: Stamp, commit: CloudSnapshotJournal.Commit)] = [:]
+
+    func commit(at path: String, stamp: Stamp) -> CloudSnapshotJournal.Commit? {
+        guard stamp.modifiedAt != nil, stamp.size != nil else { return nil }
+        lock.lock(); defer { lock.unlock() }
+        guard let entry = entries[path], entry.stamp == stamp else { return nil }
+        return entry.commit
+    }
+
+    func store(_ commit: CloudSnapshotJournal.Commit, at path: String, stamp: Stamp) {
+        guard stamp.modifiedAt != nil, stamp.size != nil else { return }
+        lock.lock(); defer { lock.unlock() }
+        entries[path] = (stamp, commit)
+    }
+
+    /// Forgets deleted files so the cache cannot grow past the journal.
+    func retain(only paths: Set<String>, in directory: String) {
+        lock.lock(); defer { lock.unlock() }
+        entries = entries.filter { !$0.key.hasPrefix(directory) || paths.contains($0.key) }
     }
 }

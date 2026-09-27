@@ -87,6 +87,30 @@ struct CloudSyncSignatureTests {
     }
 }
 
+struct CloudJournalCacheTests {
+    @Test func cachedRecordsFollowNewMarkersAndDeletions() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let journal = CloudSnapshotJournal(directory: folder)
+        let snapshot = AppSnapshot(subscriptions: [], nodes: [], selectedPresetID: AppModel.defaultRuleSchemeID, selectedTarget: .surge)
+        try journal.append(snapshot, parents: [])
+        let first = try journal.commits()
+        let id = try #require(first.keys.first)
+        #expect(first[id]?.snapshot != nil)
+
+        // A pruning marker written after the record was cached still wins.
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let marker = CloudSnapshotJournal.Commit(id: id, parents: [], snapshot: nil)
+        try encoder.encode(marker).write(to: folder.appendingPathComponent(id + ".pruned"))
+        #expect(try journal.commits()[id]?.snapshot == nil)
+
+        // A deleted file is not answered from the cache.
+        try FileManager.default.removeItem(at: folder.appendingPathComponent(id + ".json"))
+        try FileManager.default.removeItem(at: folder.appendingPathComponent(id + ".pruned"))
+        #expect(try journal.commits().isEmpty)
+    }
+}
+
 private actor ResolveCounter {
     var count = 0
     func increment() { count += 1 }
