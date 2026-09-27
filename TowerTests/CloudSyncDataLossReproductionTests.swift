@@ -34,7 +34,8 @@ final class CloudSyncDataLossReproductionTests: XCTestCase {
         defer { CloudSyncPreference.setEnabled(previous) }
         let cloud = CloudSyncStore(fileURL: folder.appendingPathComponent("cloud.json"))
         let store = PersistenceStore(fileURL: folder.appendingPathComponent("local.json"))
-        let model = AppModel(persistence: store, cloudSync: cloud, arguments: [])
+        // Checks every return here; the default throttles to once per 10 min.
+        let model = AppModel(persistence: store, cloudSync: cloud, cloudForegroundCheckInterval: 0, arguments: [])
         await model.setICloudSyncEnabled(true)
         await model.performForegroundOpenWork()
         let downloaded = try await cloud.download()

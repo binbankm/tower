@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Three-way merge against the last shared snapshot. Absence only means deletion
@@ -8,6 +9,54 @@ enum CloudSnapshotMerge {
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.sortedKeys]
         return try encoder.encode(snapshot)
+    }
+
+    /// A digest of what the user decided, and nothing that changes by itself.
+    ///
+    /// Refreshing regenerates every fetched node's id and rewrites a
+    /// subscription's traffic, expiry, error and time; resolving countries
+    /// fills a host cache. Counting those as edits synced to iCloud minutes
+    /// apart and filled the ten-version history with copies nobody made.
+    /// Left out: fetched nodes, subscription status, host caches, the edit
+    /// time and the client merely being looked at. Kept, as stable keys that
+    /// survive a refresh: which fetched nodes are excluded and their manual
+    /// regions. Local nodes are user-authored and count in full.
+    static func signature(_ snapshot: AppSnapshot) -> Data? {
+        var content = snapshot
+        content.updatedAt = nil
+        content.resolvedHostCountryCodes = nil
+        content.resolvedHostCountryCodeUpdatedAt = nil
+        content.resolvedHostCountryDatabaseVersion = nil
+        content.selectedTarget = .surge
+        content.macClientPreferences?.selectedTarget = .surge
+        content.subscriptions = content.subscriptions.map { source in
+            var source = source
+            source.lastUpdatedAt = nil
+            source.lastError = nil
+            source.usage = nil
+            return source
+        }
+        let excluded = Set(content.excludedNodeIDs ?? [])
+        let decisions = content.nodes.compactMap { node -> String? in
+            guard let sourceID = node.sourceID else { return nil }
+            let isExcluded = excluded.contains(node.id)
+            guard isExcluded || node.countryOverride != nil else { return nil }
+            return [sourceID.uuidString, AppModel.nodeStableIdentity(node),
+                    isExcluded ? "excluded" : "", node.countryOverride ?? ""].joined(separator: "|")
+        }.sorted()
+        content.nodes = content.nodes.filter { $0.sourceID == nil }
+        let localIDs = Set(content.nodes.map(\.id))
+        content.excludedNodeIDs = content.excludedNodeIDs?.filter(localIDs.contains)
+        guard var data = try? self.data(content) else { return nil }
+        data.append(Data(decisions.joined(separator: "\n").utf8))
+        return Data(SHA256.hash(data: data))
+    }
+
+    /// Same user-decided content: see `signature`.
+    static func sameContent(_ lhs: AppSnapshot?, _ rhs: AppSnapshot?) -> Bool {
+        guard let lhs, let rhs else { return lhs == nil && rhs == nil }
+        guard let left = signature(lhs), let right = signature(rhs) else { return equal(lhs, rhs) }
+        return left == right
     }
 
     static func equal(_ lhs: AppSnapshot?, _ rhs: AppSnapshot?) -> Bool {
@@ -28,18 +77,23 @@ enum CloudSnapshotMerge {
         let adoptedData: Data
         let baselineData: Data
         let needsAnotherSync: Bool
+        /// `signature(adopted)`: what this device now has in common with iCloud.
+        let signature: Data?
     }
 
     /// `latest` is the local state after the commit; `local` what was merged
-    /// before it. Backs up a local version the adoption would replace.
-    static func adoption(latest: AppSnapshot, local: AppSnapshot, merged: AppSnapshot, persistence: PersistenceStore) throws -> Adoption {
+    /// before it; `cloudContent` what iCloud now holds and so the next
+    /// baseline. Backs up a local version the adoption would replace.
+    static func adoption(latest: AppSnapshot, local: AppSnapshot, merged: AppSnapshot,
+                         cloudContent: AppSnapshot, persistence: PersistenceStore) throws -> Adoption {
         let adopted = try equal(latest, local) ? merged : merge(local: latest, remote: merged, base: local)
-        if !equal(latest, adopted), !equal(latest, local) { try persistence.backup(latest) }
+        if !sameContent(latest, adopted), !sameContent(latest, local) { try persistence.backup(latest) }
         return Adoption(
             adopted: adopted,
             adoptedData: try PersistenceStore.encoded(adopted),
-            baselineData: try PersistenceStore.encoded(merged),
-            needsAnotherSync: !equal(adopted, merged)
+            baselineData: try PersistenceStore.encoded(cloudContent),
+            needsAnotherSync: !sameContent(adopted, cloudContent),
+            signature: signature(adopted)
         )
     }
 

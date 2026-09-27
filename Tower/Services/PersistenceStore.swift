@@ -60,7 +60,8 @@ struct PersistenceStore {
         if FileManager.default.fileExists(atPath: backupDirectory.path) { try FileManager.default.removeItem(at: backupDirectory) }
     }
     func backup(_ snapshot: AppSnapshot) throws {
-        guard try !recoveryCopies().contains(where: { CloudSnapshotMerge.equal($0.snapshot, snapshot) }) else { return }
+        // A copy differing only in refresh status or caches is not a new version.
+        guard try !recoveryCopies().contains(where: { CloudSnapshotMerge.sameContent($0.snapshot, snapshot) }) else { return }
         try PersistenceStore(fileURL: backupDirectory.appendingPathComponent(UUID().uuidString + ".json")).save(snapshot)
         _ = try recoveryCopies()
     }

@@ -133,8 +133,11 @@ actor IPCountryLookupService {
 
     init(
         database: IPCountryDatabase = IPCountryDatabase(),
-        successTTL: TimeInterval = 3600,
-        failureTTL: TimeInterval = 30,
+        // A proxy server's address rarely moves and the country database is
+        // offline and fixed per release: a day is plenty. Only a DNS failure
+        // is worth retrying soon, and not every half minute.
+        successTTL: TimeInterval = 86_400,
+        failureTTL: TimeInterval = 600,
         resolver: (@Sendable (String) async -> [String])? = nil
     ) {
         self.database = database
@@ -186,8 +189,11 @@ actor IPCountryLookupService {
         inFlight[normalized] = nil
         if cache.count >= 8000 { cache = cache.filter { $0.value.expiresAt > .now } }
         if cache.count >= 8000 { cache.removeAll(keepingCapacity: true) }
+        // Resolved but absent from the database is a settled answer, not a
+        // failure: asking again returns the same thing. Only no address at
+        // all (DNS failed) retries after the short failure window.
         cache[normalized] = CachedResult(info: info, expiresAt: .now.addingTimeInterval(
-            info.countryCode == nil ? failureTTL : successTTL
+            info.addresses.isEmpty ? failureTTL : successTTL
         ))
         return info
     }

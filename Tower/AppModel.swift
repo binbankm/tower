@@ -186,6 +186,14 @@ final class AppModel {
     private(set) var isCloudSyncing = false
     private(set) var isRemovingCloudSnapshot = false
     private(set) var lastCloudSyncAt: Date?
+    /// `CloudSnapshotMerge.signature` of what this device last agreed with
+    /// iCloud. An edit whose signature matches has nothing to sync.
+    @ObservationIgnored private var lastSyncedCloudSignature: Data?
+    /// Returning to the foreground checks iCloud at most this often; edits
+    /// still upload on their own and 立即同步 always runs.
+    @ObservationIgnored private let cloudForegroundCheckInterval: TimeInterval
+    /// Groups a burst of edits (reordering, several toggles) into one sync.
+    private static let cloudUploadDelay: Duration = .seconds(5)
     @ObservationIgnored private var cloudUploadTask: Task<Void, Never>?
     /// When the state now in memory was last edited. Readable so a test can
     /// confirm a launch restores it: dropping it is what let an older iCloud
@@ -206,7 +214,10 @@ final class AppModel {
     /// Latency probes and DNS lookups both run in small batches so expanding a
     /// large subscription cannot flood the network stack or stall the main actor.
     private static let resolutionBatchSize = 8
-    private static let resolvedHostCountryCodeTTL: TimeInterval = 3600
+    /// Matches the lookup service: a resolved host is good for a day.
+    private static let resolvedHostCountryCodeTTL: TimeInterval = 86_400
+    /// A node with no country is asked again after this, not every 30 s.
+    private static let unresolvedCountryRetryInterval: TimeInterval = 600
     @ObservationIgnored private var generationCache = ConfigurationCache()
     @ObservationIgnored private(set) var configurationGenerationCount = 0
 
@@ -389,6 +400,7 @@ final class AppModel {
         ipCountryLookupService: IPCountryLookupService = IPCountryLookupService(),
         reminderScheduler: (any SubscriptionReminderScheduling)? = nil,
         persistencePolicy: PersistencePolicy = .immediate,
+        cloudForegroundCheckInterval: TimeInterval = 600,
         arguments: [String] = ProcessInfo.processInfo.arguments,
         clientPlatform: ClientPlatform = .current,
         lanBackgroundLease: LANSharingBackgroundLease? = nil
@@ -399,6 +411,7 @@ final class AppModel {
         self.visibleClientTargets = clientPlatform.defaultVisibleTargets
         self.lanSharingOrderIndex = clientPlatform == .mac ? 1 : ExportDestinationOrder.defaultLANSharingIndex
         self.persistencePolicy = persistencePolicy
+        self.cloudForegroundCheckInterval = cloudForegroundCheckInterval
         #if DEBUG
         // UI tests get a disposable, restartable fixture, never the user's store.
         if let value = ProcessInfo.processInfo.environment["TOWER_UI_TEST_RUN"], let id = UUID(uuidString: value) {
@@ -1758,13 +1771,15 @@ final class AppModel {
 
         // Written once at the end rather than per batch: this is a cache, and
         // losing it to a crash costs one round of lookups, not user data.
-        if learnedAnything { persist(invalidateRuleCounts: false) }
+        if learnedAnything { persistLocalCache() }
     }
 
     private func hasFreshCountryResolution(for node: ProxyNode) -> Bool {
         guard countryResolutionCompletedNodeIDs.contains(node.id),
               let date = countryResolutionDates[node.id] else { return false }
-        let ttl: TimeInterval = nodeIPCountryCodes[node.id] == nil ? 30 : Self.resolvedHostCountryCodeTTL
+        let ttl: TimeInterval = nodeIPCountryCodes[node.id] == nil
+            ? Self.unresolvedCountryRetryInterval
+            : Self.resolvedHostCountryCodeTTL
         return Date.now.timeIntervalSince(date) < ttl
     }
 
@@ -1781,7 +1796,9 @@ final class AppModel {
         let organizations = await ipCountryLookupService.organizations(forHost: node.server)
         guard !Task.isCancelled, generation == countryResolutionGeneration,
               nodes.contains(where: { $0.id == node.id && $0.server == node.server }) else { return }
-        nodeNetworkOrganizations[node.id] = organizations
+        if nodeNetworkOrganizations[node.id] != organizations {
+            nodeNetworkOrganizations[node.id] = organizations
+        }
         await resolveIPCountries(for: [node])
     }
 
@@ -3258,6 +3275,7 @@ final class AppModel {
         iCloudSyncEnabled = false
         CloudSyncPreference.setEnabled(false)
         lastCloudSyncAt = nil
+        lastSyncedCloudSignature = nil
 
         apply(
             AppSnapshot(
@@ -3326,6 +3344,9 @@ final class AppModel {
             CloudSyncPreference.setEnabled(false)
             cloudUploadTask?.cancel()
             cloudUploadTask = nil
+            // Re-enabling must check iCloud again, not trust an old agreement.
+            lastSyncedCloudSignature = nil
+            lastCloudSyncAt = nil
             showToast(String(localized: "已关闭 iCloud 同步"), symbol: "icloud.slash")
         }
     }
@@ -3347,6 +3368,7 @@ final class AppModel {
             cloudRecoveryCopies = []
             cloudSyncIssue = nil
             lastCloudSyncAt = nil
+            lastSyncedCloudSignature = nil
             showToast(String(localized: "已删除 iCloud 上的副本"), symbol: "icloud.slash")
         } catch {
             showToast(error.localizedDescription, symbol: "exclamationmark.icloud.fill")
@@ -3359,7 +3381,14 @@ final class AppModel {
     func performForegroundOpenWork() async {
         guard !performedForegroundOpenWork else { return }
         performedForegroundOpenWork = true
-        await synchronizeWithCloud()
+        // Checking on every return to the app downloaded and merged the whole
+        // history even for a glance at another app. Local edits upload on
+        // their own; this only picks up other devices' changes.
+        if let lastCloudSyncAt, Date.now.timeIntervalSince(lastCloudSyncAt) < cloudForegroundCheckInterval {
+            // Checked recently.
+        } else {
+            await synchronizeWithCloud()
+        }
         guard !Task.isCancelled else { return }
         await refreshOnOpenIfEnabled()
     }
@@ -3403,20 +3432,34 @@ final class AppModel {
             // and backups all round-trip whole snapshots through JSON. On the
             // main actor that was a 160–230 ms stall about two seconds after
             // most edits (device trace, 2026-09-27). None of it touches UI.
-            let merged = try await Task.detached(priority: .userInitiated) {
+            let (merged, publishes) = try await Task.detached(priority: .userInitiated) {
                 let baseline = try persistence.cloudBaseline()
                 let merged = try remote.map { try CloudSnapshotMerge.merge(local: local, remote: $0, base: baseline) } ?? local
-                // A backup failure stops the transaction before either copy is replaced.
-                if !CloudSnapshotMerge.equal(local, merged) { try persistence.backup(local) }
-                return merged
+                // A backup failure stops the transaction before either copy is
+                // replaced. Only a change the user would recognise is backed up.
+                if !CloudSnapshotMerge.sameContent(local, merged) { try persistence.backup(local) }
+                // Refresh status and caches alone are not worth a new iCloud
+                // version: they filled the ten-version history in minutes.
+                let publishes = remote.map { !CloudSnapshotMerge.sameContent(merged, $0) } ?? true
+                return (merged, publishes)
             }.value
             guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
-            try await cloudSync.commit(merged, replacing: remote)
+            // The baseline must be exactly what iCloud holds. Recording the
+            // unpublished merge instead would make the next three-way merge
+            // read iCloud's older fetched nodes as a remote edit and revert them.
+            let cloudContent: AppSnapshot
+            if publishes || remote == nil {
+                try await cloudSync.commit(merged, replacing: remote)
+                cloudContent = merged
+            } else {
+                cloudContent = remote!
+            }
             guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
             let latestEditAt = lastLocalEditAt
             let latest = currentSnapshot(updatedAt: latestEditAt ?? .distantPast)
             var adoption = try await Task.detached(priority: .userInitiated) {
-                try CloudSnapshotMerge.adoption(latest: latest, local: local, merged: merged, persistence: persistence)
+                try CloudSnapshotMerge.adoption(latest: latest, local: local, merged: merged,
+                                                cloudContent: cloudContent, persistence: persistence)
             }.value
             guard !Task.isCancelled, iCloudSyncEnabled, cloudSyncGeneration == generation else { return }
             if lastLocalEditAt != latestEditAt {
@@ -3424,13 +3467,15 @@ final class AppModel {
                 // state on the main actor, so nothing changed in the window is
                 // overwritten by an adoption computed without it.
                 let newest = currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast)
-                adoption = try CloudSnapshotMerge.adoption(latest: newest, local: local, merged: merged, persistence: persistence)
+                adoption = try CloudSnapshotMerge.adoption(latest: newest, local: local, merged: merged,
+                                                           cloudContent: cloudContent, persistence: persistence)
             }
             discardPendingLocalWrite()
             try persistence.write(adoption.adoptedData)
             try persistence.writeCloudBaseline(adoption.baselineData)
             let adopted = adoption.adopted
             apply(adopted)
+            lastSyncedCloudSignature = adoption.signature
             synchronizedEditAt = merged.updatedAt
             needsAnotherSync = adoption.needsAnotherSync
             cloudSyncIssue = nil
@@ -3458,12 +3503,19 @@ final class AppModel {
         guard iCloudSyncEnabled, !isCloudSyncing else { return }
         cloudUploadTask?.cancel()
         cloudUploadTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: Self.cloudUploadDelay)
             guard !Task.isCancelled, let self, self.iCloudSyncEnabled else { return }
             // A foreground sync owns the download/compare/upload transaction.
             // It will pick up edits made during its download itself.
             guard !self.isCloudSyncing else { return }
+            // Refreshing, resolving countries and similar automatic writes
+            // also save; only a change the user made is worth a sync.
+            let signature = await Task.detached(priority: .utility) {
+                CloudSnapshotMerge.signature(snapshot)
+            }.value
+            guard !Task.isCancelled else { return }
             self.cloudUploadTask = nil
+            if let signature, signature == self.lastSyncedCloudSignature { return }
             await self.synchronizeWithCloud()
         }
     }
@@ -3846,6 +3898,22 @@ final class AppModel {
         }
     }
 
+    /// Saves device-local caches (resolved host countries) without stamping a
+    /// user edit or scheduling an iCloud sync: a cache is not a change anyone
+    /// made, and it used to trigger a full sync every time countries resolved.
+    private func persistLocalCache() {
+        guard !isDemoMode else { return }
+        // A pending user edit writes everything, the cache included.
+        guard pendingPersistenceUpdatedAt == nil else { return }
+        // Without a recorded edit time, keep the ordinary path rather than
+        // stamp an arbitrary one into the snapshot.
+        guard let lastLocalEditAt else {
+            persist(invalidateRuleCounts: false)
+            return
+        }
+        write(currentSnapshot(updatedAt: lastLocalEditAt))
+    }
+
     /// Writes whatever the coalescing window is still holding.
     ///
     /// Called when Tower leaves the foreground, because iOS may stop the
@@ -3937,7 +4005,7 @@ final class AppModel {
     /// and expiry dates all get written into the name — and `rawURI` often
     /// carries a rotating parameter. Tower renumbers bare-flag names itself,
     /// so adding or removing one node in a region shifts every later name.
-    nonisolated private static func nodeStableIdentity(_ node: ProxyNode) -> String {
+    nonisolated static func nodeStableIdentity(_ node: ProxyNode) -> String {
         [
             node.kind.rawValue,
             node.server.lowercased(),

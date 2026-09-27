@@ -9,9 +9,9 @@ struct CloudRecoveryCopy: Identifiable, Sendable {
     static func unique(_ copies: [CloudRecoveryCopy]) -> [CloudRecoveryCopy] {
         var fingerprints = Set<Data>()
         return copies.filter { copy in
-            var snapshot = copy.snapshot
-            snapshot.updatedAt = nil
-            guard let content = try? CloudSnapshotMerge.data(snapshot) else { return true }
+            // Versions that differ only in refresh status or caches are one
+            // version to the user; see `CloudSnapshotMerge.signature`.
+            guard let content = CloudSnapshotMerge.signature(copy.snapshot) else { return true }
             return fingerprints.insert(content).inserted
         }
     }
