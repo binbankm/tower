@@ -2,6 +2,7 @@
 
 ## 未发布：Tailscale 内网（2026-09-28）
 
+- 各客户端官方写法、塔台实现与已知问题见 [TAILSCALE](TAILSCALE.md)。
 - 目的：代理客户端开着时也能访问家里电脑和局域网。`TailnetConnection` 不是节点：它不进任何策略组、测速组或地区组（目的地不在 tailnet 里时会直接失败，不会回退直连），只接收置顶规则：`100.64.0.0/10`、`fd7a:115c:a1e0::/48`、MagicDNS 后缀和用户填写的子网。
 - 入口：设置 → 节点与配置 → Tailscale 内网（`TailnetSettingsView`）。字段：名称、控制服务器（空为官方，只收 HTTPS，可填 Headscale）、Auth Key（可选）、家里子网、MagicDNS 后缀、设备名。`tailnets` 随快照同步；Auth Key 只存本机钥匙串（`TailnetAuthKeyStore`，`ThisDeviceOnly`、不可同步），不进 state.json 和 iCloud；快照恢复时删除没有对应连接的孤立 Key。
 - 导出：`TailnetConfigurationWriter` 在生成后改写完整配置文本，内置方案和导入方案共用一处。Surge 写 `tailscale` 策略 + `[Tailscale <stableSlug>]`（无 Key 时 `interactive-login = true`）；Stash 写 `type: tailscale`（无 Key 在客户端里登录）；mihomo 系另加 `state-dir`、`udp`、`accept-routes`；sing-box MT 写 `tailscale` endpoint、`tailscale` DNS 服务器（仅在填了 MagicDNS 后缀时）和位于 sniff / hijack-dns 之后、`resolve` 之前的路由规则。`stableSlug` 取自连接 UUID，Surge 的交互登录状态和 mihomo / sing-box 的状态目录都挂在它上面；设备名按客户端加后缀（`tower-surge`、`tower-stash`……）。名称与现有节点 / 组重名时加序号。仅节点模式不写。
