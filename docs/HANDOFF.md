@@ -26,6 +26,7 @@
 - AmneziaWG（mihomo `amnezia-wg-option`、链接中的 `jc`/`jmin`/`jmax`/`s1`/`s2`/`h1`–`h4`）以前被当作普通 WireGuard 导入，导出后必然握手失败；现在拒收并计入无法识别。
 - 手机实测（Loon 3.5.1）：带 Salamander 的 Hysteria 2（42/52/54/55）全部失败，不带混淆的 13/73 正常。塔台给 Loon 写的 `salamander-password` 带引号，Loon 文档示例和 Sub-Store 都不带；引号会被当成密码的一部分。现改为不加引号，值里含分隔符时跳过。同轮 WireGuard（15）、HTTP 伪装（49/50）、IP + SNI（60/61/70–73）、早期数据（45）在 Loon 上均正常；19 VMess WS TLS 失败待单独重测（同服务器的 77 正常）。
 - 手机实测第二轮：Loon 修复后全部通过，QuanX 全部通过。Stash 的 77/78（服务器写 IP、只有 Host）超时：Stash 不像 mihomo 那样把 WebSocket Host 当 SNI，现在 Clash 系写入器也显式写 `servername`。Stash 的 WireGuard（15）超时而同一手机 Loon 可连，待用对照配置区分 `allowed-ips` 与 `dns` 的影响。
+- 手机实测第三轮：Surge、Shadowrocket、Egern 全部通过。Surge、Egern 的 Hysteria/Hysteria 2/TUIC 在家庭 Wi-Fi 下被拒（`Connection refused` / 超时），切到 5G 全部正常，属网络问题；各客户端 WireGuard 受运营商拦截。Egern 冷启动时会丢弃导入链接（第一次点击无反应，第二次成功），塔台无法补救，导出页对 Egern 增加一句「刚启动没有新配置时再点一次」的提示（15 种语言人工翻译）。
 - 验证：`ProtocolAuditTests` 17 项；`testKaringYAMLPreservesRealityOnlyWhereItConnects`、`testNativeShadowsocksTLSIsSkippedWithoutLosingPlainSS` 按新规则更新。第二轮后 1208 项 XCTest（5 跳过、0 失败）与 106 项 Swift Testing 通过，`ProtocolAuditTests` 第二轮增至 21 项、第三轮 24 项（1211 项 XCTest 全部通过），`TUICHysteriaTests` 两项改为分别断言 mihomo 与 Stash 字段。实测：mihomo 目标 41/42、sing-box 目标 38/39 连通，唯一失败为 WireGuard（直连时握手超时，经代理路径可通，判断为本地运营商拦截）。
 - 未完成：图形客户端（Surge、Loon、Shadowrocket、QuanX、Stash、Egern、Karing、V2Box）尚未在 Mac mini 上实测；SSH 通道没有截屏与辅助功能权限。缺失协议评估见本轮报告。
 

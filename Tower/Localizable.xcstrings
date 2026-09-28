@@ -97517,6 +97517,100 @@
           }
         }
       }
+    },
+    "如果 Egern 刚启动后没有出现新配置，回到塔台再点一次。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إذا فُتح Egern للتو ولم يظهر ملف تعريف جديد، فارجع إلى Tower واضغط مرة أخرى."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn Egern gerade gestartet wurde und kein neues Profil erscheint, kehre zu Tower zurück und tippe erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If Egern has just launched and no new profile appears, go back to Tower and tap again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si Egern acaba de abrirse y no aparece ningún perfil nuevo, vuelve a Tower y toca de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si Egern vient de démarrer et qu’aucun nouveau profil n’apparaît, revenez à Tower et touchez à nouveau."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jika Egern baru saja dibuka dan tidak ada profil baru, kembali ke Tower lalu ketuk lagi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Egern の起動直後に新しいプロファイルが表示されない場合は、タワーに戻ってもう一度タップしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Egern이 방금 실행되어 새 프로필이 보이지 않으면 Tower로 돌아가 다시 탭하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se o Egern acabou de abrir e nenhum perfil novo apareceu, volte ao Tower e toque novamente."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если Egern только что запустился и новый профиль не появился, вернитесь в Tower и нажмите ещё раз."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หาก Egern เพิ่งเปิดและไม่มีโปรไฟล์ใหม่ปรากฏ ให้กลับไปที่ Tower แล้วแตะอีกครั้ง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Egern yeni açıldıysa ve yeni profil görünmüyorsa Tower'a dönüp tekrar dokunun."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nếu Egern vừa khởi động mà không thấy cấu hình mới, hãy quay lại Tower và chạm lần nữa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果 Egern 刚启动后没有出现新配置，回到塔台再点一次。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果 Egern 剛啟動後沒有出現新設定，回到塔台再點一次。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -1530,6 +1530,13 @@ private struct ImportPrivacyNote: View {
 
 
     private var detail: String {
+        // Egern drops the import link when that link is what launches it; the
+        // second tap reaches the running app. Confirmed on Egern 2.20.
+        guard target == .egern, target.supportsDirectImport(mode: contentMode) else { return baseDetail }
+        return baseDetail + String(localized: "如果 Egern 刚启动后没有出现新配置，回到塔台再点一次。")
+    }
+
+    private var baseDetail: String {
         if target.copiesAggregatedSubscription(mode: contentMode) {
             if target.usesClashFormat {
                 return String(localized: "将链接添加到现有配置的代理集合（proxy-providers），不含规则或策略组。刷新时需保持塔台运行；链接失效后请重新复制。")
