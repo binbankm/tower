@@ -838,6 +838,8 @@ struct ConfigurationGenerator {
         // core has no SOCKS TLS at all, and users saw its HTTP Reality fail.
         if [.loon, .karing].contains(target), node.usesReality, [.socks5, .http].contains(node.kind) { return false }
         if target == .karing, node.kind == .socks5, node.tls { return false }
+        // Karing users saw Trojan Reality fail twice (2026-09-06, 2026-09-28).
+        if target == .karing, node.kind == .trojan, node.usesReality { return false }
         // Mihomo's and Stash's SOCKS5 have no SNI field: TLS always names the
         // server address. A node whose SNI differs (an IP or a front) failed
         // its certificate check there, so it is skipped rather than degraded.
@@ -1012,9 +1014,15 @@ struct ConfigurationGenerator {
         case .clash:
             if node.kind == .trojan { return ["ws", "grpc"].contains(transport) }
             return ["ws", "http", "h2", "grpc"].contains(transport)
-        case .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi, .karing:
+        case .clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi:
             if transport == "xhttp" { return node.kind == .vless }
             return ["ws", "http", "h2", "grpc", "httpupgrade"].contains(transport)
+        case .karing:
+            // Karing converts Clash YAML into its own sing-box core. On device
+            // (1.2.25) HTTP/2 and HTTPUpgrade nodes failed while the same file
+            // connected in mihomo; ws, HTTP/1.1, gRPC and XHTTP all worked.
+            if transport == "xhttp" { return node.kind == .vless }
+            return ["ws", "http", "grpc"].contains(transport)
         case .surge, .surgeMac:
             return transport == "ws" && [.vmess, .trojan].contains(node.kind)
         case .shadowrocket:

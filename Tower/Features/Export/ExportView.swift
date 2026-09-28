@@ -1532,8 +1532,16 @@ private struct ImportPrivacyNote: View {
     private var detail: String {
         // Egern drops the import link when that link is what launches it; the
         // second tap reaches the running app. Confirmed on Egern 2.20.
-        guard target == .egern, target.supportsDirectImport(mode: contentMode) else { return baseDetail }
-        return baseDetail + String(localized: "如果 Egern 刚启动后没有出现新配置，回到塔台再点一次。")
+        guard target.supportsDirectImport(mode: contentMode) else { return baseDetail }
+        switch target {
+        case .egern:
+            return baseDetail + String(localized: "如果 Egern 刚启动后没有出现新配置，回到塔台再点一次。")
+        case .karing:
+            // Karing skips a link it already has, so each import is a new profile.
+            return baseDetail + String(localized: "Karing 每次导入都会新建一份配置，旧的塔台配置可以删除。")
+        default:
+            return baseDetail
+        }
     }
 
     private var baseDetail: String {

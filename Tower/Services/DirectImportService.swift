@@ -79,8 +79,17 @@ struct ClientImportURLBuilder {
             value = "clashmi://install-config?url=\(encodedURL)&name=\(encodedName)"
         case .karing:
             // Karing's published integration route accepts a complete Clash
-            // configuration URL and an optional display name.
-            value = "karing://install-config?url=\(encodedURL)&name=\(encodedName)"
+            // configuration URL and an optional display name. It silently
+            // skips a URL it already has ("already exists, skip add" in its
+            // scheme_handler.dart) instead of updating that profile, so the
+            // stable Tower URL only worked after deleting the old profile.
+            var components = URLComponents(url: configurationURL, resolvingAgainstBaseURL: false)
+            let existingItems = components?.queryItems ?? []
+            components?.queryItems = existingItems + [
+                URLQueryItem(name: "tower-import", value: importRevision)
+            ]
+            let uniqueURL = components?.url ?? configurationURL
+            value = "karing://install-config?url=\(encode(uniqueURL.absoluteString))&name=\(encodedName)"
         case .shadowrocket:
             value = contentMode == .nodesOnly
                 ? "shadowrocket://add/\(configurationURL.absoluteString)#\(displayName)"

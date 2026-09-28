@@ -271,6 +271,22 @@ final class ProtocolAuditTests: XCTestCase {
         XCTAssertTrue(content([fronted], .clash).contains("servername: \"front.example.com\""))
     }
 
+    // MARK: - Karing
+
+    func testKaringSkipsWhatFailedOnDevice() {
+        for transport in ["h2", "httpupgrade"] {
+            let node = ProxyNode(kind: .vmess, name: transport, server: "k.example.com", port: 443, uuid: uuid,
+                                 transport: transport, tls: true, sni: "k.example.com", path: "/p", rawURI: "")
+            XCTAssertFalse(content([node], .karing).contains("k.example.com"), transport)
+            XCTAssertTrue(content([node], .clashMi).contains("k.example.com"), transport)
+        }
+        let grpc = ProxyNode(kind: .vless, name: "grpc", server: "g.example.com", port: 443, uuid: uuid,
+                             transport: "grpc", tls: true, path: "svc", rawURI: "")
+        XCTAssertTrue(content([grpc], .karing).contains("g.example.com"))
+        XCTAssertFalse(content([reality(.trojan)], .karing).contains("r.example.com"))
+        XCTAssertTrue(content([reality(.anytls)], .karing).contains("r.example.com"))
+    }
+
     // MARK: - Stash field names
 
     func testStashUsesItsOwnHysteriaAndTUICFields() {

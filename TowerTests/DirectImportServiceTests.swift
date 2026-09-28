@@ -118,11 +118,9 @@ final class DirectImportServiceTests: XCTestCase {
 
             XCTAssertEqual(components.scheme, scheme, target.name)
             XCTAssertEqual(components.host, "install-config", target.name)
-            XCTAssertEqual(
-                components.queryItems?.first(where: { $0.name == "url" })?.value,
-                localURL.absoluteString,
-                target.name
-            )
+            // Karing's copy carries a per-import revision; the resource is the same.
+            let served = try XCTUnwrap(components.queryItems?.first(where: { $0.name == "url" })?.value)
+            XCTAssertTrue(served.hasPrefix(localURL.absoluteString), target.name)
             XCTAssertEqual(
                 components.queryItems?.first(where: { $0.name == "name" })?.value,
                 "塔台 配置",
@@ -131,23 +129,36 @@ final class DirectImportServiceTests: XCTestCase {
         }
     }
 
-    func testClashMiAndKaringKeepAStableRemoteIdentityAcrossExports() throws {
-        for target in [ClientTarget.clashMi, .karing] {
-            let first = try ClientImportURLBuilder.make(
-                target: target,
-                configurationURL: localURL,
-                displayName: "塔台",
-                importRevision: "first"
-            )
-            let second = try ClientImportURLBuilder.make(
-                target: target,
-                configurationURL: localURL,
-                displayName: "塔台",
-                importRevision: "second"
-            )
+    func testClashMiKeepsAStableRemoteIdentityAcrossExports() throws {
+        let first = try ClientImportURLBuilder.make(
+            target: .clashMi, configurationURL: localURL, displayName: "塔台", importRevision: "first"
+        )
+        let second = try ClientImportURLBuilder.make(
+            target: .clashMi, configurationURL: localURL, displayName: "塔台", importRevision: "second"
+        )
+        XCTAssertEqual(first, second, "Clash Mi 不应因重复导出创建新来源地址")
+    }
 
-            XCTAssertEqual(first, second, "\(target.name) 不应因重复导出创建新来源地址")
-        }
+    /// Karing skips a URL it already has instead of updating it, so a second
+    /// export only imported after the user deleted the first profile.
+    func testKaringGetsANewSourceURLForEachExport() throws {
+        let first = try ClientImportURLBuilder.make(
+            target: .karing, configurationURL: localURL, displayName: "塔台", importRevision: "first"
+        )
+        let second = try ClientImportURLBuilder.make(
+            target: .karing, configurationURL: localURL, displayName: "塔台", importRevision: "second"
+        )
+        XCTAssertNotEqual(first, second)
+        let served = try XCTUnwrap(URLComponents(url: first, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == "url" }?.value)
+        let servedURL = try XCTUnwrap(URL(string: served))
+        // The local server drops the query before matching, so the same
+        // resource still answers.
+        XCTAssertEqual(servedURL.query, "tower-import=first")
+        XCTAssertTrue(LocalConfigurationServer.matchesRequestPath(
+            try XCTUnwrap(URLComponents(url: servedURL, resolvingAgainstBaseURL: false)?.percentEncodedPath),
+            configurationURL: localURL
+        ))
     }
 
     func testSingBoxMTUsesOfficialRemoteProfileImportScheme() throws {
