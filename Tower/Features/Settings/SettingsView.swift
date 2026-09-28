@@ -428,6 +428,10 @@ private struct NodeAndExportSettingsCard: View {
 
             Divider()
 
+            TailnetSettingsRow()
+
+            Divider()
+
             ConfigurationNameSettingsRow(configurationNameDraft: $configurationNameDraft)
         }
         .padding(17)

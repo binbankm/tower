@@ -1463,13 +1463,16 @@ private struct ConfigurationPreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     let configuration: GeneratedConfiguration
     @State private var highlightedSpans: [ConfigurationSyntaxHighlighter.Span]?
+    /// The profile as shown: tailnet auth keys masked. Copy still takes the
+    /// real content, because the copied profile has to work.
+    @State private var displayedText: String?
 
     var body: some View {
         NavigationStack {
             ZStack {
                 if let highlightedSpans {
                     ConfigurationTextView(
-                        text: configuration.content,
+                        text: displayedText ?? configuration.content,
                         spans: highlightedSpans
                     )
                     .transition(.opacity)
@@ -1501,11 +1504,12 @@ private struct ConfigurationPreviewSheet: View {
             // turn later — long enough to show the progress view, not long
             // enough to keep the sheet interactive while it happened.
             .task {
-                let content = configuration.content
+                let content = model.maskingTailnetAuthKeys(in: configuration.content)
                 let spans = await Task.detached(priority: .userInitiated) {
                     ConfigurationSyntaxHighlighter.spans(in: content)
                 }.value
                 guard !Task.isCancelled else { return }
+                displayedText = content
                 highlightedSpans = spans
             }
         }

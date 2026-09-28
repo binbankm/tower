@@ -65,6 +65,7 @@ ConfigurationGenerator 按 ClientTarget 与能力矩阵输出 INI / YAML / JSON 
 - Anywhere / V2Box 仅节点订阅；AnywhereExport 负责独立 URI 参数映射和无法保真节点过滤，规则由目标客户端管理。QuanX 分享完整文件，不假装远程资源 API 能导入策略组。
 - 名称必须转义，不能让不可信 remark 注入规则。
 - 代理集合仅为明确支持的完整配置传入 RemoteSubscriptionLink，自有节点内联。
+- Tailscale 内网（`TailnetConnection`）不是节点，由 `TailnetConfigurationWriter` 在生成后写进完整配置：一个不被任何组引用的策略加置顶规则，内置方案与导入方案共用。Auth Key 由 AppModel 从本机钥匙串读出并计入缓存键，快照只保存连接本身。
 - supported/skipped 统计本地输出，remoteSourceCount 单列远端来源；hasExportableProxies 决定能否导出。远端节点不受本地筛选控制。
 
 ### 有界生成缓存

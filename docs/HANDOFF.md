@@ -1,5 +1,16 @@
 # 当前交接
 
+## 未发布：Tailscale 内网（2026-09-28）
+
+- 目的：代理客户端开着时也能访问家里电脑和局域网。`TailnetConnection` 不是节点：它不进任何策略组、测速组或地区组（目的地不在 tailnet 里时会直接失败，不会回退直连），只接收置顶规则：`100.64.0.0/10`、`fd7a:115c:a1e0::/48`、MagicDNS 后缀和用户填写的子网。
+- 入口：设置 → 节点与配置 → Tailscale 内网（`TailnetSettingsView`）。字段：名称、控制服务器（空为官方，只收 HTTPS，可填 Headscale）、Auth Key（可选）、家里子网、MagicDNS 后缀、设备名。`tailnets` 随快照同步；Auth Key 只存本机钥匙串（`TailnetAuthKeyStore`，`ThisDeviceOnly`、不可同步），不进 state.json 和 iCloud；快照恢复时删除没有对应连接的孤立 Key。
+- 导出：`TailnetConfigurationWriter` 在生成后改写完整配置文本，内置方案和导入方案共用一处。Surge 写 `tailscale` 策略 + `[Tailscale <stableSlug>]`（无 Key 时 `interactive-login = true`）；Stash 写 `type: tailscale`（无 Key 在客户端里登录）；mihomo 系另加 `state-dir`、`udp`、`accept-routes`；sing-box MT 写 `tailscale` endpoint、`tailscale` DNS 服务器（仅在填了 MagicDNS 后缀时）和位于 sniff / hijack-dns 之后、`resolve` 之前的路由规则。`stableSlug` 取自连接 UUID，Surge 的交互登录状态和 mihomo / sing-box 的状态目录都挂在它上面；设备名按客户端加后缀（`tower-surge`、`tower-stash`……）。名称与现有节点 / 组重名时加序号。仅节点模式不写。
+- 不支持并在导出页「兼容性提示」说明：Shadowrocket（Clash YAML 和 Surge 格式都没有注册到控制服务器）、Loon、Quantumult X、Egern、Hiddify、Karing（源码里仍是 todo）。没有 Key 时为 Surge / Stash 提示在客户端登录，为 mihomo / sing-box 提示填 Key（它们只把登录链接写进日志）。
+- 实测：测试 VPS 自建 Headscale（带内置 DERP），Mac mini 以 userspace 模式加入并发布家里子网。手机 Surge、Stash 3.4、Clash Mi、sing-box MT 三项（tailnet IP、MagicDNS、家里子网）全部通过；Surge 与 Stash 重复导入两次，控制服务器上仍只有一台设备。本机 mihomo 1.19.31 与 sing-box 1.14.2 用塔台实际生成的完整配置连通；mihomo 冷启动后第一个请求会超时（官方文档说明的正常现象）。
+- 配置预览里 Auth Key 显示为等长圆点（`maskingTailnetAuthKeys`），「复制」仍拿完整配置。
+- 未做：用真实 Tailscale 账户的交互登录验收（需用户在手机上操作）、出口节点、Shadowrocket 格式。
+- 测试：`TailnetTests` 15 项（其中导出给本机内核的一项只在设置输出目录时运行），`TailnetInteractionTests` 覆盖设置里新增、校验子网和保存。1242 项 XCTest 与 106 项 Swift Testing 通过。设置卡片的 `node-export-settings-card` 标识会覆盖卡片内每一行的标识，界面测试只能按标签找行；`CloudRecoveryInteractionTests` 和 `testPersistentExportNameFilter` 在未改动的 main 上同样失败，与本次无关，`testManualDoneDismissesKeyboard` 偶发失败。
+
 ## 未发布：新增 SSH 与 TrustTunnel（2026-09-28）
 
 - 模型：`ProxyKind.ssh`、`.trustTunnel`（rawValue `trusttunnel`），`SSHOptions`（内联私钥、口令、主机公钥、主机密钥算法）、`TrustTunnelOptions`（`quic` 走 HTTP/3）。两者都没有分享链接格式：输入来自 Clash YAML（`type: ssh` / `trusttunnel` / `trust-tunnel`，Stash 的 `user` 同样接受），分享输出 mihomo `proxies:` 片段（`clashShareSnippet`），输入识别把单节点片段识别为该协议节点。手动添加表单支持两者（SSH 可填私钥与服务器公钥，TrustTunnel 有 HTTP/3 开关），新增 7 条文案已人工翻译 15 种语言。

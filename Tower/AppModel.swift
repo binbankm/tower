@@ -174,6 +174,14 @@ final class AppModel {
     var localRuleSets: [LocalRuleSet] = []
     /// Per-scheme placement, routing and enablement for local and catalog rules.
     var customRuleFlows: [CustomRuleFlow] = []
+    /// Tailnets written into complete profiles. Synced; their auth keys are not.
+    var tailnets: [TailnetConnection] = []
+    /// Which tailnets have an auth key in this device's Keychain. Observed so
+    /// the editor can say so without reading the key back into the view.
+    private(set) var tailnetsWithAuthKey: Set<UUID> = []
+    @ObservationIgnored private var tailnetAuthKeys: any TailnetAuthKeyStoring = InMemoryTailnetAuthKeyStore()
+    /// Bumped on every key change so cached profiles are rebuilt.
+    @ObservationIgnored private var tailnetAuthKeyRevision = 0
     var importingSchemeIDs: Set<String> = []
     private(set) var isImportingScheme = false
     @ObservationIgnored private var ruleOperationGeneration = UUID()
@@ -253,6 +261,8 @@ final class AppModel {
         let customizations: [String: RuleSchemeCustomization]
         let emojis: [String: Bool]
         let flows: [CustomRuleFlow]
+        let tailnets: [TailnetConnection]
+        let tailnetKeyRevision: Int
         let excludedKinds: [ClientTarget: Set<ProxyKind>]
         let presetID: String
         let name: String
@@ -457,7 +467,8 @@ final class AppModel {
         cloudForegroundCheckInterval: TimeInterval = 600,
         arguments: [String] = ProcessInfo.processInfo.arguments,
         clientPlatform: ClientPlatform = .current,
-        lanBackgroundLease: LANSharingBackgroundLease? = nil
+        lanBackgroundLease: LANSharingBackgroundLease? = nil,
+        tailnetAuthKeys: (any TailnetAuthKeyStoring)? = nil
     ) {
         self.lanBackgroundLease = lanBackgroundLease ?? LANSharingBackgroundLease()
         self.clientPlatform = clientPlatform
@@ -538,6 +549,10 @@ final class AppModel {
         self.ipCountryLookupService = ipCountryLookupService
         self.reminderScheduler = reminderScheduler ?? SubscriptionReminderScheduler()
         self.isDemoMode = arguments.contains("--demo")
+        // Demo and UI-test runs must never read or write the user's Keychain.
+        let usesDisposableStore = isDemoMode || ProcessInfo.processInfo.environment["TOWER_UI_TEST_RUN"] != nil
+        self.tailnetAuthKeys = tailnetAuthKeys
+            ?? (usesDisposableStore ? InMemoryTailnetAuthKeyStore() : TailnetAuthKeyStore())
 
         if isDemoMode {
             let demo = Self.demoSnapshot
@@ -943,6 +958,80 @@ final class AppModel {
             ruleGroupEmojisEnabled[scheme.id] = false
         }
         persist()
+    }
+
+    // MARK: - Tailnets
+
+    enum TailnetAuthKeyChange: Equatable {
+        case keep
+        case set(String)
+        case remove
+    }
+
+    func hasTailnetAuthKey(_ id: UUID) -> Bool { tailnetsWithAuthKey.contains(id) }
+
+    /// Inserts or replaces a tailnet. The key is written first so a Keychain
+    /// failure leaves the saved connection untouched.
+    func saveTailnet(_ connection: TailnetConnection, authKey: TailnetAuthKeyChange) throws {
+        switch authKey {
+        case .keep: break
+        case .set(let key):
+            try tailnetAuthKeys.setAuthKey(key, for: connection.id)
+            tailnetsWithAuthKey.insert(connection.id)
+            tailnetAuthKeyRevision += 1
+        case .remove:
+            try tailnetAuthKeys.setAuthKey(nil, for: connection.id)
+            tailnetsWithAuthKey.remove(connection.id)
+            tailnetAuthKeyRevision += 1
+        }
+        if let index = tailnets.firstIndex(where: { $0.id == connection.id }) {
+            tailnets[index] = connection
+        } else {
+            tailnets.append(connection)
+        }
+        persist(invalidateRuleCounts: false)
+    }
+
+    func setTailnetEnabled(_ id: UUID, _ enabled: Bool) {
+        guard let index = tailnets.firstIndex(where: { $0.id == id }), tailnets[index].isEnabled != enabled else { return }
+        tailnets[index].isEnabled = enabled
+        persist(invalidateRuleCounts: false)
+    }
+
+    func deleteTailnet(_ id: UUID) {
+        try? tailnetAuthKeys.setAuthKey(nil, for: id)
+        tailnetsWithAuthKey.remove(id)
+        tailnetAuthKeyRevision += 1
+        tailnets.removeAll { $0.id == id }
+        persist(invalidateRuleCounts: false)
+    }
+
+    /// A tailnet deleted on another device takes its key on this one with it;
+    /// otherwise a secret nobody can see would stay in the Keychain.
+    private func reconcileTailnetAuthKeys() {
+        let ids = Set(tailnets.map(\.id))
+        for orphan in tailnetAuthKeys.storedIDs().subtracting(ids) {
+            try? tailnetAuthKeys.setAuthKey(nil, for: orphan)
+        }
+        tailnetsWithAuthKey = Set(ids.filter { tailnetAuthKeys.authKey(for: $0) != nil })
+        tailnetAuthKeyRevision += 1
+    }
+
+    /// Previews and screenshots should not show a key that can add machines
+    /// to someone's tailnet. Same length, so nothing else in the text moves.
+    func maskingTailnetAuthKeys(in content: String) -> String {
+        var masked = content
+        for id in tailnetsWithAuthKey {
+            guard let key = tailnetAuthKeys.authKey(for: id), !key.isEmpty else { continue }
+            masked = masked.replacingOccurrences(of: key, with: String(repeating: "•", count: key.count))
+        }
+        return masked
+    }
+
+    private func currentTailnetExports() -> [TailnetExport] {
+        tailnets.filter(\.isEnabled).map {
+            TailnetExport(connection: $0, authKey: tailnetAuthKeys.authKey(for: $0.id))
+        }
     }
 
     func customRuleFlows(for scheme: RuleScheme) -> [CustomRuleFlow] {
@@ -2949,6 +3038,7 @@ final class AppModel {
             nameFilter: nodeExportNameFilter,
             countryCodes: nodeIPCountryCodes, schemes: importedSchemes, groups: selectedRuleGroups,
             customizations: ruleSchemeCustomizations, emojis: ruleGroupEmojisEnabled, flows: customRuleFlows,
+            tailnets: tailnets, tailnetKeyRevision: tailnetAuthKeyRevision,
             excludedKinds: excludedKinds, presetID: selectedPresetID, name: configurationName,
             appendName: appendSubscriptionNameToNodes, filterInfo: filterSubscriptionInfoNodes,
             ruleSets: preferRuleSets, remoteLinks: embedRemoteSubscriptionLinks, rulesRevision: ruleSchemePresentationRevision)
@@ -3018,6 +3108,7 @@ final class AppModel {
             .joined(separator: "|")
             .hashValue
         let scheme = selectedScheme.map(effectiveScheme)
+        let tailnetExports = currentTailnetExports()
         let remoteSubscriptions = embeddedRemoteSubscriptions(for: resolvedTarget, contentMode: resolvedMode)
         let sourceURLHashes = Dictionary(subscriptions.filter(\.isEnabled).map {
             ($0.id, RuleSchemeParser.sourceURLHash($0.urlString))
@@ -3031,7 +3122,8 @@ final class AppModel {
             presetID: scheme?.id ?? selectedPreset.id,
             nodesHash: currentNodes.hashValue,
             countryCodesHash: countryCodesHash,
-            rulesHash: scheme?.hashValue ?? selectedPreset.hashValue,
+            // Tailnets change the profile without touching nodes or rules.
+            rulesHash: (scheme?.hashValue ?? selectedPreset.hashValue) &+ 31 &* tailnetExports.hashValue,
             // Without this, toggling a protocol would keep serving the cached
             // configuration for that client.
             excludedHash: excludedHash,
@@ -3065,7 +3157,7 @@ final class AppModel {
                     supportedKindsOverride: supportedKindsOverride
                 )
             }
-            return generated
+            return TailnetConfigurationWriter().apply(tailnetExports, to: generated)
         }
     }
 
@@ -3735,6 +3827,8 @@ final class AppModel {
         )
         localRuleSets = localMigration.ruleSets
         customRuleFlows = localMigration.flows
+        tailnets = snapshot.tailnets ?? []
+        reconcileTailnetAuthKeys()
         excludedKinds = Self.decodeExcludedKinds(snapshot.excludedKinds)
         renewalRemindersEnabled = snapshot.renewalRemindersEnabled ?? false
         clientOrder = ClientTargetOrder.normalized(
@@ -3952,7 +4046,8 @@ final class AppModel {
             resolvedHostCountryCodeUpdatedAt: prunedResolvedHostCountryCodeUpdatedAt(),
             resolvedHostCountryDatabaseVersion: IPCountryDatabase.dataVersion,
             updatedAt: updatedAt,
-            macClientPreferences: clientPlatform == .mac ? active : savedMacClientPreferences
+            macClientPreferences: clientPlatform == .mac ? active : savedMacClientPreferences,
+            tailnets: tailnets.isEmpty ? nil : tailnets
         )
     }
 

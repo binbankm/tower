@@ -1913,6 +1913,9 @@ struct AppSnapshot: Codable {
     var resolvedHostCountryCodes: [String: String]?
     var resolvedHostCountryCodeUpdatedAt: [String: Date]?
     var resolvedHostCountryDatabaseVersion: String?
+    /// Tailnets reachable from exported profiles. Auth keys are not part of
+    /// the snapshot; they stay in this device's Keychain.
+    var tailnets: [TailnetConnection]?
 
     init(
         subscriptions: [SubscriptionSource],
@@ -1947,9 +1950,11 @@ struct AppSnapshot: Codable {
         resolvedHostCountryCodeUpdatedAt: [String: Date]? = nil,
         resolvedHostCountryDatabaseVersion: String? = nil,
         updatedAt: Date? = nil,
-        macClientPreferences: ClientPlatformPreferences? = nil
+        macClientPreferences: ClientPlatformPreferences? = nil,
+        tailnets: [TailnetConnection]? = nil
     ) {
         self.macClientPreferences = macClientPreferences
+        self.tailnets = tailnets
         self.subscriptions = subscriptions
         self.nodes = nodes
         self.selectedPresetID = selectedPresetID

@@ -98363,6 +98363,3672 @@
           }
         }
       }
+    },
+    "%@ 不支持 Tailscale，已跳过“%@”。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يدعم %1$@ ‏Tailscale؛ تم تخطي “%2$@”."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ unterstützt Tailscale nicht; „%2$@“ wurde übersprungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ doesn’t support Tailscale; “%2$@” was skipped."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ no admite Tailscale; se omitió «%2$@»."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ne prend pas en charge Tailscale ; « %2$@ » a été ignoré."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ tidak mendukung Tailscale; “%2$@” dilewati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ は Tailscale に対応していないため、「%2$@」をスキップしました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@은(는) Tailscale을 지원하지 않아 “%2$@”을(를) 건너뛰었습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O %1$@ não oferece suporte ao Tailscale; “%2$@” foi ignorado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ не поддерживает Tailscale; «%2$@» пропущено."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ไม่รองรับ Tailscale จึงข้าม “%2$@”"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Tailscale’i desteklemiyor; “%2$@” atlandı."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ không hỗ trợ Tailscale; đã bỏ qua “%2$@”."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 不支持 Tailscale，已跳过“%@”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 不支援 Tailscale，已略過「%2$@」。"
+          }
+        }
+      }
+    },
+    "%lld 个子网": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld شبكات فرعية"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Subnetze"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld subnets"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld subredes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sous-réseaux"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld subnet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブネット %lld 件"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서브넷 %lld개"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sub-redes"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подсетей: %lld"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ซับเน็ต"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld alt ağ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld mạng con"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个子网"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 個子網路"
+          }
+        }
+      }
+    },
+    "Auth Key 不能包含空格、引号或逗号。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يمكن أن يحتوي Auth Key على مسافات أو علامات اقتباس أو فواصل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Auth Key darf keine Leerzeichen, Anführungszeichen oder Kommas enthalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The auth key can’t contain spaces, quotes or commas."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La Auth Key no puede contener espacios, comillas ni comas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’Auth Key ne peut pas contenir d’espaces, de guillemets ni de virgules."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key tidak boleh berisi spasi, tanda kutip, atau koma."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key にスペース、引用符、カンマは使えません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key에는 공백, 따옴표, 쉼표를 넣을 수 없습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Auth Key não pode conter espaços, aspas ou vírgulas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key не может содержать пробелы, кавычки или запятые."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key ต้องไม่มีช่องว่าง เครื่องหมายคำพูด หรือจุลภาค"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key boşluk, tırnak işareti veya virgül içeremez."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key không được chứa dấu cách, dấu ngoặc kép hoặc dấu phẩy."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 不能包含空格、引号或逗号。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 不能包含空格、引號或逗號。"
+          }
+        }
+      }
+    },
+    "Auth Key 已保存在这台设备": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم حفظ Auth Key على هذا الجهاز"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key auf diesem Gerät gespeichert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth key saved on this device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key guardada en este dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key enregistrée sur cet appareil"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key tersimpan di perangkat ini"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key はこのデバイスに保存済み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key가 이 기기에 저장됨"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key salva neste dispositivo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key сохранён на этом устройстве"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บันทึก Auth Key ไว้ในอุปกรณ์นี้แล้ว"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key bu cihazda kayıtlı"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã lưu Auth Key trên thiết bị này"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 已保存在这台设备"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 已儲存在這台裝置"
+          }
+        }
+      }
+    },
+    "Auth Key（可选）": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (اختياري)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (optional)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (optional)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (facultative)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (opsional)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key（任意）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key(선택)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (opcional)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (необязательно)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (ไม่บังคับ)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (isteğe bağlı)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key (không bắt buộc)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key（可选）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key（選用）"
+          }
+        }
+      }
+    },
+    "MagicDNS 与设备名": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS واسم الجهاز"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS und Gerätename"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS and device name"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS y nombre del dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS et nom de l’appareil"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS dan nama perangkat"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS とデバイス名"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 및 기기 이름"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS e nome do dispositivo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS и имя устройства"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS และชื่ออุปกรณ์"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS ve cihaz adı"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS và tên thiết bị"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 与设备名"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 與裝置名稱"
+          }
+        }
+      }
+    },
+    "MagicDNS 后缀在 Tailscale 管理后台的 DNS 页面可以找到，用于按设备名访问。每个客户端会注册成单独的设备，例如 tower-surge。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تجد لاحقة MagicDNS في صفحة DNS بوحدة تحكم مسؤول Tailscale، وهي تتيح الوصول إلى الأجهزة بأسمائها. يُسجَّل كل عميل كجهاز مستقل، مثل tower-surge."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das MagicDNS-Suffix findest du auf der DNS-Seite der Tailscale-Verwaltung; damit erreichst du Geräte über ihren Namen. Jeder Client meldet sich als eigenes Gerät an, z. B. tower-surge."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find the MagicDNS suffix on the DNS page of the Tailscale admin console; it lets you reach devices by name. Each client registers as its own device, such as tower-surge."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El sufijo de MagicDNS está en la página DNS de la consola de administración de Tailscale y permite acceder a los dispositivos por nombre. Cada cliente se registra como un dispositivo propio, por ejemplo tower-surge."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le suffixe MagicDNS se trouve sur la page DNS de la console d’administration Tailscale ; il permet de joindre les appareils par leur nom. Chaque client s’enregistre comme un appareil distinct, par exemple tower-surge."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sufiks MagicDNS ada di halaman DNS konsol admin Tailscale dan dipakai untuk mengakses perangkat lewat nama. Setiap klien terdaftar sebagai perangkat tersendiri, misalnya tower-surge."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS サフィックスは Tailscale 管理コンソールの DNS ページで確認でき、デバイス名でアクセスするために使います。各クライアントは tower-surge のように別々のデバイスとして登録されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 접미사는 Tailscale 관리 콘솔의 DNS 페이지에서 확인할 수 있으며, 기기 이름으로 접속할 때 사용합니다. 각 클라이언트는 tower-surge처럼 별도의 기기로 등록됩니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O sufixo MagicDNS fica na página DNS do console de administração do Tailscale e permite acessar dispositivos pelo nome. Cada cliente é registrado como um dispositivo próprio, por exemplo tower-surge."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Суффикс MagicDNS указан на странице DNS в консоли администратора Tailscale; он нужен для доступа к устройствам по имени. Каждый клиент регистрируется как отдельное устройство, например tower-surge."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ดูส่วนต่อท้าย MagicDNS ได้ที่หน้า DNS ในคอนโซลผู้ดูแลของ Tailscale ใช้สำหรับเข้าถึงอุปกรณ์ด้วยชื่อ แต่ละไคลเอนต์จะลงทะเบียนเป็นอุปกรณ์แยกกัน เช่น tower-surge"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS son ekini Tailscale yönetim konsolunun DNS sayfasında bulabilirsiniz; cihazlara adlarıyla erişmek için kullanılır. Her istemci tower-surge gibi ayrı bir cihaz olarak kaydolur."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hậu tố MagicDNS có trong trang DNS của bảng quản trị Tailscale, dùng để truy cập thiết bị theo tên. Mỗi ứng dụng khách đăng ký thành một thiết bị riêng, ví dụ tower-surge."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 后缀在 Tailscale 管理后台的 DNS 页面可以找到，用于按设备名访问。每个客户端会注册成单独的设备，例如 tower-surge。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 後綴可在 Tailscale 管理後台的 DNS 頁面找到，用於按裝置名稱存取。每個用戶端會註冊成獨立的裝置，例如 tower-surge。"
+          }
+        }
+      }
+    },
+    "MagicDNS 后缀格式不对，例如 tail1234.ts.net。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لاحقة MagicDNS غير صالحة. مثال: tail1234.ts.net."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das MagicDNS-Suffix ist ungültig. Beispiel: tail1234.ts.net."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The MagicDNS suffix isn’t valid. Example: tail1234.ts.net."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El sufijo de MagicDNS no es válido. Ejemplo: tail1234.ts.net."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le suffixe MagicDNS n’est pas valide. Exemple : tail1234.ts.net."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sufiks MagicDNS tidak valid. Contoh: tail1234.ts.net."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS サフィックスの形式が正しくありません。例：tail1234.ts.net"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 접미사 형식이 올바르지 않습니다. 예: tail1234.ts.net"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O sufixo MagicDNS não é válido. Exemplo: tail1234.ts.net."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Неверный суффикс MagicDNS. Пример: tail1234.ts.net."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "รูปแบบส่วนต่อท้าย MagicDNS ไม่ถูกต้อง ตัวอย่าง: tail1234.ts.net"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS son eki geçersiz. Örnek: tail1234.ts.net."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hậu tố MagicDNS không hợp lệ. Ví dụ: tail1234.ts.net."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 后缀格式不对，例如 tail1234.ts.net。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MagicDNS 後綴格式不正確，例如 tail1234.ts.net。"
+          }
+        }
+      }
+    },
+    "Tailscale 内网": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شبكة Tailscale"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale-Netzwerk"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale Network"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Red Tailscale"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réseau Tailscale"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaringan Tailscale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale ネットワーク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale 네트워크"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rede Tailscale"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сеть Tailscale"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เครือข่าย Tailscale"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale Ağı"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mạng Tailscale"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale 内网"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale 內網"
+          }
+        }
+      }
+    },
+    "“%@”没有 Auth Key：%@ 只会把登录链接写进日志，建议在塔台里填写 Auth Key。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد Auth Key لـ “%1$@”: يكتب %2$@ رابط تسجيل الدخول في السجل فقط، لذا أضف Auth Key في Tower."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%1$@“ hat keinen Auth Key: %2$@ schreibt den Anmeldelink nur ins Protokoll. Trage den Auth Key in Tower ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” has no auth key: %2$@ only writes the sign-in link to its log, so add an auth key in Tower."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%1$@» no tiene Auth Key: %2$@ solo escribe el enlace de inicio de sesión en su registro, así que añade una Auth Key en Tower."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %1$@ » n’a pas d’Auth Key : %2$@ n’écrit le lien de connexion que dans son journal. Ajoutez une Auth Key dans Tower."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” tidak punya Auth Key: %2$@ hanya menulis tautan masuk ke log, jadi isi Auth Key di Tower."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」に Auth Key がありません。%2$@ はログインリンクをログに書き出すだけなので、タワーで Auth Key を入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@”에 Auth Key가 없습니다. %2$@은(는) 로그인 링크를 로그에만 기록하므로 Tower에서 Auth Key를 입력하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” não tem Auth Key: o %2$@ só grava o link de login no registro, então adicione uma Auth Key no Tower."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У «%1$@» нет Auth Key: %2$@ записывает ссылку для входа только в журнал, поэтому укажите Auth Key в Tower."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” ไม่มี Auth Key: %2$@ จะเขียนลิงก์เข้าสู่ระบบไว้ในบันทึกเท่านั้น จึงควรใส่ Auth Key ใน Tower"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” için Auth Key yok: %2$@ oturum açma bağlantısını yalnızca günlüğe yazar; Tower’da bir Auth Key girin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” chưa có Auth Key: %2$@ chỉ ghi liên kết đăng nhập vào nhật ký, nên hãy nhập Auth Key trong Tower."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”没有 Auth Key：%@ 只会把登录链接写进日志，建议在塔台里填写 Auth Key。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」沒有 Auth Key：%2$@ 只會把登入連結寫進日誌，建議在塔台裡填寫 Auth Key。"
+          }
+        }
+      }
+    },
+    "“%@”没有 Auth Key：导入后在 Stash 的节点菜单进入 Tailscale 页面完成登录。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد Auth Key لـ “%@”: بعد الاستيراد، افتح صفحة Tailscale من قائمة العقدة في Stash وسجّل الدخول."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ hat keinen Auth Key: Öffne nach dem Import in Stash über das Menü des Knotens die Tailscale-Seite und melde dich an."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” has no auth key: after importing, open the Tailscale page from the node’s menu in Stash and sign in."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no tiene Auth Key: tras importar, abre la página de Tailscale desde el menú del nodo en Stash e inicia sesión."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’a pas d’Auth Key : après l’import, ouvrez la page Tailscale depuis le menu du nœud dans Stash et connectez-vous."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” tidak punya Auth Key: setelah impor, buka halaman Tailscale dari menu node di Stash lalu masuk."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」に Auth Key がありません。インポート後、Stash のノードメニューから Tailscale ページを開いてログインしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”에 Auth Key가 없습니다. 가져온 후 Stash의 노드 메뉴에서 Tailscale 페이지를 열어 로그인하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não tem Auth Key: depois de importar, abra a página do Tailscale no menu do nó no Stash e faça login."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У «%@» нет Auth Key: после импорта откройте страницу Tailscale из меню узла в Stash и войдите."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” ไม่มี Auth Key: หลังนำเข้า ให้เปิดหน้า Tailscale จากเมนูของโหนดใน Stash แล้วเข้าสู่ระบบ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” için Auth Key yok: içe aktardıktan sonra Stash’te düğüm menüsünden Tailscale sayfasını açıp oturum açın."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” chưa có Auth Key: sau khi nhập, mở trang Tailscale từ menu của nút trong Stash và đăng nhập."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”没有 Auth Key：导入后在 Stash 的节点菜单进入 Tailscale 页面完成登录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」沒有 Auth Key：匯入後在 Stash 的節點選單進入 Tailscale 頁面完成登入。"
+          }
+        }
+      }
+    },
+    "“%@”没有 Auth Key：导入后在 Surge 编辑这个策略，完成 Tailscale 登录（需要 Surge iOS 5.21 / Mac 6.8 或更新版本）。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد Auth Key لـ “%@”: بعد الاستيراد، عدّل هذه السياسة في Surge وسجّل الدخول إلى Tailscale (يتطلب Surge iOS 5.21 / Mac 6.8 أو أحدث)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ hat keinen Auth Key: Bearbeite nach dem Import diese Richtlinie in Surge und melde dich bei Tailscale an (erfordert Surge iOS 5.21 / Mac 6.8 oder neuer)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” has no auth key: after importing, edit this policy in Surge and sign in to Tailscale (requires Surge iOS 5.21 / Mac 6.8 or later)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no tiene Auth Key: tras importar, edita esta política en Surge e inicia sesión en Tailscale (requiere Surge iOS 5.21 / Mac 6.8 o posterior)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’a pas d’Auth Key : après l’import, modifiez cette stratégie dans Surge et connectez-vous à Tailscale (Surge iOS 5.21 / Mac 6.8 ou version ultérieure requis)."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” tidak punya Auth Key: setelah impor, edit kebijakan ini di Surge lalu masuk ke Tailscale (perlu Surge iOS 5.21 / Mac 6.8 atau yang lebih baru)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」に Auth Key がありません。インポート後、Surge でこのポリシーを編集して Tailscale にログインしてください（Surge iOS 5.21 / Mac 6.8 以降が必要）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”에 Auth Key가 없습니다. 가져온 후 Surge에서 이 정책을 편집해 Tailscale에 로그인하세요(Surge iOS 5.21 / Mac 6.8 이상 필요)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não tem Auth Key: depois de importar, edite esta política no Surge e faça login no Tailscale (requer Surge iOS 5.21 / Mac 6.8 ou posterior)."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У «%@» нет Auth Key: после импорта отредактируйте эту политику в Surge и войдите в Tailscale (нужен Surge iOS 5.21 / Mac 6.8 или новее)."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” ไม่มี Auth Key: หลังนำเข้า ให้แก้ไขนโยบายนี้ใน Surge แล้วเข้าสู่ระบบ Tailscale (ต้องใช้ Surge iOS 5.21 / Mac 6.8 ขึ้นไป)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” için Auth Key yok: içe aktardıktan sonra bu ilkeyi Surge’te düzenleyip Tailscale’e giriş yapın (Surge iOS 5.21 / Mac 6.8 veya üstü gerekir)."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” chưa có Auth Key: sau khi nhập, hãy sửa chính sách này trong Surge và đăng nhập Tailscale (cần Surge iOS 5.21 / Mac 6.8 trở lên)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”没有 Auth Key：导入后在 Surge 编辑这个策略，完成 Tailscale 登录（需要 Surge iOS 5.21 / Mac 6.8 或更新版本）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」沒有 Auth Key：匯入後在 Surge 編輯這個策略，完成 Tailscale 登入（需要 Surge iOS 5.21 / Mac 6.8 或更新版本）。"
+          }
+        }
+      }
+    },
+    "代理客户端开着的时候，也能通过 Tailscale 访问家里的电脑和局域网。塔台把它写成一个单独的策略，只有 Tailscale 地址、MagicDNS 和你填写的子网会走它，其他流量不受影响。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكنك الوصول إلى أجهزة الكمبيوتر والشبكة المحلية في المنزل عبر Tailscale أثناء تشغيل عميل الوكيل. يكتبها Tower كسياسة منفصلة: لا تمر عبرها إلا عناوين Tailscale وMagicDNS والشبكات الفرعية التي تدخلها، ولا تتأثر بقية حركة المرور."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erreiche deine Computer und dein LAN zu Hause über Tailscale, während ein Proxy-Client läuft. Tower schreibt es als eigene Richtlinie: Nur Tailscale-Adressen, MagicDNS und die eingetragenen Subnetze laufen darüber, anderer Verkehr bleibt unverändert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reach your home computers and LAN over Tailscale while a proxy client is running. Tower writes it as a separate policy: only Tailscale addresses, MagicDNS and the subnets you enter use it, and all other traffic is unaffected."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accede a los ordenadores y la red local de casa a través de Tailscale mientras un cliente proxy está activo. Tower lo escribe como una política aparte: solo las direcciones de Tailscale, MagicDNS y las subredes que indiques pasan por ella; el resto del tráfico no cambia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accédez à vos ordinateurs et à votre réseau local via Tailscale pendant qu’un client proxy fonctionne. Tower l’écrit comme une stratégie distincte : seuls les adresses Tailscale, MagicDNS et les sous-réseaux saisis l’utilisent, le reste du trafic n’est pas affecté."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akses komputer dan LAN di rumah lewat Tailscale saat klien proxy berjalan. Tower menuliskannya sebagai kebijakan tersendiri: hanya alamat Tailscale, MagicDNS, dan subnet yang Anda isi yang melewatinya; lalu lintas lain tidak terpengaruh."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロキシクライアントを使っている間も、Tailscale 経由で自宅のコンピュータや LAN にアクセスできます。タワーはこれを独立したポリシーとして書き出し、Tailscale アドレス、MagicDNS、入力したサブネットだけがこれを通ります。ほかの通信には影響しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프록시 클라이언트를 켜 둔 상태에서도 Tailscale로 집의 컴퓨터와 LAN에 접속할 수 있습니다. Tower는 이를 별도의 정책으로 작성하며, Tailscale 주소, MagicDNS, 입력한 서브넷만 이 정책을 거치고 다른 트래픽에는 영향이 없습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesse os computadores e a rede local de casa pelo Tailscale enquanto um cliente proxy está ativo. O Tower grava isso como uma política separada: só endereços do Tailscale, MagicDNS e as sub-redes informadas passam por ela; o restante do tráfego não é afetado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к домашним компьютерам и локальной сети через Tailscale, пока работает прокси-клиент. Tower записывает это отдельной политикой: через неё идут только адреса Tailscale, MagicDNS и указанные подсети, остальной трафик не затрагивается."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เข้าถึงคอมพิวเตอร์และ LAN ที่บ้านผ่าน Tailscale ได้ขณะที่ไคลเอนต์พร็อกซีทำงานอยู่ Tower จะเขียนเป็นนโยบายแยก เฉพาะที่อยู่ Tailscale, MagicDNS และซับเน็ตที่คุณกรอกเท่านั้นที่ผ่านนโยบายนี้ ทราฟฟิกอื่นไม่ได้รับผลกระทบ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy istemcisi çalışırken evdeki bilgisayarlarınıza ve yerel ağınıza Tailscale üzerinden ulaşın. Tower bunu ayrı bir ilke olarak yazar: yalnızca Tailscale adresleri, MagicDNS ve girdiğiniz alt ağlar onu kullanır; diğer trafik etkilenmez."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Truy cập máy tính và mạng LAN ở nhà qua Tailscale ngay cả khi ứng dụng proxy đang chạy. Tower ghi nó thành một chính sách riêng: chỉ địa chỉ Tailscale, MagicDNS và các mạng con bạn nhập mới đi qua đó, lưu lượng khác không bị ảnh hưởng."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代理客户端开着的时候，也能通过 Tailscale 访问家里的电脑和局域网。塔台把它写成一个单独的策略，只有 Tailscale 地址、MagicDNS 和你填写的子网会走它，其他流量不受影响。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代理用戶端開著的時候，也能透過 Tailscale 存取家裡的電腦和區域網路。塔台把它寫成一個獨立的策略，只有 Tailscale 位址、MagicDNS 和你填寫的子網路會走它，其他流量不受影響。"
+          }
+        }
+      }
+    },
+    "代理时也能访问家里电脑等 Tailscale 设备。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الوصول إلى أجهزة الكمبيوتر المنزلية وأجهزة Tailscale الأخرى أثناء استخدام الوكيل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erreiche auch beim Proxy-Betrieb Computer zu Hause und andere Tailscale-Geräte."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reach home computers and other Tailscale devices while proxying."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accede a los ordenadores de casa y otros dispositivos Tailscale mientras usas el proxy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accédez à vos ordinateurs et autres appareils Tailscale pendant l’utilisation du proxy."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akses komputer rumah dan perangkat Tailscale lain saat memakai proxy."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロキシ使用中も、自宅のコンピュータなど Tailscale デバイスにアクセスできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프록시 사용 중에도 집의 컴퓨터 등 Tailscale 기기에 접속합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesse computadores de casa e outros dispositivos Tailscale durante o uso do proxy."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к домашним компьютерам и другим устройствам Tailscale при работе через прокси."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เข้าถึงคอมพิวเตอร์ที่บ้านและอุปกรณ์ Tailscale อื่นได้ขณะใช้พร็อกซี"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy kullanırken evdeki bilgisayarlara ve diğer Tailscale cihazlarına erişin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Truy cập máy tính ở nhà và các thiết bị Tailscale khác khi đang dùng proxy."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代理时也能访问家里电脑等 Tailscale 设备。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代理時也能存取家裡電腦等 Tailscale 裝置。"
+          }
+        }
+      }
+    },
+    "使用 Headscale 等自建服务时填写它的 HTTPS 地址。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لخادم مستضاف ذاتيًا مثل Headscale، أدخل عنوان HTTPS الخاص به."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bei einem selbst gehosteten Server wie Headscale gib dessen HTTPS-Adresse ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For a self-hosted server such as Headscale, enter its HTTPS address."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para un servidor propio como Headscale, introduce su dirección HTTPS."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour un serveur auto-hébergé comme Headscale, saisissez son adresse HTTPS."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untuk server sendiri seperti Headscale, isi alamat HTTPS-nya."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Headscale などのセルフホストサーバを使う場合は、その HTTPS アドレスを入力します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Headscale 같은 자체 호스팅 서버를 쓰는 경우 HTTPS 주소를 입력하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para um servidor próprio como o Headscale, informe o endereço HTTPS dele."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для собственного сервера, например Headscale, укажите его адрес HTTPS."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หากใช้เซิร์ฟเวอร์ที่โฮสต์เอง เช่น Headscale ให้กรอกที่อยู่ HTTPS ของเซิร์ฟเวอร์นั้น"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Headscale gibi kendi barındırdığınız bir sunucu için HTTPS adresini girin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nếu dùng máy chủ tự lưu trữ như Headscale, hãy nhập địa chỉ HTTPS của nó."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Headscale 等自建服务时填写它的 HTTPS 地址。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Headscale 等自架服務時填寫它的 HTTPS 位址。"
+          }
+        }
+      }
+    },
+    "例如 192.168.1.0/24": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مثل 192.168.1.0/24"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "z. B. 192.168.1.0/24"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. 192.168.1.0/24"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "p. ej., 192.168.1.0/24"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ex. 192.168.1.0/24"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mis. 192.168.1.0/24"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例：192.168.1.0/24"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예: 192.168.1.0/24"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ex.: 192.168.1.0/24"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "например, 192.168.1.0/24"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เช่น 192.168.1.0/24"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ör. 192.168.1.0/24"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vd: 192.168.1.0/24"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如 192.168.1.0/24"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如 192.168.1.0/24"
+          }
+        }
+      }
+    },
+    "例如 tail1234.ts.net": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مثل tail1234.ts.net"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "z. B. tail1234.ts.net"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. tail1234.ts.net"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "p. ej., tail1234.ts.net"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ex. tail1234.ts.net"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mis. tail1234.ts.net"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例：tail1234.ts.net"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예: tail1234.ts.net"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ex.: tail1234.ts.net"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "например, tail1234.ts.net"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เช่น tail1234.ts.net"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ör. tail1234.ts.net"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vd: tail1234.ts.net"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如 tail1234.ts.net"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如 tail1234.ts.net"
+          }
+        }
+      }
+    },
+    "删除这个 Tailscale 内网": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حذف شبكة Tailscale هذه"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Tailscale-Netzwerk löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete This Tailscale Network"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar esta red Tailscale"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer ce réseau Tailscale"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hapus jaringan Tailscale ini"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この Tailscale ネットワークを削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Tailscale 네트워크 삭제"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir esta rede Tailscale"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить эту сеть Tailscale"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ลบเครือข่าย Tailscale นี้"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu Tailscale ağını sil"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa mạng Tailscale này"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这个 Tailscale 内网"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除這個 Tailscale 內網"
+          }
+        }
+      }
+    },
+    "删除这个 Tailscale 内网？": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هل تريد حذف شبكة Tailscale هذه؟"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Tailscale-Netzwerk löschen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this Tailscale network?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar esta red Tailscale?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer ce réseau Tailscale ?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hapus jaringan Tailscale ini?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この Tailscale ネットワークを削除しますか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Tailscale 네트워크를 삭제할까요?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir esta rede Tailscale?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить эту сеть Tailscale?"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ลบเครือข่าย Tailscale นี้ไหม"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu Tailscale ağı silinsin mi?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa mạng Tailscale này?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这个 Tailscale 内网？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除這個 Tailscale 內網？"
+          }
+        }
+      }
+    },
+    "在客户端内登录": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تسجيل الدخول داخل العميل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldung im Client"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in within the client"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar sesión en el cliente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion dans le client"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masuk di dalam klien"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クライアント内でログイン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "클라이언트에서 로그인"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Login no cliente"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вход в клиенте"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เข้าสู่ระบบในไคลเอนต์"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İstemcide oturum aç"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập trong ứng dụng"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在客户端内登录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在用戶端內登入"
+          }
+        }
+      }
+    },
+    "官方控制服务器": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خادم التحكم الرسمي"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offizieller Steuerungsserver"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official control server"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servidor de control oficial"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serveur de contrôle officiel"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server kontrol resmi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公式コントロールサーバ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공식 제어 서버"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servidor de controle oficial"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Официальный сервер управления"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เซิร์ฟเวอร์ควบคุมทางการ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resmi kontrol sunucusu"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ điều khiển chính thức"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "官方控制服务器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "官方控制伺服器"
+          }
+        }
+      }
+    },
+    "家里子网（可选）": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الشبكات الفرعية المنزلية (اختياري)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heim-Subnetze (optional)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home subnets (optional)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subredes de casa (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sous-réseaux domestiques (facultatif)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subnet rumah (opsional)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自宅のサブネット（任意）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "집 서브넷(선택)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sub-redes de casa (opcional)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Домашние подсети (необязательно)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ซับเน็ตที่บ้าน (ไม่บังคับ)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ev alt ağları (isteğe bağlı)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mạng con ở nhà (không bắt buộc)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "家里子网（可选）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "家裡子網路（選用）"
+          }
+        }
+      }
+    },
+    "导出的配置里不会再包含它，这台设备上保存的 Auth Key 也会一并删除。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لن تتضمنها ملفات التعريف المُصدَّرة بعد الآن، وسيُحذف أيضًا Auth Key المحفوظ على هذا الجهاز."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportierte Profile enthalten es nicht mehr, und der auf diesem Gerät gespeicherte Auth Key wird ebenfalls gelöscht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exported profiles will no longer include it, and the auth key saved on this device is deleted too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los perfiles exportados dejarán de incluirla y también se eliminará la Auth Key guardada en este dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les profils exportés ne l’incluront plus, et l’Auth Key enregistrée sur cet appareil sera aussi supprimée."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profil yang diekspor tidak akan menyertakannya lagi, dan Auth Key yang tersimpan di perangkat ini juga dihapus."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポートする設定には含まれなくなり、このデバイスに保存した Auth Key も削除されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내보낸 구성에 더 이상 포함되지 않으며, 이 기기에 저장된 Auth Key도 함께 삭제됩니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os perfis exportados não vão mais incluí-la, e a Auth Key salva neste dispositivo também será excluída."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Она больше не попадёт в экспортируемые профили, а Auth Key, сохранённый на этом устройстве, тоже будет удалён."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โปรไฟล์ที่ส่งออกจะไม่มีเครือข่ายนี้อีก และ Auth Key ที่บันทึกไว้ในอุปกรณ์นี้จะถูกลบด้วย"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dışa aktarılan profillere artık eklenmez ve bu cihazda kayıtlı Auth Key de silinir."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các cấu hình xuất ra sẽ không còn chứa nó, và Auth Key đã lưu trên thiết bị này cũng bị xóa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出的配置里不会再包含它，这台设备上保存的 Auth Key 也会一并删除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯出的設定裡不會再包含它，這台裝置上儲存的 Auth Key 也會一併刪除。"
+          }
+        }
+      }
+    },
+    "已保存 Auth Key": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم حفظ Auth Key"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key gespeichert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth key saved"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key guardada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key enregistrée"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key tersimpan"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 保存済み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 저장됨"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key salva"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key сохранён"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บันทึก Auth Key แล้ว"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key kayıtlı"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã lưu Auth Key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存 Auth Key"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存 Auth Key"
+          }
+        }
+      }
+    },
+    "已启用 %lld 个，写入支持的客户端配置。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مفعّلة: %lld، وتُكتب في ملفات تعريف العملاء المدعومة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld aktiviert, in Profile unterstützter Clients geschrieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld enabled, written into supported client profiles."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld activadas; se escriben en los perfiles de los clientes compatibles."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld activé(s), écrit(s) dans les profils des clients compatibles."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld aktif, ditulis ke profil klien yang didukung."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 件を有効化し、対応クライアントの設定に書き込みます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld개 사용 중, 지원되는 클라이언트 구성에 기록됩니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ativada(s), gravada(s) nos perfis dos clientes compatíveis."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включено: %lld; записывается в профили поддерживаемых клиентов."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เปิดใช้ %lld รายการ เขียนลงโปรไฟล์ของไคลเอนต์ที่รองรับ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld etkin; desteklenen istemci profillerine yazılır."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã bật %lld, được ghi vào cấu hình của các ứng dụng hỗ trợ."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已启用 %lld 个，写入支持的客户端配置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已啟用 %lld 個，寫入支援的用戶端設定。"
+          }
+        }
+      }
+    },
+    "控制服务器必须是 HTTPS 地址。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يجب أن يكون خادم التحكم عنوان HTTPS."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Steuerungsserver muss eine HTTPS-Adresse sein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The control server must be an HTTPS address."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El servidor de control debe ser una dirección HTTPS."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur de contrôle doit être une adresse HTTPS."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server kontrol harus berupa alamat HTTPS."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コントロールサーバは HTTPS アドレスである必要があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제어 서버는 HTTPS 주소여야 합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O servidor de controle precisa ser um endereço HTTPS."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер управления должен иметь адрес HTTPS."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เซิร์ฟเวอร์ควบคุมต้องเป็นที่อยู่ HTTPS"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrol sunucusu bir HTTPS adresi olmalıdır."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ điều khiển phải là địa chỉ HTTPS."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制服务器必须是 HTTPS 地址。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制伺服器必須是 HTTPS 位址。"
+          }
+        }
+      }
+    },
+    "控制服务器（留空为官方 Tailscale）": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خادم التحكم (اتركه فارغًا لـ Tailscale الرسمي)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steuerungsserver (leer für offizielles Tailscale)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control server (blank for official Tailscale)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servidor de control (vacío para Tailscale oficial)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serveur de contrôle (vide pour Tailscale officiel)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server kontrol (kosongkan untuk Tailscale resmi)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コントロールサーバ（空欄で公式 Tailscale）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제어 서버(비워 두면 공식 Tailscale)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servidor de controle (vazio para o Tailscale oficial)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер управления (пусто — официальный Tailscale)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เซิร์ฟเวอร์ควบคุม (เว้นว่างเพื่อใช้ Tailscale ทางการ)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrol sunucusu (resmî Tailscale için boş bırakın)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ điều khiển (để trống để dùng Tailscale chính thức)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制服务器（留空为官方 Tailscale）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制伺服器（留空為官方 Tailscale）"
+          }
+        }
+      }
+    },
+    "支持 Surge（iOS 5.20 / Mac 6.7 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعمل مع Surge (iOS 5.20 / Mac 6.7 أو أحدث) وStash 3.4 أو أحدث وClash / mihomo (النواة 1.19.25 أو أحدث) وsing-box MT. لا يدعمه بعد Shadowrocket وLoon وQuantumult X وEgern وHiddify وKaring؛ ويتم تخطيه عند التصدير مع ملاحظة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funktioniert mit Surge (ab iOS 5.20 / Mac 6.7), Stash ab 3.4, Clash / mihomo (ab Kern 1.19.25) und sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify und Karing werden noch nicht unterstützt; Exporte überspringen es mit einem Hinweis."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Works with Surge (iOS 5.20 / Mac 6.7 or later), Stash 3.4 or later, Clash / mihomo (core 1.19.25 or later) and sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify and Karing aren’t supported yet; exports skip it with a note."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compatible con Surge (iOS 5.20 / Mac 6.7 o posterior), Stash 3.4 o posterior, Clash / mihomo (núcleo 1.19.25 o posterior) y sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify y Karing aún no son compatibles; las exportaciones lo omiten con un aviso."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compatible avec Surge (iOS 5.20 / Mac 6.7 ou ultérieur), Stash 3.4 ou ultérieur, Clash / mihomo (noyau 1.19.25 ou ultérieur) et sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify et Karing ne sont pas encore pris en charge ; les exports l’ignorent avec une note."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didukung di Surge (iOS 5.20 / Mac 6.7 atau lebih baru), Stash 3.4 atau lebih baru, Clash / mihomo (inti 1.19.25 atau lebih baru), dan sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify, dan Karing belum didukung; ekspor akan melewatinya dengan catatan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surge（iOS 5.20 / Mac 6.7 以降）、Stash 3.4 以降、Clash / mihomo（コア 1.19.25 以降）、sing-box MT に対応。Shadowrocket、Loon、Quantumult X、Egern、Hiddify、Karing には未対応で、エクスポート時はスキップして通知します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surge(iOS 5.20 / Mac 6.7 이상), Stash 3.4 이상, Clash / mihomo(코어 1.19.25 이상), sing-box MT를 지원합니다. Shadowrocket, Loon, Quantumult X, Egern, Hiddify, Karing은 아직 지원하지 않으며 내보낼 때 건너뛰고 안내합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funciona com Surge (iOS 5.20 / Mac 6.7 ou posterior), Stash 3.4 ou posterior, Clash / mihomo (núcleo 1.19.25 ou posterior) e sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify e Karing ainda não são compatíveis; as exportações o ignoram com um aviso."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Работает в Surge (iOS 5.20 / Mac 6.7 и новее), Stash 3.4 и новее, Clash / mihomo (ядро 1.19.25 и новее) и sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify и Karing пока не поддерживаются; при экспорте она пропускается с пояснением."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้ได้กับ Surge (iOS 5.20 / Mac 6.7 ขึ้นไป), Stash 3.4 ขึ้นไป, Clash / mihomo (คอร์ 1.19.25 ขึ้นไป) และ sing-box MT ส่วน Shadowrocket, Loon, Quantumult X, Egern, Hiddify และ Karing ยังไม่รองรับ การส่งออกจะข้ามและแจ้งให้ทราบ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surge (iOS 5.20 / Mac 6.7 ve üstü), Stash 3.4 ve üstü, Clash / mihomo (çekirdek 1.19.25 ve üstü) ve sing-box MT ile çalışır. Shadowrocket, Loon, Quantumult X, Egern, Hiddify ve Karing henüz desteklenmiyor; dışa aktarmada bir notla atlanır."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hỗ trợ Surge (iOS 5.20 / Mac 6.7 trở lên), Stash 3.4 trở lên, Clash / mihomo (lõi 1.19.25 trở lên) và sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify và Karing chưa được hỗ trợ; khi xuất sẽ bỏ qua và có ghi chú."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 Surge（iOS 5.20 / Mac 6.7 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援 Surge（iOS 5.20 / Mac 6.7 起）、Stash 3.4 起、Clash / mihomo（核心 1.19.25 起）和 sing-box MT。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暫不支援，匯出時會略過並提示。"
+          }
+        }
+      }
+    },
+    "无法保存到钥匙串，请重试。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر الحفظ في سلسلة المفاتيح. حاول مرة أخرى."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern im Schlüsselbund fehlgeschlagen. Versuche es erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t save to the keychain. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar en el llavero. Inténtalo de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’enregistrer dans le trousseau. Réessayez."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidak dapat menyimpan ke rantai kunci. Coba lagi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーチェーンに保存できませんでした。もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키체인에 저장하지 못했습니다. 다시 시도하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar nas chaves. Tente novamente."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось сохранить в связку ключей. Повторите попытку."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บันทึกลงพวงกุญแจไม่สำเร็จ โปรดลองอีกครั้ง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anahtar Zinciri’ne kaydedilemedi. Tekrar deneyin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể lưu vào chuỗi khóa. Hãy thử lại."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存到钥匙串，请重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法儲存到鑰匙圈，請再試一次。"
+          }
+        }
+      }
+    },
+    "无法识别的子网“%@”，请用 192.168.1.0/24 这样的格式。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم التعرف على الشبكة الفرعية “%@”. استخدم تنسيقًا مثل 192.168.1.0/24."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbekanntes Subnetz „%@“. Verwende ein Format wie 192.168.1.0/24."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unrecognized subnet “%@”. Use a format like 192.168.1.0/24."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subred no reconocida «%@». Usa un formato como 192.168.1.0/24."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sous-réseau non reconnu « %@ ». Utilisez un format comme 192.168.1.0/24."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subnet “%@” tidak dikenali. Gunakan format seperti 192.168.1.0/24."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブネット「%@」を認識できません。192.168.1.0/24 のような形式で入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서브넷 “%@”을(를) 인식할 수 없습니다. 192.168.1.0/24 같은 형식을 사용하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sub-rede “%@” não reconhecida. Use um formato como 192.168.1.0/24."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось распознать подсеть «%@». Используйте формат вида 192.168.1.0/24."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ไม่รู้จักซับเน็ต “%@” โปรดใช้รูปแบบเช่น 192.168.1.0/24"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” alt ağı tanınmadı. 192.168.1.0/24 gibi bir biçim kullanın."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không nhận dạng được mạng con “%@”. Hãy dùng định dạng như 192.168.1.0/24."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法识别的子网“%@”，请用 192.168.1.0/24 这样的格式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法辨識的子網路「%@」，請用 192.168.1.0/24 這樣的格式。"
+          }
+        }
+      }
+    },
+    "添加 Tailscale 内网": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إضافة شبكة Tailscale"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale-Netzwerk hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Tailscale Network"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir red Tailscale"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un réseau Tailscale"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tambah jaringan Tailscale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale ネットワークを追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale 네트워크 추가"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar rede Tailscale"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить сеть Tailscale"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เพิ่มเครือข่าย Tailscale"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tailscale Ağı Ekle"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm mạng Tailscale"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加 Tailscale 内网"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增 Tailscale 內網"
+          }
+        }
+      }
+    },
+    "留空时，Surge 和 Stash 可以在客户端里登录；Clash / mihomo 和 sing-box MT 需要 Auth Key。Auth Key 只存在这台设备的钥匙串，不会同步到 iCloud，但会写进导出的配置。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إذا تُرك فارغًا، يمكنك تسجيل الدخول داخل Surge وStash؛ أما Clash / mihomo وsing-box MT فيحتاجان إلى Auth Key. يبقى Auth Key في سلسلة مفاتيح هذا الجهاز ولا تتم مزامنته مع iCloud، لكنه يُكتب في ملفات التعريف المُصدَّرة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bleibt es leer, meldest du dich in Surge und Stash direkt im Client an; Clash / mihomo und sing-box MT brauchen einen Auth Key. Der Auth Key bleibt im Schlüsselbund dieses Geräts und wird nie mit iCloud synchronisiert, steht aber in exportierten Profilen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If left blank, you can sign in within Surge and Stash; Clash / mihomo and sing-box MT need an auth key. The auth key stays in this device’s keychain and never syncs to iCloud, but it is written into exported profiles."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si lo dejas vacío, puedes iniciar sesión dentro de Surge y Stash; Clash / mihomo y sing-box MT necesitan una Auth Key. La Auth Key se queda en el llavero de este dispositivo y no se sincroniza con iCloud, pero se escribe en los perfiles exportados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si ce champ est vide, vous pouvez vous connecter dans Surge et Stash ; Clash / mihomo et sing-box MT ont besoin d’une Auth Key. L’Auth Key reste dans le trousseau de cet appareil et n’est jamais synchronisée avec iCloud, mais elle est écrite dans les profils exportés."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jika dikosongkan, Anda bisa masuk di dalam Surge dan Stash; Clash / mihomo dan sing-box MT memerlukan Auth Key. Auth Key hanya disimpan di rantai kunci perangkat ini dan tidak disinkronkan ke iCloud, tetapi ditulis ke profil yang diekspor."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空欄の場合、Surge と Stash ではクライアント内でログインできます。Clash / mihomo と sing-box MT には Auth Key が必要です。Auth Key はこのデバイスのキーチェーンにだけ保存され iCloud には同期されませんが、エクスポートする設定には書き込まれます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "비워 두면 Surge와 Stash에서는 클라이언트 안에서 로그인할 수 있고, Clash / mihomo와 sing-box MT에는 Auth Key가 필요합니다. Auth Key는 이 기기의 키체인에만 저장되고 iCloud에 동기화되지 않지만, 내보낸 구성에는 기록됩니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se ficar vazio, você pode fazer login dentro do Surge e do Stash; Clash / mihomo e sing-box MT precisam de uma Auth Key. A Auth Key fica nas chaves deste dispositivo e nunca é sincronizada com o iCloud, mas é gravada nos perfis exportados."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если оставить пустым, в Surge и Stash можно войти прямо в клиенте; для Clash / mihomo и sing-box MT нужен Auth Key. Auth Key хранится только в связке ключей этого устройства и не синхронизируется с iCloud, но записывается в экспортируемые профили."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หากเว้นว่าง จะเข้าสู่ระบบภายใน Surge และ Stash ได้ ส่วน Clash / mihomo และ sing-box MT ต้องใช้ Auth Key โดย Auth Key จะเก็บในพวงกุญแจของอุปกรณ์นี้เท่านั้นและไม่ซิงค์ไปยัง iCloud แต่จะถูกเขียนลงในโปรไฟล์ที่ส่งออก"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boş bırakılırsa Surge ve Stash içinde oturum açabilirsiniz; Clash / mihomo ve sing-box MT bir Auth Key gerektirir. Auth Key yalnızca bu cihazın Anahtar Zinciri’nde durur ve iCloud ile eşzamanlanmaz, ancak dışa aktarılan profillere yazılır."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nếu để trống, bạn có thể đăng nhập ngay trong Surge và Stash; Clash / mihomo và sing-box MT cần Auth Key. Auth Key chỉ lưu trong chuỗi khóa của thiết bị này và không đồng bộ lên iCloud, nhưng sẽ được ghi vào cấu hình xuất ra."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空时，Surge 和 Stash 可以在客户端里登录；Clash / mihomo 和 sing-box MT 需要 Auth Key。Auth Key 只存在这台设备的钥匙串，不会同步到 iCloud，但会写进导出的配置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空時，Surge 和 Stash 可以在用戶端裡登入；Clash / mihomo 和 sing-box MT 需要 Auth Key。Auth Key 只存在這台裝置的鑰匙圈，不會同步到 iCloud，但會寫進匯出的設定。"
+          }
+        }
+      }
+    },
+    "登录": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تسجيل الدخول"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-In"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicio de sesión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masuk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログイン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "로그인"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Login"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вход"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การเข้าสู่ระบบ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturum açma"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登入"
+          }
+        }
+      }
+    },
+    "移除": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إزالة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hapus"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제거"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เอาออก"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaldır"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gỡ bỏ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
+    },
+    "自建控制服务器": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خادم تحكم مستضاف ذاتيًا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selbst gehosteter Steuerungsserver"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Self-hosted control server"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servidor de control propio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serveur de contrôle auto-hébergé"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server kontrol sendiri"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セルフホストのコントロールサーバ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자체 호스팅 제어 서버"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servidor de controle próprio"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собственный сервер управления"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เซิร์ฟเวอร์ควบคุมที่โฮสต์เอง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kendi kontrol sunucusu"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ điều khiển tự lưu trữ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自建控制服务器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自架控制伺服器"
+          }
+        }
+      }
+    },
+    "设备名（默认 tower）": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اسم الجهاز (الافتراضي: tower)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerätename (Standard: tower)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device name (default: tower)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre del dispositivo (predeterminado: tower)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom de l’appareil (par défaut : tower)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nama perangkat (bawaan: tower)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバイス名（デフォルト：tower）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기기 이름(기본값: tower)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome do dispositivo (padrão: tower)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Имя устройства (по умолчанию tower)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ชื่ออุปกรณ์ (ค่าเริ่มต้น: tower)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cihaz adı (varsayılan: tower)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tên thiết bị (mặc định: tower)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备名（默认 tower）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "裝置名稱（預設 tower）"
+          }
+        }
+      }
+    },
+    "输入新的 Auth Key 替换": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أدخل Auth Key جديدًا لاستبداله"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuen Auth Key zum Ersetzen eingeben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a new auth key to replace it"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introduce una nueva Auth Key para reemplazarla"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisissez une nouvelle Auth Key pour la remplacer"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masukkan Auth Key baru untuk menggantinya"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい Auth Key を入力して置き換え"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 Auth Key를 입력해 교체"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite uma nova Auth Key para substituir"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите новый Auth Key для замены"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใส่ Auth Key ใหม่เพื่อแทนที่"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Değiştirmek için yeni bir Auth Key girin"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập Auth Key mới để thay thế"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入新的 Auth Key 替换"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入新的 Auth Key 取代"
+          }
+        }
+      }
+    },
+    "连接": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الاتصال"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koneksi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexão"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключение"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การเชื่อมต่อ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bağlantı"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kết nối"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連線"
+          }
+        }
+      }
+    },
+    "需要家里有一台设备在 Tailscale 里发布这个子网并获批准。每行一个。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يجب أن يعلن جهاز في المنزل عن هذه الشبكة الفرعية في Tailscale وأن يكون المسار معتمدًا. واحدة في كل سطر."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Gerät zu Hause muss dieses Subnetz in Tailscale ankündigen, und die Route muss genehmigt sein. Eines pro Zeile."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A device at home must advertise this subnet in Tailscale, and the route must be approved. One per line."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un dispositivo en casa debe anunciar esta subred en Tailscale y la ruta debe estar aprobada. Una por línea."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un appareil à la maison doit annoncer ce sous-réseau dans Tailscale, et la route doit être approuvée. Un par ligne."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sebuah perangkat di rumah harus mengumumkan subnet ini di Tailscale dan rutenya harus disetujui. Satu per baris."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自宅のデバイスが Tailscale でこのサブネットを公開し、ルートが承認されている必要があります。1 行に 1 つ入力します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "집에 있는 기기가 Tailscale에서 이 서브넷을 광고하고 경로가 승인되어 있어야 합니다. 한 줄에 하나씩 입력하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um dispositivo em casa precisa anunciar esta sub-rede no Tailscale, e a rota precisa estar aprovada. Uma por linha."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Устройство дома должно анонсировать эту подсеть в Tailscale, а маршрут должен быть одобрен. По одной в строке."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ต้องมีอุปกรณ์ที่บ้านประกาศซับเน็ตนี้ใน Tailscale และเส้นทางต้องได้รับอนุมัติ ใส่บรรทัดละหนึ่งรายการ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evdeki bir cihazın bu alt ağı Tailscale’de duyurması ve yolun onaylanmış olması gerekir. Her satıra bir tane."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cần một thiết bị ở nhà quảng bá mạng con này trong Tailscale và tuyến đường phải được phê duyệt. Mỗi dòng một mục."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要家里有一台设备在 Tailscale 里发布这个子网并获批准。每行一个。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要家裡有一台裝置在 Tailscale 裡發布這個子網路並獲得核准。每行一個。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

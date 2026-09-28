@@ -8,16 +8,14 @@
 - 获取脱敏后的原始复制片段及对应异常节点，覆盖批量粘贴解析与保存后的 Host 显示，并检查是否有协议或来源格式差异。不要收集真实订阅链接或节点凭据。
 - 反馈者另表示有多项规则调整建议，但邮件没有具体规则与预期结果；待取得脱敏示例后逐项记录。
 
-## Tailscale：一次配置，后续方便导入
+## Tailscale：剩余验收
 
-- 尚未实现；用户要求先记录，等待测试确认。不要与普通节点协议混用，也不要声称所有 Clash / Surge 版本都支持。
-- 先确认使用场景：访问 tailnet 节点、MagicDNS、子网路由或出口节点；不同场景所需配置不同。
-- 以稳定连接 UUID 维持身份，分别映射支持版本的固定配置段 / 状态目录；不要每次导出重新生成身份。Surge、Mihomo、sing-box 的配置能力和状态复用需分别验证。
-- 首阶段确认 Surge / Stash 的实际能力，再评估 Mihomo 与 sing-box；其他客户端保持“不支持/待确认”，不能自动输出社区 fork 私有字段。
-- 优先客户端交互登录。一次性授权密钥只用于首次绑定，敏感值使用 Keychain；不保存 OAuth secret，不写进日志、截图、预览或二维码。重新导入是否沿用身份必须实机测试。
-- iOS 前台局域网服务不是持久在线服务器。若需要长期稳定订阅地址，需另行确认由哪个用户自有设备托管，不能擅自上传凭据。
+- 已实现（见 [HANDOFF](HANDOFF.md#未发布tailscale-内网2026-09-28)）。自建 Headscale 下 Surge、Stash 3.4、Clash Mi、sing-box MT 实测通过。
+- 待用户在手机上用真实 Tailscale 账户验收一次：Surge / Stash 不填 Key、在客户端里交互登录；确认重复导入仍是同一台设备、子网路由需在管理后台批准。塔台不代用户生成 Key 或修改账户。
+- 未做：出口节点（`exit-node`）；Shadowrocket 的格式（Clash YAML 与 Surge 格式都没有注册，官方未公开字段，不要猜）；Hiddify、Karing 等其 Tailscale 出站正式发布后再评估。
+- Surge 用 Auth Key 登录时身份绑定在 Key 的哈希上：换 Key 就是新设备。不要为了“只用一次”在导出后删除 Key。
 
-研究入口：[Surge](https://manual.nssurge.com/policies/tailscale.html)、[Stash](https://stash.wiki/en/proxy-protocols/proxy-types#tailscale)、[Mihomo](https://wiki.metacubex.one/en/config/proxies/tailscale/)、[sing-box](https://sing-box.sagernet.org/configuration/endpoint/tailscale/)、[Tailscale 身份](https://tailscale.com/docs/concepts/tailscale-identity)、[Auth Key 安全](https://tailscale.com/docs/features/access-control/auth-keys/how-to/secure-auth-keys)、[与其他 VPN 共存](https://tailscale.com/docs/reference/faq/other-vpns)。实施前重新核对支持版本。
+研究入口：[Surge](https://manual.nssurge.com/policies/tailscale.html)、[Stash](https://stash.wiki/en/proxy-protocols/proxy-types#tailscale)、[Mihomo](https://wiki.metacubex.one/en/config/proxies/tailscale/)、[sing-box](https://sing-box.sagernet.org/configuration/endpoint/tailscale/)、[Auth Key 安全](https://tailscale.com/docs/features/access-control/auth-keys/how-to/secure-auth-keys)。
 
 ## Stash 3.4：兼容性暂缓
 
