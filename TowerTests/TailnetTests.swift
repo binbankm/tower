@@ -230,9 +230,18 @@ final class TailnetTests: XCTestCase {
             id: home.id, name: "家里", controlURLString: environment["TOWER_TAILNET_CONTROL"],
             deviceName: "tower-core", subnets: [environment["TOWER_TAILNET_SUBNET"] ?? "192.168.1.0/24"], magicDNSSuffix: environment["TOWER_TAILNET_SUFFIX"]
         )
-        for (target, file) in [(ClientTarget.clashMi, "mihomo.yaml"), (.clash, "stash.yaml"), (.singBox, "sing-box.json"), (.surge, "surge.conf")] {
-            let output = full(target, key: environment["TOWER_TAILNET_KEY"], connection: connection)
+        // Real, reachable nodes let a client on a device reach the control
+        // server through the profile's own rules; the fixture node cannot.
+        let profileNodes = try environment["TOWER_TAILNET_NODES"].map {
+            SubscriptionParser().parse(data: try Data(contentsOf: URL(fileURLWithPath: $0))).nodes
+        } ?? nodes
+        let targets: [(ClientTarget, String)] = [(.clashMi, "mihomo.yaml"), (.clash, "stash.yaml"), (.singBox, "sing-box.json"),
+                                                 (.surge, "surge.conf"), (.surgeMac, "surge-mac.conf"), (.shadowrocket, "shadowrocket.yaml")]
+        for (target, file) in targets {
+            let generated = ConfigurationGenerator().generate(nodes: profileNodes, preset: RulePreset.builtIns[0], target: target)
+            let output = writer.apply([TailnetExport(connection: connection, authKey: environment["TOWER_TAILNET_KEY"])], to: generated)
             try output.content.write(toFile: directory + "/" + file, atomically: true, encoding: .utf8)
+            try output.diagnostics.joined(separator: "\n").write(toFile: directory + "/" + file + ".notes.txt", atomically: true, encoding: .utf8)
         }
     }
 
