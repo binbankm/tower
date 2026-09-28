@@ -862,7 +862,15 @@ struct ConfigurationGenerator {
             if [.surge, .surgeMac, .egern].contains(target), options.privateKeyPassphrase != nil { return false }
             // Stash cannot pin the host key; dropping the pin would trust any server.
             if target == .clash, !options.hostKeys.isEmpty { return false }
+            // Shadowrocket 2.2.92 logs in with a password but closes key-based
+            // sessions before authenticating (sshd log, 2026-09-28), with the
+            // same key mihomo, Egern and Clash Mi accept.
+            if target == .shadowrocket, options.privateKey != nil { return false }
         }
+        // Stash 3.4.1 timed out on TrustTunnel over HTTP/2, with or without an
+        // h2 ALPN, while HTTP/3 to the same server and HTTP/2 from Surge,
+        // Shadowrocket and Clash Mi all connected.
+        if node.kind == .trustTunnel, target == .clash, node.trustTunnel?.quic != true { return false }
         if !supportsShadowsocksCipher(node, on: target) { return false }
         // Xray's VLESS encryption was run against mihomo 1.19.31 only; other
         // clients either lack the field or ignore it and send plain VLESS.

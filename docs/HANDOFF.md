@@ -6,6 +6,7 @@
 - Clash 解析器补上 YAML 块标量（`|`、`|-`、`>`）：以前 `private-key: |` 下的 `-----BEGIN` 行被当成列表项，整段节点被拆坏。mihomo 允许的私钥文件路径、缺用户名或凭据的节点拒收。
 - 导出：SSH → Surge（仅密码，`server-fingerprint` 固定主机公钥；私钥需 `[Keystore]` 暂不写，跳过）、Stash（`user`；不能固定主机公钥，带公钥的跳过）、mihomo 系与 Shadowrocket、Clash Mi（`username`、`private-key` 以 `\n` 转义的双引号字符串）、Egern 2.20（`ssh:`；不支持口令）、sing-box / Hiddify、Karing。TrustTunnel → Surge（`trust-tunnel`，`h3=true`）、Stash、mihomo 系、Shadowrocket；官方 sing-box、Egern、Karing、Loon、QuanX 不支持，Hiddify 仅在未发布的内核分支里有，暂不导出。Shadowrocket / Hiddify 仅节点遇到两者改用 YAML / JSON。
 - 测试服务（VPS）：`tower-audit-sshd`（端口 24055，用户 `towerssh` 只允许端口转发、无 shell，授权密钥在 `/etc/ssh/tower-audit/`），`tower-audit-mihomo`（mihomo 1.19.31 TrustTunnel 入站 24056，TCP + UDP，证书复制在其主目录）。实测 mihomo 7/7、sing-box 4/4 连通（密码、私钥、主机公钥、Stash `user`、TrustTunnel HTTP/2、HTTP/3、UDP）；把主机公钥换成错误值后两者都拒绝连接。
+- 手机实测（2026-09-28）：Surge SSH 密码与 TrustTunnel H2/H3 通过（H3 在家庭 Wi-Fi 被拒、5G 正常）；Egern SSH 4/4；Clash Mi 7/7；Stash SSH 通过，TrustTunnel 仅 HTTP/3 通过，HTTP/2 加不加 `alpn: [h2]` 都超时（同一服务器 HTTP/2 在 Surge、Shadowrocket、Clash Mi 正常），现对 Stash 只导出 `quic: true` 的 TrustTunnel；Shadowrocket TrustTunnel 3/3、SSH 密码通过，私钥节点在认证前被它自己断开（sshd 日志只有 `Connection closed … [preauth]`，同一私钥在 mihomo/Egern/Clash Mi 登录成功），现对 Shadowrocket 跳过带私钥的 SSH。
 - 风险：`ProxyKind` 没有未知值兜底，旧版塔台（例如 Mac 1.0.21）读到含 SSH / TrustTunnel（以及此前的 MASQUE）的快照会整体解码失败；发布前 Mac 端需同步更新。
 - `SSHTrustTunnelTests` 9 项；`SourceInputDetectorTests`、`SymbolAvailabilityTests`、`ManualNodeDraftTests` 覆盖新协议。1227 项 XCTest 与 106 项 Swift Testing 通过。
 

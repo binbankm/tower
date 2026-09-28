@@ -120,6 +120,9 @@ final class SSHTrustTunnelTests: XCTestCase {
         for target in [ClientTarget.loon, .quanx] {
             XCTAssertFalse(target.supports(.ssh), target.name)
         }
+        // Shadowrocket dropped key-based sessions on device; passwords worked.
+        XCTAssertFalse(content([keySSH], .shadowrocket).contains("ssh.example.com"))
+        XCTAssertTrue(content([passwordSSH], .shadowrocket).contains("ssh.example.com"))
     }
 
     func testEachClientGetsItsOwnTrustTunnelSpelling() {
@@ -127,6 +130,11 @@ final class SSHTrustTunnelTests: XCTestCase {
         XCTAssertTrue(mihomo.contains("    type: trusttunnel"), mihomo)
         XCTAssertTrue(mihomo.contains("    quic: true"), mihomo)
         XCTAssertTrue(content([trustTunnel], .clash).contains("    quic: true"))
+        // Stash only connected over HTTP/3.
+        var http2 = trustTunnel
+        http2.trustTunnel = TrustTunnelOptions(quic: false)
+        XCTAssertFalse(content([http2], .clash).contains("t.example.com"))
+        XCTAssertTrue(content([http2], .clashApple).contains("t.example.com"))
         let surge = content([trustTunnel], .surge)
         XCTAssertTrue(surge.contains("= trust-tunnel, t.example.com, 443, username=u, password=p, h3=true"), surge)
         for target in [ClientTarget.singBox, .hiddify, .egern, .loon, .quanx, .karing] {
