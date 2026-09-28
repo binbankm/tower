@@ -882,6 +882,10 @@ struct ConfigurationGenerator {
         // counted instead.
         if node.kind == .hysteria2, [.surge, .surgeMac, .shadowrocket, .loon].contains(target),
            let obfs = hysteria2Obfs(node), obfs.type.lowercased() != "salamander" { return false }
+        // Loon's Salamander password is a bare field; a delimiter inside it
+        // would split the line into different settings.
+        if node.kind == .hysteria2, target == .loon, let obfs = hysteria2Obfs(node),
+           obfs.password.rangeOfCharacter(from: Self.loonBareFieldDelimiters) != nil { return false }
         if node.shadowTLS != nil || node.plugin == "shadow-tls" {
             guard node.kind == .shadowsocks, node.plugin == "shadow-tls",
                   let options = node.shadowTLS, options.isValid,
@@ -907,9 +911,7 @@ struct ConfigurationGenerator {
                 // Loon uses v2/v3 and a bare ShadowTLS password (unlike its
                 // quoted positional SS password). Do not change the credential
                 // with percent escaping or let delimiters create extra fields.
-                let delimiters = CharacterSet.whitespacesAndNewlines
-                    .union(.controlCharacters)
-                    .union(CharacterSet(charactersIn: ",\"'\\#;"))
+                let delimiters = Self.loonBareFieldDelimiters
                 guard options.version >= 2, !options.skipCertificateVerification,
                       node.fingerprint == nil,
                       options.password.rangeOfCharacter(from: delimiters) == nil,
@@ -990,6 +992,11 @@ struct ConfigurationGenerator {
         node.sni = host
         return node
     }
+
+    /// Characters that would end or split an unquoted Loon value.
+    private static let loonBareFieldDelimiters = CharacterSet.whitespacesAndNewlines
+        .union(.controlCharacters)
+        .union(CharacterSet(charactersIn: ",\"'\\#;"))
 
     /// Shadowsocks wrapped in ordinary TLS by the proxy itself, as opposed to
     /// a SIP003 plugin or simple-obfs carrying its own TLS.
@@ -3029,8 +3036,11 @@ struct ConfigurationGenerator {
             values = ["Hysteria2", node.server, "\(node.port)", loonQuoted(node.password ?? "")]
             // Without this a Salamander server drops every packet: the node
             // imported cleanly and never connected.
+            // Bare, like Loon's documented example and its ShadowTLS password:
+            // quoted, the quotes became part of the key and every packet was
+            // dropped (confirmed on Loon 3.5.1).
             if let obfs = hysteria2Obfs(node) {
-                values.append("salamander-password=\(loonQuoted(obfs.password))")
+                values.append("salamander-password=\(obfs.password)")
             }
             let hopping = portHoppingEntries(node)
             if !hopping.isEmpty {

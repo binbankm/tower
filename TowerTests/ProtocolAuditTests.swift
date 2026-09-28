@@ -138,7 +138,11 @@ final class ProtocolAuditTests: XCTestCase {
 
     func testLoonKeepsHysteria2SalamanderAndPortHopping() {
         let loon = content([hysteria2(hopping: "20000-20100,443")], .loon)
-        XCTAssertTrue(loon.contains("salamander-password=\"obfs-secret\""), loon)
+        XCTAssertTrue(loon.contains("salamander-password=obfs-secret,"), loon)
+        XCTAssertFalse(loon.contains("salamander-password=\""), loon)
+        var delimited = hysteria2()
+        delimited.obfsParam = "a,b"
+        XCTAssertFalse(content([delimited], .loon).contains("hy.example.com"))
         XCTAssertTrue(loon.contains("server-ports=\"20000:20100,443\""), loon)
         // Only Salamander has a Loon key; another obfuscator is skipped.
         XCTAssertFalse(content([hysteria2(obfs: "gecko")], .loon).contains("hy.example.com"))
