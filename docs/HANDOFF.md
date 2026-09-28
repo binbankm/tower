@@ -1,5 +1,14 @@
 # 当前交接
 
+## 未发布：新增 SSH 与 TrustTunnel（2026-09-28）
+
+- 模型：`ProxyKind.ssh`、`.trustTunnel`（rawValue `trusttunnel`），`SSHOptions`（内联私钥、口令、主机公钥、主机密钥算法）、`TrustTunnelOptions`（`quic` 走 HTTP/3）。两者都没有分享链接格式：输入来自 Clash YAML（`type: ssh` / `trusttunnel` / `trust-tunnel`，Stash 的 `user` 同样接受），分享输出 mihomo `proxies:` 片段（`clashShareSnippet`），输入识别把单节点片段识别为该协议节点。手动添加表单支持两者（SSH 可填私钥与服务器公钥，TrustTunnel 有 HTTP/3 开关），新增 7 条文案已人工翻译 15 种语言。
+- Clash 解析器补上 YAML 块标量（`|`、`|-`、`>`）：以前 `private-key: |` 下的 `-----BEGIN` 行被当成列表项，整段节点被拆坏。mihomo 允许的私钥文件路径、缺用户名或凭据的节点拒收。
+- 导出：SSH → Surge（仅密码，`server-fingerprint` 固定主机公钥；私钥需 `[Keystore]` 暂不写，跳过）、Stash（`user`；不能固定主机公钥，带公钥的跳过）、mihomo 系与 Shadowrocket、Clash Mi（`username`、`private-key` 以 `\n` 转义的双引号字符串）、Egern 2.20（`ssh:`；不支持口令）、sing-box / Hiddify、Karing。TrustTunnel → Surge（`trust-tunnel`，`h3=true`）、Stash、mihomo 系、Shadowrocket；官方 sing-box、Egern、Karing、Loon、QuanX 不支持，Hiddify 仅在未发布的内核分支里有，暂不导出。Shadowrocket / Hiddify 仅节点遇到两者改用 YAML / JSON。
+- 测试服务（VPS）：`tower-audit-sshd`（端口 24055，用户 `towerssh` 只允许端口转发、无 shell，授权密钥在 `/etc/ssh/tower-audit/`），`tower-audit-mihomo`（mihomo 1.19.31 TrustTunnel 入站 24056，TCP + UDP，证书复制在其主目录）。实测 mihomo 7/7、sing-box 4/4 连通（密码、私钥、主机公钥、Stash `user`、TrustTunnel HTTP/2、HTTP/3、UDP）；把主机公钥换成错误值后两者都拒绝连接。
+- 风险：`ProxyKind` 没有未知值兜底，旧版塔台（例如 Mac 1.0.21）读到含 SSH / TrustTunnel（以及此前的 MASQUE）的快照会整体解码失败；发布前 Mac 端需同步更新。
+- `SSHTrustTunnelTests` 9 项；`SourceInputDetectorTests`、`SymbolAvailabilityTests`、`ManualNodeDraftTests` 覆盖新协议。1227 项 XCTest 与 106 项 Swift Testing 通过。
+
 ## 未发布：协议与导出格式审计第一轮（2026-09-27）
 
 - 方法：在测试 VPS 上保留原 25 个实验入站，另建 `/opt/tower-audit`（sing-box + Xray，systemd 服务 `tower-audit-sing-box`、`tower-audit-xray`；UDP 24060–24069 经 iptables `TOWER_AUDIT` 链转发到 24042，重启后失效），补充 gRPC、HTTP/2、HTTPUpgrade、SS2022（三种算法）、ShadowTLS v3、Hysteria2 Salamander 与端口跳跃、Reality + gRPC/XHTTP、WebSocket 早期数据、HTTP/1.1 伪装、VLESS 加密、Naive。节点经塔台 `LocalCompatibilityCorpusTests`（新增输出跳过原因）导出全部目标，再用 mihomo 1.19.31、sing-box 1.14.2 绑定 en0 绕过本机 Surge，逐节点经 VPS 请求测试地址。服务器地址、凭据和导出文件只在本机 `.artifacts/protocol-audit/` 与 `docs/LOCAL_TEST_INFRASTRUCTURE.md`。

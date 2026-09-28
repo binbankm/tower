@@ -698,6 +698,8 @@ private struct NodeRegionLogo: View {
         case .snell: .brown
         case .socks5: .teal
         case .http: .cyan
+        case .ssh: .gray
+        case .trustTunnel: .purple
         case .unknown: .secondary
         }
     }

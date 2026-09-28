@@ -34,6 +34,10 @@ final class SymbolAvailabilityTests: XCTestCase {
             .snell: .system("s.square.fill"),
             .socks5: .system("5.circle.fill"),
             .http: .system("globe"),
+            // A terminal for SSH's shell heritage; TrustTunnel is a verified
+            // TLS tunnel from AdGuard.
+            .ssh: .system("terminal.fill"),
+            .trustTunnel: .system("checkmark.shield.fill"),
             .unknown: .system("questionmark.circle.fill"),
         ]
 

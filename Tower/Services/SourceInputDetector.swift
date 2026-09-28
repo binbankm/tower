@@ -35,6 +35,9 @@ struct SourceInputDetector {
                 return .subscriptionBatch(count: subscriptions.count)
             }
             let parsed = parser.parse(data: Data(value.utf8))
+            // A one-proxy `proxies:` snippet is how SSH and TrustTunnel nodes
+            // are shared (they have no URI), so it reads as a single node.
+            if parsed.nodes.count == 1, let node = parsed.nodes.first { return .node(node.kind) }
             if !parsed.nodes.isEmpty {
                 return .nodeBatch(count: parsed.nodes.count)
             }

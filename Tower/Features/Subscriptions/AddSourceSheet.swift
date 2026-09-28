@@ -323,6 +323,12 @@ struct AddSourceSheet: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
+            if [.ssh, .trustTunnel].contains(manualDraft.kind) {
+                TextField("用户名", text: $manualDraft.username)
+                    .focused($focusedField, equals: .manual("username"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
             if [.vmess, .vless, .tuic].contains(manualDraft.kind) {
                 TextField("UUID", text: $manualDraft.secret)
                     .focused($focusedField, equals: .manual("secret"))
@@ -512,6 +518,33 @@ struct AddSourceSheet: View {
             }
         }
 
+        if manualDraft.kind == .ssh {
+            Section {
+                TextField("私钥（OpenSSH 格式，可选）", text: $manualDraft.sshPrivateKey, axis: .vertical)
+                    .focused($focusedField, equals: .manual("sshPrivateKey"))
+                    .lineLimit(3...8)
+                    .font(.footnote.monospaced())
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                TextField("服务器公钥（可选）", text: $manualDraft.sshHostKey)
+                    .focused($focusedField, equals: .manual("sshHostKey"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            } header: {
+                Text(verbatim: "SSH")
+            } footer: {
+                Text("填写服务器公钥后会校验服务器身份。Surge 不支持私钥登录，Stash 不支持校验服务器公钥。")
+            }
+        }
+
+        if manualDraft.kind == .trustTunnel {
+            Section {
+                Toggle("使用 HTTP/3（QUIC）", isOn: $manualDraft.trustTunnelQUIC)
+            } header: {
+                Text(verbatim: "TrustTunnel")
+            }
+        }
+
         if manualDraft.kind == .anytls {
             Section {
                 TextField("检查间隔（秒）", text: $manualDraft.idleSessionCheckInterval)
@@ -633,7 +666,7 @@ struct AddSourceSheet: View {
     }
 
     private var usesMandatoryTLS: Bool {
-        [.trojan, .hysteria, .hysteria2, .tuic, .masque, .anytls].contains(manualDraft.kind)
+        [.trojan, .hysteria, .hysteria2, .tuic, .masque, .anytls, .trustTunnel].contains(manualDraft.kind)
     }
 
     private var usesTLSSettings: Bool {
@@ -703,6 +736,13 @@ struct AddSourceSheet: View {
             .hysteria, .hysteria2, .tuic, .anytls, .snell
         ]
         if needsSecret.contains(manualDraft.kind), blank(manualDraft.secret) { return true }
+        if manualDraft.kind == .ssh,
+           blank(manualDraft.username) || (blank(manualDraft.secret) && blank(manualDraft.sshPrivateKey)) {
+            return true
+        }
+        if manualDraft.kind == .trustTunnel, blank(manualDraft.username) || blank(manualDraft.secret) {
+            return true
+        }
         if manualDraft.kind == .tuic, blank(manualDraft.password) { return true }
         if [.shadowsocks, .shadowsocksR].contains(manualDraft.kind), blank(manualDraft.cipher) {
             return true
@@ -733,7 +773,8 @@ struct AddSourceSheet: View {
         case .trojan, .hysteria2, .anytls, .snell: String(localized: "密码或 PSK")
         case .hysteria: String(localized: "认证密码")
         case .wireguard: String(localized: "WireGuard 密钥")
-        case .socks5, .http, .masque: String(localized: "密码（可选）")
+        case .socks5, .http, .masque, .ssh: String(localized: "密码（可选）")
+        case .trustTunnel: String(localized: "密码")
         default: String(localized: "认证信息")
         }
     }

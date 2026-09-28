@@ -1754,11 +1754,42 @@ struct SubscriptionParser {
         // The key a bare sequence element belongs to, for the same reason.
         var pendingSequenceKey: String?
         var pluginIndentation: Int?
+        // A `key: |` block scalar — SSH private keys arrive this way. Without
+        // it the key's `-----BEGIN` line read as a list item and the node was
+        // torn apart.
+        var block: (key: String, keyIndentation: Int, folded: Bool, keepsNewline: Bool)?
+        var blockLines: [String] = []
+        var blockContentIndentation: Int?
+        func flushBlock() {
+            guard let open = block else { return }
+            var value = blockLines.joined(separator: open.folded ? " " : "\n")
+            if open.keepsNewline, !value.isEmpty { value += "\n" }
+            current[open.key] = value
+            block = nil
+            blockLines = []
+            blockContentIndentation = nil
+        }
+        func openBlock(_ key: String, _ value: String, keyIndentation: Int) -> Bool {
+            guard ["|", "|-", "|+", ">", ">-", ">+"].contains(value) else { return false }
+            block = (key, keyIndentation, value.hasPrefix(">"), !value.hasSuffix("-"))
+            return true
+        }
 
         for rawLine in lines.dropFirst(start + 1) {
             let trimmed = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
             let indentation = rawLine.prefix { $0 == " " }.count
+            if block != nil {
+                if !trimmed.isEmpty, indentation > block!.keyIndentation {
+                    let contentIndentation = blockContentIndentation ?? indentation
+                    blockContentIndentation = contentIndentation
+                    blockLines.append(String(rawLine.dropFirst(min(contentIndentation, indentation)))
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "\r")))
+                    continue
+                }
+                if trimmed.isEmpty { continue }
+                flushBlock()
+            }
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
             if indentation == 0 && !trimmed.hasPrefix("-") { break }
 
             if trimmed.hasPrefix("-"), indentation <= (itemIndentation ?? indentation) {
@@ -1773,6 +1804,7 @@ struct SubscriptionParser {
                     current.merge(parseInlineYAMLMap(String(remainder))) { _, new in new }
                 } else if let pair = parseYAMLPair(String(remainder)) {
                     current[pair.0] = pair.1
+                    if openBlock(pair.0, pair.1, keyIndentation: indentation + 2) { continue }
                     if pair.1.isEmpty {
                         pendingSequenceKey = pair.0
                         if pair.0 == "plugin-opts" { pluginIndentation = indentation + 2 }
@@ -1809,8 +1841,10 @@ struct SubscriptionParser {
                 pluginIndentation = pair.0 == "plugin-opts" && pair.1.isEmpty ? indentation : nil
                 current[pair.0] = pair.1
                 pendingSequenceKey = pair.1.isEmpty ? pair.0 : nil
+                if openBlock(pair.0, pair.1, keyIndentation: indentation) { pendingSequenceKey = nil }
             }
         }
+        flushBlock()
         if !current.isEmpty { dictionaries.append(current) }
 
         var nodes: [ProxyNode] = []
@@ -1841,6 +1875,23 @@ struct SubscriptionParser {
             // AmneziaWG changes the handshake; as plain WireGuard the node
             // would import cleanly and never connect.
             if kind == .wireguard, dictionary.keys.contains(where: Self.isAmneziaWireGuardKey) {
+                rejected += 1
+                continue
+            }
+            // SSH needs a login and a password or an inline key. Mihomo also
+            // accepts a key *file path*, which no other device can read.
+            if kind == .ssh {
+                let user = dictionary["username"] ?? dictionary["user"] ?? ""
+                let key = dictionary["private-key"] ?? ""
+                let keyIsInline = key.contains("PRIVATE KEY")
+                guard !user.isEmpty, (!(dictionary["password"] ?? "").isEmpty || keyIsInline),
+                      key.isEmpty || keyIsInline else {
+                    rejected += 1
+                    continue
+                }
+            }
+            if kind == .trustTunnel,
+               (dictionary["username"] ?? "").isEmpty || (dictionary["password"] ?? "").isEmpty {
                 rejected += 1
                 continue
             }
@@ -1914,7 +1965,8 @@ struct SubscriptionParser {
                     ?? dictionary["auth"]
                     ?? dictionary["psk"],
                 uuid: dictionary["uuid"],
-                username: dictionary["username"],
+                // Stash spells the SSH login `user`.
+                username: dictionary["username"] ?? (kind == .ssh ? dictionary["user"] : nil),
                 transport: pluginTransport ?? normalizedTransport(dictionary["network"]),
                 transportMode: normalizedTransport(dictionary["network"]) == "xhttp"
                     ? dictionary["mode"] : nil,
@@ -1925,7 +1977,7 @@ struct SubscriptionParser {
                 // omits the redundant `tls: true` field in valid Trojan nodes;
                 // treating that omission as plaintext breaks every strict
                 // target format derived from this shared model.
-                tls: kind == .trojan || pluginTLS || boolString(dictionary["tls"]),
+                tls: kind == .trojan || kind == .trustTunnel || pluginTLS || boolString(dictionary["tls"]),
                 sni: dictionary["servername"] ?? dictionary["sni"],
                 hostHeader: sip003Plugin == "v2ray-plugin" ? obfsHost : dictionary["authority"] ?? dictionary["host"],
                 path: pluginPath
@@ -1955,7 +2007,7 @@ struct SubscriptionParser {
                 congestionControl: dictionary["congestion-controller"]
                     ?? dictionary["congestion_control"],
                 udpRelayMode: dictionary["udp-relay-mode"],
-                udpRelayEnabled: kind == .shadowsocks ? dictionary["udp"].map { boolString($0) } : nil,
+                udpRelayEnabled: [.shadowsocks, .trustTunnel].contains(kind) ? dictionary["udp"].map { boolString($0) } : nil,
                 portHopping: dictionary["ports"]
                     ?? dictionary["mport"]
                     ?? dictionary["server-ports"]
@@ -1983,7 +2035,14 @@ struct SubscriptionParser {
                     ? csvValues(dictionary["dns"] ?? "").joined(separator: ",")
                     : nil,
                 rawURI: "clash://local/\(UUID().uuidString)",
-                vlessEncryption: kind == .vless ? vlessEncryption(dictionary["encryption"]) : nil
+                vlessEncryption: kind == .vless ? vlessEncryption(dictionary["encryption"]) : nil,
+                ssh: kind == .ssh ? SSHOptions(
+                    privateKey: dictionary["private-key"].flatMap { $0.isEmpty ? nil : $0 },
+                    privateKeyPassphrase: dictionary["private-key-passphrase"].flatMap { $0.isEmpty ? nil : $0 },
+                    hostKeys: csvValues(dictionary["host-key"] ?? ""),
+                    hostKeyAlgorithms: csvValues(dictionary["host-key-algorithms"] ?? "")
+                ) : nil,
+                trustTunnel: kind == .trustTunnel ? TrustTunnelOptions(quic: boolString(dictionary["quic"])) : nil
             ))
         }
         return .init(
@@ -2245,6 +2304,8 @@ struct SubscriptionParser {
         case "snell": .snell
         case "socks5", "socks": .socks5
         case "http", "https": .http
+        case "ssh": .ssh
+        case "trusttunnel", "trust-tunnel": .trustTunnel
         default: nil
         }
     }

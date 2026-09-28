@@ -14,6 +14,8 @@ enum ManualNodeValidationError: LocalizedError, Equatable {
     case invalidBandwidth
     case incompleteWireGuard
     case unsupportedProtocol
+    case incompleteSSH
+    case incompleteTrustTunnel
 
     var errorDescription: String? {
         switch self {
@@ -30,6 +32,8 @@ enum ManualNodeValidationError: LocalizedError, Equatable {
         case .invalidBandwidth: String(localized: "Hysteria 上下行带宽必须是大于 0 的整数")
         case .incompleteWireGuard: String(localized: "WireGuard 需要私钥、公钥、本机地址和允许的网段")
         case .unsupportedProtocol: String(localized: "该协议请改用协议链接导入")
+        case .incompleteSSH: String(localized: "SSH 需要用户名，以及密码或私钥")
+        case .incompleteTrustTunnel: String(localized: "TrustTunnel 需要用户名和密码")
         }
     }
 }
@@ -57,7 +61,8 @@ struct LocalNodeImporter {
 struct ManualNodeDraft: Equatable {
     static let supportedKinds: [ProxyKind] = [
         .shadowsocks, .shadowsocksR, .vmess, .vless, .trojan,
-        .hysteria, .hysteria2, .tuic, .masque, .wireguard, .anytls, .snell, .socks5, .http
+        .hysteria, .hysteria2, .tuic, .masque, .wireguard, .anytls, .snell, .socks5, .http,
+        .ssh, .trustTunnel
     ]
 
     var masque: MASQUEOptions?
@@ -77,6 +82,12 @@ struct ManualNodeDraft: Equatable {
     /// rate-based, so a node without one either fails to load or crawls.
     var upMbps = "50"
     var downMbps = "100"
+    /// SSH: an inline OpenSSH/PEM private key and the server's public key
+    /// (`ssh-ed25519 AAAA…`) to pin. Both optional; a password may do instead.
+    var sshPrivateKey = ""
+    var sshHostKey = ""
+    /// TrustTunnel over HTTP/3 instead of HTTP/2.
+    var trustTunnelQUIC = false
     var wireGuardPrivateKey = ""
     var wireGuardPublicKey = ""
     var wireGuardPreSharedKey = ""
@@ -211,6 +222,9 @@ struct ManualNodeDraft: Equatable {
     init(node: ProxyNode) {
         masque = node.masque
         masqueUDP = node.udpRelayEnabled
+        sshPrivateKey = node.ssh?.privateKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        sshHostKey = node.ssh?.hostKeys.first ?? ""
+        trustTunnelQUIC = node.trustTunnel?.quic ?? false
         kind = node.kind
         name = node.name
         server = node.server
@@ -306,8 +320,10 @@ struct ManualNodeDraft: Equatable {
             protocolName = "udp"
             upMbps = "50"
             downMbps = "100"
-        case .socks5, .http:
+        case .socks5, .http, .ssh:
             security = "none"
+        case .trustTunnel:
+            security = "tls"
         case .unknown:
             break
         }
@@ -362,6 +378,18 @@ struct ManualNodeDraft: Equatable {
         // TUIC needs both halves; a UUID on its own authenticates nothing.
         if kind == .tuic, normalizedPassword.isEmpty {
             throw ManualNodeValidationError.missingTUICPassword
+        }
+        let normalizedSSHKey = sshPrivateKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedSSHHostKey = sshHostKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if kind == .ssh {
+            let keyIsUsable = normalizedSSHKey.isEmpty || normalizedSSHKey.contains("PRIVATE KEY")
+            guard !normalizedUsername.isEmpty, keyIsUsable,
+                  !normalizedSecret.isEmpty || !normalizedSSHKey.isEmpty else {
+                throw ManualNodeValidationError.incompleteSSH
+            }
+        }
+        if kind == .trustTunnel, normalizedUsername.isEmpty || normalizedSecret.isEmpty {
+            throw ManualNodeValidationError.incompleteTrustTunnel
         }
         let trimmedWGPrivateKey = wireGuardPrivateKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedWGPublicKey = wireGuardPublicKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -421,7 +449,7 @@ struct ManualNodeDraft: Equatable {
             parsedVersion = nil
         }
         let parsedAlterID = kind == .vmess ? max(Int(alterID) ?? 0, 0) : nil
-        let requiresTLS = [.trojan, .hysteria, .hysteria2, .tuic, .anytls].contains(kind)
+        let requiresTLS = [.trojan, .hysteria, .hysteria2, .tuic, .anytls, .trustTunnel].contains(kind)
             || (kind == .masque && (masque?.mode != .basicConnectIP || (masque?.httpVersion ?? 3) == 3))
         let enablesTLS = requiresTLS || tls || ["tls", "reality"].contains(normalizedSecurity) || usesReality
 
@@ -450,12 +478,12 @@ struct ManualNodeDraft: Equatable {
                 ? normalizedPassword
                 : ([
                     .shadowsocks, .shadowsocksR, .trojan,
-                    .hysteria, .hysteria2, .anytls, .snell, .socks5, .http, .masque
+                    .hysteria, .hysteria2, .anytls, .snell, .socks5, .http, .masque, .ssh, .trustTunnel
                 ].contains(kind)
                     ? (normalizedSecret.isEmpty ? nil : normalizedSecret)
                     : nil),
             uuid: [.vmess, .vless, .tuic].contains(kind) ? normalizedSecret : nil,
-            username: [.socks5, .http, .masque].contains(kind) && !normalizedUsername.isEmpty
+            username: [.socks5, .http, .masque, .ssh, .trustTunnel].contains(kind) && !normalizedUsername.isEmpty
                 ? normalizedUsername
                 : nil,
             transport: [.vmess, .vless, .trojan].contains(kind) && !normalizedTransport.isEmpty
@@ -508,7 +536,12 @@ struct ManualNodeDraft: Equatable {
             wireGuardMTU: kind == .wireguard ? Int(wireGuardMTU) : nil,
             wireGuardPersistentKeepalive: kind == .wireguard ? Int(wireGuardPersistentKeepalive) : nil,
             wireGuardDNS: kind == .wireguard ? wireGuardDNS.nilIfBlank : nil,
-            rawURI: ""
+            rawURI: "",
+            ssh: kind == .ssh ? SSHOptions(
+                privateKey: normalizedSSHKey.isEmpty ? nil : normalizedSSHKey + "\n",
+                hostKeys: normalizedSSHHostKey.isEmpty ? [] : [normalizedSSHHostKey]
+            ) : nil,
+            trustTunnel: kind == .trustTunnel ? TrustTunnelOptions(quic: trustTunnelQUIC) : nil
         )
         node.rawURI = ProxyNodeShareLinkGenerator().link(for: node)
         if kind == .masque, !node.hasSupportedMASQUEFields {

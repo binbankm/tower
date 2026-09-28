@@ -667,9 +667,11 @@ struct ConfigurationGenerator {
         // These clients accept structured node subscriptions. Keep the legacy
         // URI path for ordinary lists; ShadowTLS needs both credential layers.
         // Native SS TLS also has no URI form, so it takes Shadowrocket's YAML.
+        // SSH and TrustTunnel have no URI either.
         let structuredNodes = supported.contains {
             $0.shadowTLS != nil || $0.masque?.mode == .keyConnectIP
                 || (target == .shadowrocket && isNativeShadowsocksTLS($0))
+                || [.ssh, .trustTunnel].contains($0.kind)
         }
         var fileExtension = target.usesClashFormat ? "yaml" : "txt"
 
@@ -852,6 +854,15 @@ struct ConfigurationGenerator {
         // other writer — Surge, Loon, Stash, mihomo, sing-box, URI lists —
         // dropped TLS and handed out plain Shadowsocks that cannot connect.
         if isNativeShadowsocksTLS(node), ![.shadowrocket, .quanx].contains(target) { return false }
+        if node.kind == .ssh {
+            let options = node.ssh ?? SSHOptions()
+            // Surge keeps SSH keys in [Keystore], which Tower does not write.
+            if [.surge, .surgeMac].contains(target), options.privateKey != nil { return false }
+            // Neither Surge nor Egern takes a key passphrase.
+            if [.surge, .surgeMac, .egern].contains(target), options.privateKeyPassphrase != nil { return false }
+            // Stash cannot pin the host key; dropping the pin would trust any server.
+            if target == .clash, !options.hostKeys.isEmpty { return false }
+        }
         if !supportsShadowsocksCipher(node, on: target) { return false }
         // Xray's VLESS encryption was run against mihomo 1.19.31 only; other
         // clients either lack the field or ignore it and send plain VLESS.
@@ -2168,10 +2179,47 @@ struct ConfigurationGenerator {
                 let dns = options.dns ?? (remoteDNS == true ? ["1.1.1.1", "8.8.8.8"] : nil)
                 if let dns { values.append("    dns: [\(dns.map(yaml).joined(separator: ", "))]") }
             }
+        case .ssh:
+            let options = node.ssh ?? SSHOptions()
+            // Stash spells the login `user`; mihomo and Shadowrocket `username`.
+            values.append("    \(target == .clash ? "user" : "username"): \(yaml(node.username ?? ""))")
+            if let password = node.password, !password.isEmpty { values.append("    password: \(yaml(password))") }
+            if let key = options.privateKey, !key.isEmpty { values.append("    private-key: \(yamlMultiline(key))") }
+            if let passphrase = options.privateKeyPassphrase, !passphrase.isEmpty {
+                values.append("    private-key-passphrase: \(yaml(passphrase))")
+            }
+            if !options.hostKeys.isEmpty { values.append("    host-key: \(yamlList(options.hostKeys))") }
+            if !options.hostKeyAlgorithms.isEmpty {
+                values.append("    host-key-algorithms: \(yamlList(options.hostKeyAlgorithms))")
+            }
+        case .trustTunnel:
+            values.append("    username: \(yaml(node.username ?? ""))")
+            values.append("    password: \(yaml(node.password ?? ""))")
+            if let sni = node.sni, !sni.isEmpty { values.append("    sni: \(yaml(sni))") }
+            values.append("    skip-cert-verify: \(node.skipCertificateVerification)")
+            appendClashALPN(node, to: &values)
+            appendClashCertificateFingerprint(node, target: target, to: &values)
+            if node.trustTunnel?.quic == true { values.append("    quic: true") }
+            if target != .clash {
+                if node.udpRelayEnabled == true { values.append("    udp: true") }
+                appendClashClientFingerprint(node, to: &values)
+            }
         case .unknown:
             break
         }
         return values.joined(separator: "\n")
+    }
+
+    /// A multi-line value (an SSH private key) as one double-quoted scalar.
+    /// `yaml(_:)` folds line breaks away, which would break the key.
+    private func yamlMultiline(_ value: String) -> String {
+        let escaped = value.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\t", with: "\\t")
+        return "\"\(escaped)\""
     }
 
     /// REALITY needs the server's public key and short id; without them the
@@ -2632,6 +2680,20 @@ struct ConfigurationGenerator {
             appendValue(node.username, key: "username", to: &components)
             appendValue(node.password, key: "password", to: &components)
             appendSurgeTLS(node, includeTLSFlag: false, to: &components)
+        case .ssh:
+            // Password logins only: a key must live in [Keystore], which this
+            // profile does not write (writes(_:to:) skips key-based nodes).
+            components = ["ssh", node.server, "\(node.port)", "username=\(confValue(node.username ?? ""))"]
+            appendValue(node.password, key: "password", to: &components)
+            let hostKeys = node.ssh?.hostKeys ?? []
+            if !hostKeys.isEmpty {
+                components.append("server-fingerprint=\"\(hostKeys.joined(separator: ", "))\"")
+            }
+        case .trustTunnel:
+            components = ["trust-tunnel", node.server, "\(node.port)",
+                          "username=\(confValue(node.username ?? ""))", "password=\(confValue(node.password ?? ""))"]
+            if node.trustTunnel?.quic == true { components.append("h3=true") }
+            appendSurgeTLS(node, includeTLSFlag: false, to: &components)
         case .unknown:
             components = ["direct"]
         }
@@ -2640,6 +2702,12 @@ struct ConfigurationGenerator {
         }
         if shadowrocket, node.kind == .vless { components.append("udp-relay=true") }
         return "\(name) = \(components.joined(separator: ", "))"
+    }
+
+    /// SSH and TrustTunnel have no share-link scheme; a mihomo `proxies:`
+    /// snippet is what their subscriptions carry and what Tower re-imports.
+    func clashShareSnippet(_ node: ProxyNode) -> String {
+        "proxies:\n" + clashNode(node, target: .clashVerge) + "\n"
     }
 
     func masqueShareLine(_ node: ProxyNode) -> String {
@@ -3094,7 +3162,7 @@ struct ConfigurationGenerator {
             }
         // Loon implements neither, and writes(_:to:excluding:) filters them
         // out before generation, so this branch is defensive only.
-        case .hysteria, .tuic, .snell, .masque, .unknown:
+        case .hysteria, .tuic, .snell, .masque, .ssh, .trustTunnel, .unknown:
             values = ["Direct"]
         }
         // Confirmed in Loon on device: these TLS protocols also accept
@@ -3328,7 +3396,7 @@ struct ConfigurationGenerator {
 
         // Quantumult X implements none of these, and writes(_:to:excluding:)
         // filters them out before generation, so this is defensive only.
-        case .hysteria, .hysteria2, .tuic, .wireguard, .snell, .masque, .unknown:
+        case .hysteria, .hysteria2, .tuic, .wireguard, .snell, .masque, .ssh, .trustTunnel, .unknown:
             prefix = "http"
         }
         if [.socks5, .http].contains(node.kind), node.tls {
@@ -4268,7 +4336,19 @@ extension ConfigurationGenerator {
             outbound["type"] = "http"
             if let user = node.username, !user.isEmpty { outbound["username"] = user }
             if let password = node.password, !password.isEmpty { outbound["password"] = password }
-        case .masque, .unknown:
+        case .ssh:
+            let options = node.ssh ?? SSHOptions()
+            outbound["type"] = "ssh"
+            outbound["user"] = node.username ?? ""
+            if let password = node.password, !password.isEmpty { outbound["password"] = password }
+            if let key = options.privateKey, !key.isEmpty { outbound["private_key"] = key }
+            if let passphrase = options.privateKeyPassphrase, !passphrase.isEmpty {
+                outbound["private_key_passphrase"] = passphrase
+            }
+            if !options.hostKeys.isEmpty { outbound["host_key"] = options.hostKeys }
+            if !options.hostKeyAlgorithms.isEmpty { outbound["host_key_algorithms"] = options.hostKeyAlgorithms }
+        // Official sing-box has no TrustTunnel outbound (only Hiddify's fork).
+        case .masque, .trustTunnel, .unknown:
             return nil
         }
 
@@ -4934,12 +5014,23 @@ extension ConfigurationGenerator {
             if let password = node.password, !password.isEmpty {
                 body.append("      password: \(yaml(password))")
             }
-        case .hysteria, .shadowsocksR, .masque, .unknown:
+        case .ssh:
+            type = "ssh"
+            endpoint()
+            body.append("      username: \(yaml(node.username ?? ""))")
+            if let password = node.password, !password.isEmpty { body.append("      password: \(yaml(password))") }
+            if let key = node.ssh?.privateKey, !key.isEmpty { body.append("      private_key: \(yamlMultiline(key))") }
+            let hostKeys = node.ssh?.hostKeys ?? []
+            if !hostKeys.isEmpty { body.append("      host_keys: \(yamlList(hostKeys))") }
+        case .hysteria, .shadowsocksR, .masque, .trustTunnel, .unknown:
             // supports(_:) filters these out; this keeps the switch total.
             return nil
         }
 
-        body.append("      udp_relay: \(node.kind == .shadowsocks ? node.udpRelayEnabled ?? true : true)")
+        // Egern's SSH has neither UDP relay (no datagram channel) nor TLS.
+        if node.kind != .ssh {
+            body.append("      udp_relay: \(node.kind == .shadowsocks ? node.udpRelayEnabled ?? true : true)")
+        }
         if node.usesReality, ![.vmess, .vless].contains(node.kind) {
             body.append("      reality:")
             body.append("        public_key: \(yaml(node.realityPublicKey ?? ""))")
@@ -4947,7 +5038,7 @@ extension ConfigurationGenerator {
                 body.append("        short_id: \(yaml(shortID))")
             }
         }
-        if ![.shadowsocks, .vmess, .vless].contains(node.kind) {
+        if ![.shadowsocks, .vmess, .vless, .ssh].contains(node.kind) {
             body.append("      skip_tls_verify: \(node.skipCertificateVerification ? "true" : "false")")
             if let fingerprint = node.certificateFingerprint, !fingerprint.isEmpty {
                 body.append("      fingerprint_sha256: \(yaml(fingerprint))")

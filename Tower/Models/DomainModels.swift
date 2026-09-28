@@ -434,6 +434,10 @@ enum ProxyKind: String, Codable, CaseIterable, Identifiable {
     case snell
     case socks5
     case http
+    /// SSH port forwarding (`direct-tcpip`), TCP only.
+    case ssh
+    /// AdGuard's TrustTunnel: HTTP/2 over TLS, or HTTP/3 with `quic`.
+    case trustTunnel = "trusttunnel"
     case unknown
 
     var id: String { rawValue }
@@ -454,6 +458,8 @@ enum ProxyKind: String, Codable, CaseIterable, Identifiable {
         case .snell: "Snell"
         case .socks5: "SOCKS5"
         case .http: "HTTP"
+        case .ssh: "SSH"
+        case .trustTunnel: "TrustTunnel"
         case .unknown: String(localized: "未知协议")
         }
     }
@@ -484,6 +490,8 @@ enum ProxyKind: String, Codable, CaseIterable, Identifiable {
         case .snell: .system("s.square.fill")
         case .socks5: .system("5.circle.fill")
         case .http: .system("globe")
+        case .ssh: .system("terminal.fill")
+        case .trustTunnel: .system("checkmark.shield.fill")
         case .unknown: .system("questionmark.circle.fill")
         }
     }
@@ -504,6 +512,20 @@ struct ShadowTLSOptions: Codable, Hashable {
             && !host.contains(where: { $0.isWhitespace || $0 == "," })
             && (version == 1 || !password.isEmpty)
     }
+}
+
+/// SSH authentication beyond the username/password every node carries.
+/// Host keys pin the server; dropping them would silently accept any server.
+struct SSHOptions: Codable, Hashable {
+    var privateKey: String?
+    var privateKeyPassphrase: String?
+    var hostKeys: [String] = []
+    var hostKeyAlgorithms: [String] = []
+}
+
+/// TrustTunnel runs over HTTP/2 + TLS unless `quic` selects HTTP/3.
+struct TrustTunnelOptions: Codable, Hashable {
+    var quic: Bool = false
 }
 
 /// MASQUE has incompatible wire dialects. Never infer CONNECT-IP from a
@@ -553,6 +575,8 @@ struct ProxyNode: Identifiable, Codable, Hashable {
     var pluginMux: Bool?
     var shadowTLS: ShadowTLSOptions?
     var masque: MASQUEOptions?
+    var ssh: SSHOptions?
+    var trustTunnel: TrustTunnelOptions?
     var tls: Bool
     var sni: String?
     var hostHeader: String?
@@ -682,7 +706,9 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         wireGuardDNS: String? = nil,
         rawURI: String,
         isSubscriptionMetadata: Bool? = nil,
-        vlessEncryption: String? = nil
+        vlessEncryption: String? = nil,
+        ssh: SSHOptions? = nil,
+        trustTunnel: TrustTunnelOptions? = nil
     ) {
         self.id = id
         self.sourceID = sourceID
@@ -739,6 +765,8 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         self.rawURI = rawURI
         self.isSubscriptionMetadata = isSubscriptionMetadata
         self.vlessEncryption = vlessEncryption
+        self.ssh = ssh
+        self.trustTunnel = trustTunnel
     }
 
     var endpoint: String {
@@ -761,7 +789,7 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         ])
         fields.append(contentsOf: [
             realityPublicKey ?? "", realityShortID ?? "", fingerprint ?? "", flow ?? "",
-            skipCertificateVerification ? "1" : "0", vlessEncryption ?? ""
+            skipCertificateVerification ? "1" : "0"
         ])
         fields.append(contentsOf: [
             alterID.map(String.init) ?? "", protocolName ?? "", protocolParam ?? "",
@@ -790,6 +818,12 @@ struct ProxyNode: Identifiable, Codable, Hashable {
                                       shadowTLS.password, String(shadowTLS.skipCertificateVerification)])
         }
         if let masque { fields.append(masque.identity) }
+        if let vlessEncryption { fields.append(contentsOf: ["vless-encryption", vlessEncryption]) }
+        if let ssh {
+            fields.append(contentsOf: ["ssh", ssh.privateKey ?? "", ssh.privateKeyPassphrase ?? "",
+                                      ssh.hostKeys.joined(separator: "\n"), ssh.hostKeyAlgorithms.joined(separator: ",")])
+        }
+        if let trustTunnel { fields.append(contentsOf: ["trusttunnel", trustTunnel.quic ? "quic" : "h2"]) }
         return fields.joined(separator: "\u{1F}")
     }
 
@@ -970,6 +1004,8 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         case .snell: version.map { "SNELL V\($0)" } ?? "SNELL"
         case .socks5: "SOCKS5"
         case .http: tls ? "HTTPS" : "HTTP"
+        case .ssh: "SSH"
+        case .trustTunnel: trustTunnel?.quic == true ? "TRUSTTUNNEL H3" : "TRUSTTUNNEL"
         case .unknown: "未知协议"
         }
     }
@@ -1044,7 +1080,10 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         if shadowTLS != nil { return udpRelayEnabled == true }
         if masque?.mode == .keyConnectIP { return udpRelayEnabled == true }
         return switch kind {
-        case .http, .unknown: false
+        // SSH has no datagram channel.
+        case .http, .ssh, .unknown: false
+        // TrustTunnel relays UDP only where the client says so (mihomo `udp`).
+        case .trustTunnel: udpRelayEnabled == true
         // Snell only carries UDP from version 3 onwards.
         case .snell: (version ?? 4) >= 3
         default: true
@@ -1464,12 +1503,15 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
             // Karing documents these protocols for imported Clash profiles.
             // Snell is deliberately omitted: neither its current client guide
             // nor its bundled sing-box-derived core claims support for it.
+            // Its table lists SSH but not TrustTunnel.
             [.shadowsocks, .shadowsocksR, .vmess, .vless, .trojan, .hysteria,
-             .hysteria2, .tuic, .wireguard, .anytls, .socks5, .http].contains(kind)
+             .hysteria2, .tuic, .wireguard, .anytls, .socks5, .http, .ssh].contains(kind)
         case .surge, .surgeMac:
             // TUIC but no Hysteria 1: Surge writes `tuic-v5` and has never
             // shipped a Hysteria 1 server type.
-            [.shadowsocks, .vmess, .trojan, .hysteria2, .tuic, .wireguard, .anytls, .snell, .socks5, .http].contains(kind)
+            // SSH and Trust Tunnel are documented policy types in the manual.
+            [.shadowsocks, .vmess, .trojan, .hysteria2, .tuic, .wireguard, .anytls, .snell, .socks5, .http,
+             .ssh, .trustTunnel].contains(kind)
         case .shadowrocket:
             kind != .unknown
         case .loon:
@@ -1486,14 +1528,18 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .hiddify:
             // Hiddify's shipped core rejects Snell and removed ShadowsocksR.
             // Skip and count them rather than creating unusable outbounds.
-            kind != .unknown && kind != .snell && kind != .shadowsocksR
+            // TrustTunnel exists only in an unreleased Hiddify core fork.
+            kind != .unknown && kind != .snell && kind != .shadowsocksR && kind != .trustTunnel
         case .singBox:
             // Official sing-box supports Snell but has no ShadowsocksR
             // outbound. Snell version validation is applied by the generator.
-            kind != .unknown && kind != .shadowsocksR
+            // Official sing-box has no TrustTunnel outbound.
+            kind != .unknown && kind != .shadowsocksR && kind != .trustTunnel
         case .egern:
             // Egern's own producer lists tuic but no hysteria 1.
-            [.shadowsocks, .vmess, .vless, .trojan, .hysteria2, .tuic, .wireguard, .anytls, .snell, .socks5, .http].contains(kind)
+            // SSH arrived in Egern 2.20; TrustTunnel is not a proxy type there.
+            [.shadowsocks, .vmess, .vless, .trojan, .hysteria2, .tuic, .wireguard, .anytls, .snell, .socks5, .http,
+             .ssh].contains(kind)
         case .anywhere:
             [.vless, .hysteria2, .trojan, .anytls, .shadowsocks, .socks5].contains(kind)
         case .v2box:
