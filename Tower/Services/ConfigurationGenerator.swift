@@ -979,9 +979,9 @@ struct ConfigurationGenerator {
 
     /// A VMess/VLESS/Trojan link without `sni` means "use the Host header"
     /// (v2rayN's rule), which is how CDN-fronted nodes on a bare IP are
-    /// written. Mihomo and sing-box apply it themselves; Surge, Loon, QuanX
-    /// and Egern instead fall back to the server address, so they got the
-    /// IP as SNI and failed the certificate check. Spell it out for them.
+    /// written. Mihomo and sing-box apply it themselves; Stash, Surge, Loon,
+    /// QuanX and Egern instead fall back to the server address, so they got
+    /// the IP as SNI and failed the certificate check. Spell it out.
     private func withTransportHostAsSNI(_ node: ProxyNode) -> ProxyNode {
         guard [.vmess, .vless, .trojan].contains(node.kind), node.tls, !node.usesReality,
               (node.sni ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -1969,7 +1969,11 @@ struct ConfigurationGenerator {
         return output
     }
 
-    private func clashNode(_ node: ProxyNode, target: ClientTarget) -> String {
+    private func clashNode(_ source: ProxyNode, target: ClientTarget) -> String {
+        // Stash, unlike mihomo, does not fall back to the WebSocket Host for
+        // SNI; an IP-fronted node timed out there. Writing it is harmless for
+        // the clients that would have inferred it anyway.
+        let node = withTransportHostAsSNI(source)
         var values: [String] = [
             "  - name: \(yaml(NodeRegionResolver.displayName(for: node)))",
             "    type: \(node.kind.rawValue)",

@@ -267,6 +267,8 @@ final class ProtocolAuditTests: XCTestCase {
         XCTAssertTrue(content([fronted], .loon).contains("tls-name=front.example.com"))
         XCTAssertTrue(content([fronted], .quanx).contains("front.example.com"))
         XCTAssertTrue(content([fronted], .egern).contains("sni: \"front.example.com\""))
+        // Stash timed out on this shape until servername was written out.
+        XCTAssertTrue(content([fronted], .clash).contains("servername: \"front.example.com\""))
     }
 
     // MARK: - Stash field names
