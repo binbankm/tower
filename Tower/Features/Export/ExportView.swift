@@ -1538,7 +1538,7 @@ private struct ImportPrivacyNote: View {
             return baseDetail + String(localized: "如果 Egern 刚启动后没有出现新配置，回到塔台再点一次。")
         case .karing:
             // Karing skips a link it already has, so each import is a new profile.
-            return baseDetail + String(localized: "Karing 每次导入都会新建一份配置，旧的塔台配置可以删除。")
+            return baseDetail + String(localized: "Karing 每次导入都会新建一份以导出时间命名的配置，旧的塔台配置可以删除。")
         default:
             return baseDetail
         }

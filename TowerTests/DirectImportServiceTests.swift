@@ -121,11 +121,9 @@ final class DirectImportServiceTests: XCTestCase {
             // Karing's copy carries a per-import revision; the resource is the same.
             let served = try XCTUnwrap(components.queryItems?.first(where: { $0.name == "url" })?.value)
             XCTAssertTrue(served.hasPrefix(localURL.absoluteString), target.name)
-            XCTAssertEqual(
-                components.queryItems?.first(where: { $0.name == "name" })?.value,
-                "塔台 配置",
-                target.name
-            )
+            // Karing also rejects a name it already has, so its copy is dated.
+            let name = try XCTUnwrap(components.queryItems?.first(where: { $0.name == "name" })?.value)
+            XCTAssertTrue(target == .karing ? name.hasPrefix("塔台 配置 ") : name == "塔台 配置", "\(target.name): \(name)")
         }
     }
 
@@ -149,6 +147,12 @@ final class DirectImportServiceTests: XCTestCase {
             target: .karing, configurationURL: localURL, displayName: "塔台", importRevision: "second"
         )
         XCTAssertNotEqual(first, second)
+        let dated = try ClientImportURLBuilder.make(
+            target: .karing, configurationURL: localURL, displayName: "塔台", importRevision: "x",
+            importDate: Date(timeIntervalSince1970: 0)
+        )
+        let name = URLComponents(url: dated, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "name" }?.value
+        XCTAssertNotNil(name?.range(of: #"^塔台 \d{2}-\d{2} \d{2}:\d{2}:\d{2}$"#, options: .regularExpression), name ?? "")
         let served = try XCTUnwrap(URLComponents(url: first, resolvingAgainstBaseURL: false)?
             .queryItems?.first { $0.name == "url" }?.value)
         let servedURL = try XCTUnwrap(URL(string: served))

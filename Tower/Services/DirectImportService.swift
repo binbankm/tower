@@ -46,7 +46,8 @@ struct ClientImportURLBuilder {
         configurationURL: URL,
         displayName: String = TowerBrand.localizedName,
         contentMode: ExportContentMode = .fullConfiguration,
-        importRevision: String = UUID().uuidString
+        importRevision: String = UUID().uuidString,
+        importDate: Date = .now
     ) throws -> URL {
         let encodedURL = encode(configurationURL.absoluteString)
         let encodedName = encode(displayName)
@@ -89,7 +90,13 @@ struct ClientImportURLBuilder {
                 URLQueryItem(name: "tower-import", value: importRevision)
             ]
             let uniqueURL = components?.url ?? configurationURL
-            value = "karing://install-config?url=\(encode(uniqueURL.absoluteString))&name=\(encodedName)"
+            // Its profile names must be unique too ("备注已存在"), so each
+            // import is labelled with the moment it was exported.
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = "MM-dd HH:mm:ss"
+            let uniqueName = "\(displayName) \(formatter.string(from: importDate))"
+            value = "karing://install-config?url=\(encode(uniqueURL.absoluteString))&name=\(encode(uniqueName))"
         case .shadowrocket:
             value = contentMode == .nodesOnly
                 ? "shadowrocket://add/\(configurationURL.absoluteString)#\(displayName)"

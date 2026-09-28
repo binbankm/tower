@@ -97612,96 +97612,96 @@
         }
       }
     },
-    "Karing 每次导入都会新建一份配置，旧的塔台配置可以删除。": {
+    "Karing 每次导入都会新建一份以导出时间命名的配置，旧的塔台配置可以删除。": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "ينشئ Karing ملف تعريف جديدًا مع كل استيراد؛ يمكنك حذف ملفات تعريف Tower القديمة."
+            "value": "ينشئ Karing مع كل استيراد ملف تعريف جديدًا يحمل وقت التصدير في اسمه؛ يمكنك حذف ملفات تعريف Tower القديمة."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing legt bei jedem Import ein neues Profil an; ältere Tower-Profile kannst du löschen."
+            "value": "Karing legt bei jedem Import ein neues, nach der Exportzeit benanntes Profil an; ältere Tower-Profile kannst du löschen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing adds a new profile on every import; you can delete the older Tower profiles."
+            "value": "Karing adds a new profile named with the export time on every import; you can delete the older Tower profiles."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing crea un perfil nuevo en cada importación; puedes eliminar los perfiles anteriores de Tower."
+            "value": "Karing crea en cada importación un perfil nuevo con la hora de exportación en el nombre; puedes eliminar los perfiles anteriores de Tower."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing crée un nouveau profil à chaque importation ; vous pouvez supprimer les anciens profils Tower."
+            "value": "Karing crée à chaque importation un nouveau profil nommé d’après l’heure d’export ; vous pouvez supprimer les anciens profils Tower."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing membuat profil baru setiap kali impor; Anda dapat menghapus profil Tower yang lama."
+            "value": "Karing membuat profil baru yang diberi nama sesuai waktu ekspor setiap kali impor; Anda dapat menghapus profil Tower yang lama."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing はインポートのたびに新しいプロファイルを作成します。古いタワーのプロファイルは削除できます。"
+            "value": "Karing はインポートのたびに、エクスポート時刻を名前にした新しいプロファイルを作成します。古いタワーのプロファイルは削除できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing은 가져올 때마다 새 프로필을 만듭니다. 이전 Tower 프로필은 삭제해도 됩니다."
+            "value": "Karing은 가져올 때마다 내보낸 시각을 이름으로 한 새 프로필을 만듭니다. 이전 Tower 프로필은 삭제해도 됩니다."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Karing cria um novo perfil a cada importação; você pode excluir os perfis antigos do Tower."
+            "value": "O Karing cria a cada importação um novo perfil com o horário da exportação no nome; você pode excluir os perfis antigos do Tower."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing создаёт новый профиль при каждом импорте; старые профили Tower можно удалить."
+            "value": "Karing при каждом импорте создаёт новый профиль с временем экспорта в названии; старые профили Tower можно удалить."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing จะสร้างโปรไฟล์ใหม่ทุกครั้งที่นำเข้า คุณลบโปรไฟล์ Tower เก่าได้"
+            "value": "Karing จะสร้างโปรไฟล์ใหม่ที่ตั้งชื่อตามเวลาส่งออกทุกครั้งที่นำเข้า คุณลบโปรไฟล์ Tower เก่าได้"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing her içe aktarmada yeni bir profil oluşturur; eski Tower profillerini silebilirsiniz."
+            "value": "Karing her içe aktarmada adı dışa aktarma zamanını içeren yeni bir profil oluşturur; eski Tower profillerini silebilirsiniz."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing tạo cấu hình mới mỗi lần nhập; bạn có thể xóa các cấu hình Tower cũ."
+            "value": "Karing tạo cấu hình mới đặt tên theo thời gian xuất mỗi lần nhập; bạn có thể xóa các cấu hình Tower cũ."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing 每次导入都会新建一份配置，旧的塔台配置可以删除。"
+            "value": "Karing 每次导入都会新建一份以导出时间命名的配置，旧的塔台配置可以删除。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karing 每次匯入都會新建一份設定，舊的塔台設定可以刪除。"
+            "value": "Karing 每次匯入都會新建一份以匯出時間命名的設定，舊的塔台設定可以刪除。"
           }
         }
       }
