@@ -41,7 +41,7 @@
 21. `Tower/Resources/` 下的第三方数据不适用源码的 MIT 许可。新增或更新打包资源时，必须同步更新 `THIRD-PARTY-NOTICES.md` 和对应目录的 NOTICE，注明来源、固定版本和许可证。`LICENSE` 里「仅覆盖源码」那段说明不要删除，即使 GitHub 因此把许可证识别成 `Other`。
 22. 刷新订阅必须保住用户「取消勾选」的节点。节点 id 每次解析都会重新生成，机场又常把剩余流量、倍率写进 remark，塔台自己也会给纯国旗节点重编号——所以不能只按含 name 的精确 identity 匹配。`AppModel.carriedOverExclusions` 是唯一的判定入口：先精确匹配，失配再用去掉 remark 的宽松键，且只有该键在刷新前后都唯一时才认。丢失排除的后果是静默的——节点直接回到每一份导出配置里。
 23. `AppModel.apply()` 必须把 `snapshot.updatedAt` 恢复到 `lastLocalEditAt`。不恢复的话，启动后第一次前台同步会拿 `.distantPast` 去和 iCloud 比，任何远端快照都赢——包括更旧的那份，然后覆盖本地文件。离线时改的订阅会在下次启动被静默丢弃。
-24. Tailscale 内网（`TailnetConnection`）不是节点，不能进任何策略组、测速组或地区组，只接收置顶的 Tailscale 地址段、MagicDNS 后缀和用户子网规则。Auth Key 只存本机钥匙串（`TailnetAuthKeyStore`），不进快照、不同步 iCloud，配置预览里要打码。`stableSlug` 来自连接 UUID，Surge 配置段名和 mihomo / sing-box 状态目录都依赖它，改了会让每次重新导入都多出一台设备。
+24. Tailscale 内网（`TailnetConnection`）不是节点，不能进任何策略组、测速组或地区组，只接收置顶的 Tailscale 地址段、MagicDNS 后缀和用户子网规则。Auth Key 只存本机钥匙串（`TailnetAuthKeyStore`），不进快照、不同步 iCloud，配置预览里要打码；不要写给 Surge（它按 Key 哈希存身份，会多注册一台设备），Stash 目前没有可用的客户端登录，必须写。`stableSlug` 来自连接 UUID，Surge 配置段名和 mihomo / sing-box 状态目录都依赖它，改了会让每次重新导入都多出一台设备。
 
 ## 开发入口
 

@@ -9,8 +9,9 @@
 - 不支持并在导出页「兼容性提示」说明：Shadowrocket（Clash YAML 和 Surge 格式都没有注册到控制服务器）、Loon、Quantumult X、Egern、Hiddify、Karing（源码里仍是 todo）。没有 Key 时为 Surge / Stash 提示在客户端登录，为 mihomo / sing-box 提示填 Key（它们只把登录链接写进日志）。
 - 实测：测试 VPS 自建 Headscale（带内置 DERP），Mac mini 以 userspace 模式加入并发布家里子网。手机 Surge、Stash 3.4、Clash Mi、sing-box MT 三项（tailnet IP、MagicDNS、家里子网）全部通过；Surge 与 Stash 重复导入两次，控制服务器上仍只有一台设备。本机 mihomo 1.19.31 与 sing-box 1.14.2 用塔台实际生成的完整配置连通；mihomo 冷启动后第一个请求会超时（官方文档说明的正常现象）。
 - 配置预览里 Auth Key 显示为等长圆点（`maskingTailnetAuthKeys`），「复制」仍拿完整配置。
+- 真实账户实测后调整：Auth Key 不写给 Surge（它按 Key 哈希存身份，写了会多注册一台设备），Surge 一律 `interactive-login`；Stash 目前无法在客户端登录（开发者说明 OAuth 仍在开发），改为必须写 Key。Stash 默认把 `100.64.0.0/10` 和私有网段放在跳过代理 / 跳过路由里，按 IP 访问不进 Stash，导出页提示用 MagicDNS 名字，没填后缀时明确警告。编辑页的 Auth Key 改为单个可查看（眼睛图标）、可原地修改或清空删除的输入框，打开时从钥匙串带出已保存的值。
 - 未做：用真实 Tailscale 账户的交互登录验收（需用户在手机上操作）、出口节点、Shadowrocket 格式。
-- 测试：`TailnetTests` 15 项（其中导出给本机内核的一项只在设置输出目录时运行），`TailnetInteractionTests` 覆盖设置里新增、校验子网和保存。1242 项 XCTest 与 106 项 Swift Testing 通过。设置卡片的 `node-export-settings-card` 标识会覆盖卡片内每一行的标识，界面测试只能按标签找行；`CloudRecoveryInteractionTests` 和 `testPersistentExportNameFilter` 在未改动的 main 上同样失败，与本次无关，`testManualDoneDismissesKeyboard` 偶发失败。
+- 测试：`TailnetTests` 16 项（其中导出给本机内核的一项只在设置输出目录时运行），`TailnetInteractionTests` 覆盖设置里新增、校验子网和保存。1243 项 XCTest 与 106 项 Swift Testing 通过。设置卡片的 `node-export-settings-card` 标识会覆盖卡片内每一行的标识，界面测试只能按标签找行；`CloudRecoveryInteractionTests` 和 `testPersistentExportNameFilter` 在未改动的 main 上同样失败，与本次无关，`testManualDoneDismissesKeyboard` 偶发失败。
 
 ## 未发布：新增 SSH 与 TrustTunnel（2026-09-28）
 

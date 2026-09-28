@@ -98646,100 +98646,6 @@
         }
       }
     },
-    "Auth Key 已保存在这台设备": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تم حفظ Auth Key على هذا الجهاز"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key auf diesem Gerät gespeichert"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth key saved on this device"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key guardada en este dispositivo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key enregistrée sur cet appareil"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key tersimpan di perangkat ini"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key はこのデバイスに保存済み"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key가 이 기기에 저장됨"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key salva neste dispositivo"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key сохранён на этом устройстве"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "บันทึก Auth Key ไว้ในอุปกรณ์นี้แล้ว"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key bu cihazda kayıtlı"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đã lưu Auth Key trên thiết bị này"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key 已保存在这台设备"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auth Key 已儲存在這台裝置"
-          }
-        }
-      }
-    },
     "Auth Key（可选）": {
       "localizations": {
         "ar": {
@@ -99206,288 +99112,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tailscale 內網"
-          }
-        }
-      }
-    },
-    "“%@”没有 Auth Key：%@ 只会把登录链接写进日志，建议在塔台里填写 Auth Key。": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا يوجد Auth Key لـ “%1$@”: يكتب %2$@ رابط تسجيل الدخول في السجل فقط، لذا أضف Auth Key في Tower."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%1$@“ hat keinen Auth Key: %2$@ schreibt den Anmeldelink nur ins Protokoll. Trage den Auth Key in Tower ein."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” has no auth key: %2$@ only writes the sign-in link to its log, so add an auth key in Tower."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«%1$@» no tiene Auth Key: %2$@ solo escribe el enlace de inicio de sesión en su registro, así que añade una Auth Key en Tower."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "« %1$@ » n’a pas d’Auth Key : %2$@ n’écrit le lien de connexion que dans son journal. Ajoutez une Auth Key dans Tower."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” tidak punya Auth Key: %2$@ hanya menulis tautan masuk ke log, jadi isi Auth Key di Tower."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%1$@」に Auth Key がありません。%2$@ はログインリンクをログに書き出すだけなので、タワーで Auth Key を入力してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@”에 Auth Key가 없습니다. %2$@은(는) 로그인 링크를 로그에만 기록하므로 Tower에서 Auth Key를 입력하세요."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” não tem Auth Key: o %2$@ só grava o link de login no registro, então adicione uma Auth Key no Tower."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "У «%1$@» нет Auth Key: %2$@ записывает ссылку для входа только в журнал, поэтому укажите Auth Key в Tower."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” ไม่มี Auth Key: %2$@ จะเขียนลิงก์เข้าสู่ระบบไว้ในบันทึกเท่านั้น จึงควรใส่ Auth Key ใน Tower"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” için Auth Key yok: %2$@ oturum açma bağlantısını yalnızca günlüğe yazar; Tower’da bir Auth Key girin."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” chưa có Auth Key: %2$@ chỉ ghi liên kết đăng nhập vào nhật ký, nên hãy nhập Auth Key trong Tower."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@”没有 Auth Key：%@ 只会把登录链接写进日志，建议在塔台里填写 Auth Key。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%1$@」沒有 Auth Key：%2$@ 只會把登入連結寫進日誌，建議在塔台裡填寫 Auth Key。"
-          }
-        }
-      }
-    },
-    "“%@”没有 Auth Key：导入后在 Stash 的节点菜单进入 Tailscale 页面完成登录。": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا يوجد Auth Key لـ “%@”: بعد الاستيراد، افتح صفحة Tailscale من قائمة العقدة في Stash وسجّل الدخول."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%@“ hat keinen Auth Key: Öffne nach dem Import in Stash über das Menü des Knotens die Tailscale-Seite und melde dich an."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” has no auth key: after importing, open the Tailscale page from the node’s menu in Stash and sign in."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«%@» no tiene Auth Key: tras importar, abre la página de Tailscale desde el menú del nodo en Stash e inicia sesión."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "« %@ » n’a pas d’Auth Key : après l’import, ouvrez la page Tailscale depuis le menu du nœud dans Stash et connectez-vous."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” tidak punya Auth Key: setelah impor, buka halaman Tailscale dari menu node di Stash lalu masuk."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%@」に Auth Key がありません。インポート後、Stash のノードメニューから Tailscale ページを開いてログインしてください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@”에 Auth Key가 없습니다. 가져온 후 Stash의 노드 메뉴에서 Tailscale 페이지를 열어 로그인하세요."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” não tem Auth Key: depois de importar, abra a página do Tailscale no menu do nó no Stash e faça login."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "У «%@» нет Auth Key: после импорта откройте страницу Tailscale из меню узла в Stash и войдите."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” ไม่มี Auth Key: หลังนำเข้า ให้เปิดหน้า Tailscale จากเมนูของโหนดใน Stash แล้วเข้าสู่ระบบ"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” için Auth Key yok: içe aktardıktan sonra Stash’te düğüm menüsünden Tailscale sayfasını açıp oturum açın."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” chưa có Auth Key: sau khi nhập, mở trang Tailscale từ menu của nút trong Stash và đăng nhập."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@”没有 Auth Key：导入后在 Stash 的节点菜单进入 Tailscale 页面完成登录。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%@」沒有 Auth Key：匯入後在 Stash 的節點選單進入 Tailscale 頁面完成登入。"
-          }
-        }
-      }
-    },
-    "“%@”没有 Auth Key：导入后在 Surge 编辑这个策略，完成 Tailscale 登录（需要 Surge iOS 5.21 / Mac 6.8 或更新版本）。": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا يوجد Auth Key لـ “%@”: بعد الاستيراد، عدّل هذه السياسة في Surge وسجّل الدخول إلى Tailscale (يتطلب Surge iOS 5.21 / Mac 6.8 أو أحدث)."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%@“ hat keinen Auth Key: Bearbeite nach dem Import diese Richtlinie in Surge und melde dich bei Tailscale an (erfordert Surge iOS 5.21 / Mac 6.8 oder neuer)."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” has no auth key: after importing, edit this policy in Surge and sign in to Tailscale (requires Surge iOS 5.21 / Mac 6.8 or later)."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«%@» no tiene Auth Key: tras importar, edita esta política en Surge e inicia sesión en Tailscale (requiere Surge iOS 5.21 / Mac 6.8 o posterior)."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "« %@ » n’a pas d’Auth Key : après l’import, modifiez cette stratégie dans Surge et connectez-vous à Tailscale (Surge iOS 5.21 / Mac 6.8 ou version ultérieure requis)."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” tidak punya Auth Key: setelah impor, edit kebijakan ini di Surge lalu masuk ke Tailscale (perlu Surge iOS 5.21 / Mac 6.8 atau yang lebih baru)."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%@」に Auth Key がありません。インポート後、Surge でこのポリシーを編集して Tailscale にログインしてください（Surge iOS 5.21 / Mac 6.8 以降が必要）。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@”에 Auth Key가 없습니다. 가져온 후 Surge에서 이 정책을 편집해 Tailscale에 로그인하세요(Surge iOS 5.21 / Mac 6.8 이상 필요)."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” não tem Auth Key: depois de importar, edite esta política no Surge e faça login no Tailscale (requer Surge iOS 5.21 / Mac 6.8 ou posterior)."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "У «%@» нет Auth Key: после импорта отредактируйте эту политику в Surge и войдите в Tailscale (нужен Surge iOS 5.21 / Mac 6.8 или новее)."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” ไม่มี Auth Key: หลังนำเข้า ให้แก้ไขนโยบายนี้ใน Surge แล้วเข้าสู่ระบบ Tailscale (ต้องใช้ Surge iOS 5.21 / Mac 6.8 ขึ้นไป)"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” için Auth Key yok: içe aktardıktan sonra bu ilkeyi Surge’te düzenleyip Tailscale’e giriş yapın (Surge iOS 5.21 / Mac 6.8 veya üstü gerekir)."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” chưa có Auth Key: sau khi nhập, hãy sửa chính sách này trong Surge và đăng nhập Tailscale (cần Surge iOS 5.21 / Mac 6.8 trở lên)."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@”没有 Auth Key：导入后在 Surge 编辑这个策略，完成 Tailscale 登录（需要 Surge iOS 5.21 / Mac 6.8 或更新版本）。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%@」沒有 Auth Key：匯入後在 Surge 編輯這個策略，完成 Tailscale 登入（需要 Surge iOS 5.21 / Mac 6.8 或更新版本）。"
           }
         }
       }
@@ -100150,100 +99774,6 @@
         }
       }
     },
-    "在客户端内登录": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تسجيل الدخول داخل العميل"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anmeldung im Client"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in within the client"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniciar sesión en el cliente"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connexion dans le client"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Masuk di dalam klien"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クライアント内でログイン"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "클라이언트에서 로그인"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login no cliente"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вход в клиенте"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "เข้าสู่ระบบในไคลเอนต์"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "İstemcide oturum aç"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập trong ứng dụng"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在客户端内登录"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在用戶端內登入"
-          }
-        }
-      }
-    },
     "官方控制服务器": {
       "localizations": {
         "ar": {
@@ -100902,100 +100432,6 @@
         }
       }
     },
-    "支持 Surge（iOS 5.20 / Mac 6.7 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "يعمل مع Surge (iOS 5.20 / Mac 6.7 أو أحدث) وStash 3.4 أو أحدث وClash / mihomo (النواة 1.19.25 أو أحدث) وsing-box MT. لا يدعمه بعد Shadowrocket وLoon وQuantumult X وEgern وHiddify وKaring؛ ويتم تخطيه عند التصدير مع ملاحظة."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Funktioniert mit Surge (ab iOS 5.20 / Mac 6.7), Stash ab 3.4, Clash / mihomo (ab Kern 1.19.25) und sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify und Karing werden noch nicht unterstützt; Exporte überspringen es mit einem Hinweis."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Works with Surge (iOS 5.20 / Mac 6.7 or later), Stash 3.4 or later, Clash / mihomo (core 1.19.25 or later) and sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify and Karing aren’t supported yet; exports skip it with a note."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Compatible con Surge (iOS 5.20 / Mac 6.7 o posterior), Stash 3.4 o posterior, Clash / mihomo (núcleo 1.19.25 o posterior) y sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify y Karing aún no son compatibles; las exportaciones lo omiten con un aviso."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Compatible avec Surge (iOS 5.20 / Mac 6.7 ou ultérieur), Stash 3.4 ou ultérieur, Clash / mihomo (noyau 1.19.25 ou ultérieur) et sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify et Karing ne sont pas encore pris en charge ; les exports l’ignorent avec une note."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Didukung di Surge (iOS 5.20 / Mac 6.7 atau lebih baru), Stash 3.4 atau lebih baru, Clash / mihomo (inti 1.19.25 atau lebih baru), dan sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify, dan Karing belum didukung; ekspor akan melewatinya dengan catatan."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Surge（iOS 5.20 / Mac 6.7 以降）、Stash 3.4 以降、Clash / mihomo（コア 1.19.25 以降）、sing-box MT に対応。Shadowrocket、Loon、Quantumult X、Egern、Hiddify、Karing には未対応で、エクスポート時はスキップして通知します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Surge(iOS 5.20 / Mac 6.7 이상), Stash 3.4 이상, Clash / mihomo(코어 1.19.25 이상), sing-box MT를 지원합니다. Shadowrocket, Loon, Quantumult X, Egern, Hiddify, Karing은 아직 지원하지 않으며 내보낼 때 건너뛰고 안내합니다."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Funciona com Surge (iOS 5.20 / Mac 6.7 ou posterior), Stash 3.4 ou posterior, Clash / mihomo (núcleo 1.19.25 ou posterior) e sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify e Karing ainda não são compatíveis; as exportações o ignoram com um aviso."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Работает в Surge (iOS 5.20 / Mac 6.7 и новее), Stash 3.4 и новее, Clash / mihomo (ядро 1.19.25 и новее) и sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify и Karing пока не поддерживаются; при экспорте она пропускается с пояснением."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ใช้ได้กับ Surge (iOS 5.20 / Mac 6.7 ขึ้นไป), Stash 3.4 ขึ้นไป, Clash / mihomo (คอร์ 1.19.25 ขึ้นไป) และ sing-box MT ส่วน Shadowrocket, Loon, Quantumult X, Egern, Hiddify และ Karing ยังไม่รองรับ การส่งออกจะข้ามและแจ้งให้ทราบ"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Surge (iOS 5.20 / Mac 6.7 ve üstü), Stash 3.4 ve üstü, Clash / mihomo (çekirdek 1.19.25 ve üstü) ve sing-box MT ile çalışır. Shadowrocket, Loon, Quantumult X, Egern, Hiddify ve Karing henüz desteklenmiyor; dışa aktarmada bir notla atlanır."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hỗ trợ Surge (iOS 5.20 / Mac 6.7 trở lên), Stash 3.4 trở lên, Clash / mihomo (lõi 1.19.25 trở lên) và sing-box MT. Shadowrocket, Loon, Quantumult X, Egern, Hiddify và Karing chưa được hỗ trợ; khi xuất sẽ bỏ qua và có ghi chú."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "支持 Surge（iOS 5.20 / Mac 6.7 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "支援 Surge（iOS 5.20 / Mac 6.7 起）、Stash 3.4 起、Clash / mihomo（核心 1.19.25 起）和 sing-box MT。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暫不支援，匯出時會略過並提示。"
-          }
-        }
-      }
-    },
     "无法保存到钥匙串，请重试。": {
       "localizations": {
         "ar": {
@@ -101274,100 +100710,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "新增 Tailscale 內網"
-          }
-        }
-      }
-    },
-    "留空时，Surge 和 Stash 可以在客户端里登录；Clash / mihomo 和 sing-box MT 需要 Auth Key。Auth Key 只存在这台设备的钥匙串，不会同步到 iCloud，但会写进导出的配置。": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "إذا تُرك فارغًا، يمكنك تسجيل الدخول داخل Surge وStash؛ أما Clash / mihomo وsing-box MT فيحتاجان إلى Auth Key. يبقى Auth Key في سلسلة مفاتيح هذا الجهاز ولا تتم مزامنته مع iCloud، لكنه يُكتب في ملفات التعريف المُصدَّرة."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bleibt es leer, meldest du dich in Surge und Stash direkt im Client an; Clash / mihomo und sing-box MT brauchen einen Auth Key. Der Auth Key bleibt im Schlüsselbund dieses Geräts und wird nie mit iCloud synchronisiert, steht aber in exportierten Profilen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If left blank, you can sign in within Surge and Stash; Clash / mihomo and sing-box MT need an auth key. The auth key stays in this device’s keychain and never syncs to iCloud, but it is written into exported profiles."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Si lo dejas vacío, puedes iniciar sesión dentro de Surge y Stash; Clash / mihomo y sing-box MT necesitan una Auth Key. La Auth Key se queda en el llavero de este dispositivo y no se sincroniza con iCloud, pero se escribe en los perfiles exportados."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Si ce champ est vide, vous pouvez vous connecter dans Surge et Stash ; Clash / mihomo et sing-box MT ont besoin d’une Auth Key. L’Auth Key reste dans le trousseau de cet appareil et n’est jamais synchronisée avec iCloud, mais elle est écrite dans les profils exportés."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jika dikosongkan, Anda bisa masuk di dalam Surge dan Stash; Clash / mihomo dan sing-box MT memerlukan Auth Key. Auth Key hanya disimpan di rantai kunci perangkat ini dan tidak disinkronkan ke iCloud, tetapi ditulis ke profil yang diekspor."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "空欄の場合、Surge と Stash ではクライアント内でログインできます。Clash / mihomo と sing-box MT には Auth Key が必要です。Auth Key はこのデバイスのキーチェーンにだけ保存され iCloud には同期されませんが、エクスポートする設定には書き込まれます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "비워 두면 Surge와 Stash에서는 클라이언트 안에서 로그인할 수 있고, Clash / mihomo와 sing-box MT에는 Auth Key가 필요합니다. Auth Key는 이 기기의 키체인에만 저장되고 iCloud에 동기화되지 않지만, 내보낸 구성에는 기록됩니다."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se ficar vazio, você pode fazer login dentro do Surge e do Stash; Clash / mihomo e sing-box MT precisam de uma Auth Key. A Auth Key fica nas chaves deste dispositivo e nunca é sincronizada com o iCloud, mas é gravada nos perfis exportados."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Если оставить пустым, в Surge и Stash можно войти прямо в клиенте; для Clash / mihomo и sing-box MT нужен Auth Key. Auth Key хранится только в связке ключей этого устройства и не синхронизируется с iCloud, но записывается в экспортируемые профили."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "หากเว้นว่าง จะเข้าสู่ระบบภายใน Surge และ Stash ได้ ส่วน Clash / mihomo และ sing-box MT ต้องใช้ Auth Key โดย Auth Key จะเก็บในพวงกุญแจของอุปกรณ์นี้เท่านั้นและไม่ซิงค์ไปยัง iCloud แต่จะถูกเขียนลงในโปรไฟล์ที่ส่งออก"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Boş bırakılırsa Surge ve Stash içinde oturum açabilirsiniz; Clash / mihomo ve sing-box MT bir Auth Key gerektirir. Auth Key yalnızca bu cihazın Anahtar Zinciri’nde durur ve iCloud ile eşzamanlanmaz, ancak dışa aktarılan profillere yazılır."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nếu để trống, bạn có thể đăng nhập ngay trong Surge và Stash; Clash / mihomo và sing-box MT cần Auth Key. Auth Key chỉ lưu trong chuỗi khóa của thiết bị này và không đồng bộ lên iCloud, nhưng sẽ được ghi vào cấu hình xuất ra."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "留空时，Surge 和 Stash 可以在客户端里登录；Clash / mihomo 和 sing-box MT 需要 Auth Key。Auth Key 只存在这台设备的钥匙串，不会同步到 iCloud，但会写进导出的配置。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "留空時，Surge 和 Stash 可以在用戶端裡登入；Clash / mihomo 和 sing-box MT 需要 Auth Key。Auth Key 只存在這台裝置的鑰匙圈，不會同步到 iCloud，但會寫進匯出的設定。"
           }
         }
       }
@@ -101748,100 +101090,6 @@
         }
       }
     },
-    "输入新的 Auth Key 替换": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "أدخل Auth Key جديدًا لاستبداله"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neuen Auth Key zum Ersetzen eingeben"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter a new auth key to replace it"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Introduce una nueva Auth Key para reemplazarla"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saisissez une nouvelle Auth Key pour la remplacer"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Masukkan Auth Key baru untuk menggantinya"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新しい Auth Key を入力して置き換え"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "새 Auth Key를 입력해 교체"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Digite uma nova Auth Key para substituir"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Введите новый Auth Key для замены"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ใส่ Auth Key ใหม่เพื่อแทนที่"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Değiştirmek için yeni bir Auth Key girin"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhập Auth Key mới để thay thế"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入新的 Auth Key 替换"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "輸入新的 Auth Key 取代"
-          }
-        }
-      }
-    },
     "连接": {
       "localizations": {
         "ar": {
@@ -102026,6 +101274,758 @@
           "stringUnit": {
             "state": "translated",
             "value": "需要家裡有一台裝置在 Tailscale 裡發布這個子網路並獲得核准。每行一個。"
+          }
+        }
+      }
+    },
+    "Stash 默认跳过 Tailscale 地址段和局域网网段：请用“设备名.%@”访问“%@”；按 IP 或访问家里子网，需要先在 Stash 的跳过代理和跳过路由中移除对应网段。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتخطى Stash افتراضيًا نطاق Tailscale ونطاقات الشبكة المحلية: اتصل بـ “%2$@” باستخدام “اسم-الجهاز.%1$@”. لاستخدام عناوين IP أو الشبكات الفرعية المنزلية، أزل هذه النطاقات أولًا من قائمتي تخطي الوكيل وتخطي المسار في Stash."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash überspringt standardmäßig den Tailscale-Bereich und LAN-Bereiche: Erreiche „%2$@“ über „Gerätename.%1$@“. Für IP-Adressen oder Heim-Subnetze entferne diese Bereiche zuerst aus den Stash-Listen „Proxy überspringen“ und „Route überspringen“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash skips the Tailscale range and LAN ranges by default: reach “%2$@” as “device-name.%1$@”. To use IP addresses or home subnets, first remove those ranges from Stash’s skip-proxy and skip-route lists."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash omite por defecto el rango de Tailscale y las redes locales: accede a «%2$@» como «nombre-del-dispositivo.%1$@». Para usar direcciones IP o subredes de casa, quita antes esos rangos de las listas de omitir proxy y omitir ruta de Stash."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash ignore par défaut la plage Tailscale et les réseaux locaux : accédez à « %2$@ » via « nom-de-l’appareil.%1$@ ». Pour utiliser des adresses IP ou des sous-réseaux domestiques, retirez d’abord ces plages des listes d’exclusion du proxy et des routes de Stash."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secara bawaan Stash melewati rentang Tailscale dan rentang LAN: akses “%2$@” sebagai “nama-perangkat.%1$@”. Untuk memakai alamat IP atau subnet rumah, hapus dulu rentang itu dari daftar lewati proxy dan lewati rute di Stash."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash は既定で Tailscale のアドレス範囲と LAN の範囲をスキップします。「%2$@」には「デバイス名.%1$@」でアクセスしてください。IP アドレスや自宅のサブネットで使うには、先に Stash のプロキシスキップとルートスキップから該当範囲を削除してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash는 기본적으로 Tailscale 주소 대역과 LAN 대역을 건너뜁니다. “%2$@”에는 “기기이름.%1$@”으로 접속하세요. IP 주소나 집 서브넷으로 접속하려면 먼저 Stash의 프록시 건너뛰기와 경로 건너뛰기 목록에서 해당 대역을 제거하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por padrão, o Stash ignora a faixa do Tailscale e as faixas de rede local: acesse “%2$@” como “nome-do-dispositivo.%1$@”. Para usar endereços IP ou sub-redes de casa, remova antes essas faixas das listas de ignorar proxy e ignorar rota do Stash."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash по умолчанию пропускает диапазон Tailscale и локальные сети: обращайтесь к «%2$@» как «имя-устройства.%1$@». Чтобы использовать IP-адреса или домашние подсети, сначала удалите эти диапазоны из списков пропуска прокси и маршрутов в Stash."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash ข้ามช่วงที่อยู่ Tailscale และช่วง LAN โดยค่าเริ่มต้น: เข้าถึง “%2$@” ด้วย “ชื่ออุปกรณ์.%1$@” หากต้องการใช้ที่อยู่ IP หรือซับเน็ตที่บ้าน ให้เอาช่วงเหล่านั้นออกจากรายการข้ามพร็อกซีและข้ามเส้นทางของ Stash ก่อน"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash varsayılan olarak Tailscale aralığını ve yerel ağ aralıklarını atlar: “%2$@” için “cihaz-adı.%1$@” adresini kullanın. IP adresleri veya ev alt ağları için önce bu aralıkları Stash’in proxy atlama ve yol atlama listelerinden kaldırın."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theo mặc định, Stash bỏ qua dải địa chỉ Tailscale và các dải LAN: hãy truy cập “%2$@” bằng “tên-thiết-bị.%1$@”. Muốn dùng địa chỉ IP hoặc mạng con ở nhà, trước tiên hãy xóa các dải đó khỏi danh sách bỏ qua proxy và bỏ qua tuyến của Stash."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash 默认跳过 Tailscale 地址段和局域网网段：请用“设备名.%@”访问“%@”；按 IP 或访问家里子网，需要先在 Stash 的跳过代理和跳过路由中移除对应网段。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash 預設略過 Tailscale 位址段和區域網路網段：請用「裝置名稱.%1$@」存取「%2$@」；若要按 IP 或存取家裡子網路，需要先在 Stash 的略過代理和略過路由中移除對應網段。"
+          }
+        }
+      }
+    },
+    "Stash、Clash / mihomo 和 sing-box MT 需要它；Surge 在自己的策略编辑页里登录，不写入 Auth Key。生成时请打开 Reusable；设备加入后，在 Tailscale 后台的 Machines 页面为它关闭 Key Expiry。只存在这台设备的钥匙串，不同步到 iCloud。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يحتاجه Stash وClash / mihomo وsing-box MT؛ أما Surge فيسجّل الدخول من محرر السياسة الخاص به ولا يُكتب له Auth Key. فعّل Reusable عند إنشائه، وبعد انضمام الجهاز عطّل Key Expiry له في صفحة Machines بوحدة تحكم Tailscale. يُحفظ في سلسلة مفاتيح هذا الجهاز فقط ولا تتم مزامنته مع iCloud."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo und sing-box MT benötigen ihn; Surge meldet sich im eigenen Richtlinien-Editor an und erhält keinen Auth Key. Aktiviere beim Erstellen „Reusable“ und deaktiviere nach dem Beitritt eines Geräts dessen Key Expiry auf der Machines-Seite der Tailscale-Verwaltung. Nur im Schlüsselbund dieses Geräts gespeichert, nie mit iCloud synchronisiert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo and sing-box MT need it; Surge signs in from its own policy editor and never gets the auth key. Turn on Reusable when you create it, and after a device joins, disable Key Expiry for it on the Machines page of the Tailscale admin console. Stored only in this device’s keychain, never synced to iCloud."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo y sing-box MT la necesitan; Surge inicia sesión desde su propio editor de políticas y nunca recibe la Auth Key. Activa Reusable al crearla y, cuando un dispositivo se una, desactiva su Key Expiry en la página Machines de la consola de Tailscale. Solo se guarda en el llavero de este dispositivo y no se sincroniza con iCloud."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo et sing-box MT en ont besoin ; Surge se connecte depuis son propre éditeur de stratégie et ne reçoit jamais l’Auth Key. Activez Reusable lors de sa création et, une fois un appareil ajouté, désactivez sa Key Expiry sur la page Machines de la console Tailscale. Stockée uniquement dans le trousseau de cet appareil, jamais synchronisée avec iCloud."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo, dan sing-box MT memerlukannya; Surge masuk dari editor kebijakannya sendiri dan tidak pernah menerima Auth Key. Aktifkan Reusable saat membuatnya, lalu setelah perangkat bergabung, nonaktifkan Key Expiry-nya di halaman Machines konsol admin Tailscale. Hanya disimpan di rantai kunci perangkat ini dan tidak disinkronkan ke iCloud."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash、Clash / mihomo、sing-box MT で必要です。Surge は自身のポリシー編集画面でログインするため、Auth Key は書き込みません。作成時は Reusable をオンにし、デバイスが参加したら Tailscale 管理コンソールの Machines ページでそのデバイスの Key Expiry を無効にしてください。このデバイスのキーチェーンにのみ保存され、iCloud には同期されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo, sing-box MT에 필요합니다. Surge는 자체 정책 편집 화면에서 로그인하므로 Auth Key를 기록하지 않습니다. 생성할 때 Reusable을 켜고, 기기가 참여하면 Tailscale 관리 콘솔의 Machines 페이지에서 해당 기기의 Key Expiry를 끄세요. 이 기기의 키체인에만 저장되며 iCloud에 동기화되지 않습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo e sing-box MT precisam dela; o Surge faz login no próprio editor de políticas e nunca recebe a Auth Key. Ative Reusable ao criá-la e, quando um dispositivo entrar, desative o Key Expiry dele na página Machines do console do Tailscale. Fica só nas chaves deste dispositivo e nunca é sincronizada com o iCloud."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужен для Stash, Clash / mihomo и sing-box MT; Surge входит через собственный редактор политики и не получает Auth Key. При создании включите Reusable, а после подключения устройства отключите для него Key Expiry на странице Machines в консоли Tailscale. Хранится только в связке ключей этого устройства и не синхронизируется с iCloud."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo และ sing-box MT ต้องใช้ ส่วน Surge จะเข้าสู่ระบบจากหน้าแก้ไขนโยบายของตัวเองและไม่ได้รับ Auth Key เมื่อสร้างให้เปิด Reusable และเมื่ออุปกรณ์เข้าร่วมแล้ว ให้ปิด Key Expiry ของอุปกรณ์นั้นในหน้า Machines ของคอนโซล Tailscale เก็บไว้ในพวงกุญแจของอุปกรณ์นี้เท่านั้น ไม่ซิงค์ไปยัง iCloud"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo ve sing-box MT için gereklidir; Surge kendi ilke düzenleyicisinden oturum açar ve Auth Key almaz. Oluştururken Reusable seçeneğini açın; bir cihaz katıldıktan sonra Tailscale yönetim konsolunun Machines sayfasında o cihazın Key Expiry ayarını kapatın. Yalnızca bu cihazın Anahtar Zinciri’nde saklanır, iCloud ile eşzamanlanmaz."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash, Clash / mihomo và sing-box MT cần nó; Surge đăng nhập trong trình sửa chính sách của riêng nó và không nhận Auth Key. Hãy bật Reusable khi tạo, và sau khi thiết bị tham gia, tắt Key Expiry của thiết bị đó trong trang Machines của bảng quản trị Tailscale. Chỉ lưu trong chuỗi khóa của thiết bị này, không đồng bộ lên iCloud."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash、Clash / mihomo 和 sing-box MT 需要它；Surge 在自己的策略编辑页里登录，不写入 Auth Key。生成时请打开 Reusable；设备加入后，在 Tailscale 后台的 Machines 页面为它关闭 Key Expiry。只存在这台设备的钥匙串，不同步到 iCloud。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stash、Clash / mihomo 和 sing-box MT 需要它；Surge 在自己的策略編輯頁裡登入，不寫入 Auth Key。產生時請開啟 Reusable；裝置加入後，在 Tailscale 後台的 Machines 頁面為它關閉 Key Expiry。只存在這台裝置的鑰匙圈，不同步到 iCloud。"
+          }
+        }
+      }
+    },
+    "tskey-auth-…": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tskey-auth-…"
+          }
+        }
+      }
+    },
+    "“%@”没有 Auth Key：%@ 暂时不能在客户端里登录 Tailscale，请在塔台里填写 Auth Key。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد Auth Key لـ “%1$@”: لا يستطيع %2$@ بعد تسجيل الدخول إلى Tailscale داخل التطبيق، لذا أضف Auth Key في Tower."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%1$@“ hat keinen Auth Key: %2$@ kann sich noch nicht in der App bei Tailscale anmelden. Trage den Auth Key in Tower ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” has no auth key: %2$@ can’t sign in to Tailscale in the app yet, so add an auth key in Tower."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%1$@» no tiene Auth Key: %2$@ aún no puede iniciar sesión en Tailscale desde la app, así que añade una Auth Key en Tower."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %1$@ » n’a pas d’Auth Key : %2$@ ne peut pas encore se connecter à Tailscale dans l’app. Ajoutez une Auth Key dans Tower."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” tidak punya Auth Key: %2$@ belum bisa masuk ke Tailscale di dalam aplikasi, jadi isi Auth Key di Tower."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」に Auth Key がありません。%2$@ はまだアプリ内で Tailscale にログインできないため、タワーで Auth Key を入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@”에 Auth Key가 없습니다. %2$@은(는) 아직 앱에서 Tailscale에 로그인할 수 없으므로 Tower에서 Auth Key를 입력하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” não tem Auth Key: o %2$@ ainda não consegue fazer login no Tailscale pelo app, então adicione uma Auth Key no Tower."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У «%1$@» нет Auth Key: %2$@ пока не умеет входить в Tailscale в приложении, поэтому укажите Auth Key в Tower."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” ไม่มี Auth Key: %2$@ ยังเข้าสู่ระบบ Tailscale ในแอปไม่ได้ จึงควรใส่ Auth Key ใน Tower"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” için Auth Key yok: %2$@ henüz uygulama içinde Tailscale’e oturum açamıyor; Tower’da bir Auth Key girin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” chưa có Auth Key: %2$@ chưa thể đăng nhập Tailscale trong ứng dụng, nên hãy nhập Auth Key trong Tower."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”没有 Auth Key：%@ 暂时不能在客户端里登录 Tailscale，请在塔台里填写 Auth Key。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」沒有 Auth Key：%2$@ 暫時無法在用戶端裡登入 Tailscale，請在塔台裡填寫 Auth Key。"
+          }
+        }
+      }
+    },
+    "“%@”没有填 MagicDNS 后缀：Stash 默认跳过 Tailscale 地址段，只能通过设备名访问，请在塔台里填写后缀。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد لاحقة MagicDNS لـ “%@”: يتخطى Stash نطاق Tailscale افتراضيًا ولا يصل إلى الأجهزة إلا بأسمائها، لذا أضف اللاحقة في Tower."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ hat kein MagicDNS-Suffix: Stash überspringt standardmäßig den Tailscale-Bereich und erreicht Geräte nur über ihren Namen. Trage das Suffix in Tower ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” has no MagicDNS suffix: Stash skips the Tailscale range by default and can only reach devices by name, so add the suffix in Tower."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no tiene sufijo de MagicDNS: Stash omite por defecto el rango de Tailscale y solo llega a los dispositivos por nombre, así que añade el sufijo en Tower."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’a pas de suffixe MagicDNS : Stash ignore par défaut la plage Tailscale et ne joint les appareils que par leur nom. Ajoutez le suffixe dans Tower."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” tidak punya sufiks MagicDNS: secara bawaan Stash melewati rentang Tailscale dan hanya bisa menjangkau perangkat lewat nama, jadi isi sufiksnya di Tower."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」に MagicDNS サフィックスがありません。Stash は既定で Tailscale のアドレス範囲をスキップし、デバイス名でしかアクセスできないため、タワーでサフィックスを入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”에 MagicDNS 접미사가 없습니다. Stash는 기본적으로 Tailscale 주소 대역을 건너뛰어 기기 이름으로만 접속할 수 있으므로 Tower에서 접미사를 입력하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não tem sufixo MagicDNS: por padrão o Stash ignora a faixa do Tailscale e só alcança dispositivos pelo nome, então adicione o sufixo no Tower."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У «%@» не указан суффикс MagicDNS: Stash по умолчанию пропускает диапазон Tailscale и может обращаться к устройствам только по имени, поэтому укажите суффикс в Tower."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” ไม่มีส่วนต่อท้าย MagicDNS: Stash ข้ามช่วงที่อยู่ Tailscale โดยค่าเริ่มต้นและเข้าถึงอุปกรณ์ได้ด้วยชื่อเท่านั้น จึงควรใส่ส่วนต่อท้ายใน Tower"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” için MagicDNS son eki yok: Stash varsayılan olarak Tailscale aralığını atlar ve cihazlara yalnızca adla ulaşabilir; son eki Tower’da girin."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” chưa có hậu tố MagicDNS: theo mặc định Stash bỏ qua dải Tailscale và chỉ truy cập thiết bị bằng tên, nên hãy nhập hậu tố trong Tower."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”没有填 MagicDNS 后缀：Stash 默认跳过 Tailscale 地址段，只能通过设备名访问，请在塔台里填写后缀。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」沒有填 MagicDNS 後綴：Stash 預設略過 Tailscale 位址段，只能透過裝置名稱存取，請在塔台裡填寫後綴。"
+          }
+        }
+      }
+    },
+    "支持 Surge（iOS 5.21 / Mac 6.8 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Stash 默认跳过 Tailscale 地址段，请用 MagicDNS 设备名访问。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعمل مع Surge (iOS 5.21 / Mac 6.8 أو أحدث) وStash 3.4 أو أحدث وClash / mihomo (النواة 1.19.25 أو أحدث) وsing-box MT. يتخطى Stash نطاق Tailscale افتراضيًا، لذا اتصل بالأجهزة بأسماء MagicDNS. لا يدعمه بعد Shadowrocket وLoon وQuantumult X وEgern وHiddify وKaring؛ ويتم تخطيه عند التصدير مع ملاحظة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funktioniert mit Surge (ab iOS 5.21 / Mac 6.8), Stash ab 3.4, Clash / mihomo (ab Kern 1.19.25) und sing-box MT. Stash überspringt standardmäßig den Tailscale-Bereich, also Geräte über ihren MagicDNS-Namen erreichen. Shadowrocket, Loon, Quantumult X, Egern, Hiddify und Karing werden noch nicht unterstützt; Exporte überspringen es mit einem Hinweis."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Works with Surge (iOS 5.21 / Mac 6.8 or later), Stash 3.4 or later, Clash / mihomo (core 1.19.25 or later) and sing-box MT. Stash skips the Tailscale range by default, so reach devices by their MagicDNS name. Shadowrocket, Loon, Quantumult X, Egern, Hiddify and Karing aren’t supported yet; exports skip it with a note."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compatible con Surge (iOS 5.21 / Mac 6.8 o posterior), Stash 3.4 o posterior, Clash / mihomo (núcleo 1.19.25 o posterior) y sing-box MT. Stash omite por defecto el rango de Tailscale, así que accede a los dispositivos por su nombre MagicDNS. Shadowrocket, Loon, Quantumult X, Egern, Hiddify y Karing aún no son compatibles; las exportaciones lo omiten con un aviso."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compatible avec Surge (iOS 5.21 / Mac 6.8 ou ultérieur), Stash 3.4 ou ultérieur, Clash / mihomo (noyau 1.19.25 ou ultérieur) et sing-box MT. Stash ignore par défaut la plage Tailscale : joignez les appareils par leur nom MagicDNS. Shadowrocket, Loon, Quantumult X, Egern, Hiddify et Karing ne sont pas encore pris en charge ; les exports l’ignorent avec une note."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didukung di Surge (iOS 5.21 / Mac 6.8 atau lebih baru), Stash 3.4 atau lebih baru, Clash / mihomo (inti 1.19.25 atau lebih baru), dan sing-box MT. Secara bawaan Stash melewati rentang Tailscale, jadi akses perangkat lewat nama MagicDNS. Shadowrocket, Loon, Quantumult X, Egern, Hiddify, dan Karing belum didukung; ekspor akan melewatinya dengan catatan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surge（iOS 5.21 / Mac 6.8 以降）、Stash 3.4 以降、Clash / mihomo（コア 1.19.25 以降）、sing-box MT に対応。Stash は既定で Tailscale のアドレス範囲をスキップするため、MagicDNS のデバイス名でアクセスしてください。Shadowrocket、Loon、Quantumult X、Egern、Hiddify、Karing には未対応で、エクスポート時はスキップして通知します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surge(iOS 5.21 / Mac 6.8 이상), Stash 3.4 이상, Clash / mihomo(코어 1.19.25 이상), sing-box MT를 지원합니다. Stash는 기본적으로 Tailscale 주소 대역을 건너뛰므로 MagicDNS 기기 이름으로 접속하세요. Shadowrocket, Loon, Quantumult X, Egern, Hiddify, Karing은 아직 지원하지 않으며 내보낼 때 건너뛰고 안내합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funciona com Surge (iOS 5.21 / Mac 6.8 ou posterior), Stash 3.4 ou posterior, Clash / mihomo (núcleo 1.19.25 ou posterior) e sing-box MT. Por padrão o Stash ignora a faixa do Tailscale, então acesse os dispositivos pelo nome MagicDNS. Shadowrocket, Loon, Quantumult X, Egern, Hiddify e Karing ainda não são compatíveis; as exportações o ignoram com um aviso."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Работает в Surge (iOS 5.21 / Mac 6.8 и новее), Stash 3.4 и новее, Clash / mihomo (ядро 1.19.25 и новее) и sing-box MT. Stash по умолчанию пропускает диапазон Tailscale, поэтому обращайтесь к устройствам по имени MagicDNS. Shadowrocket, Loon, Quantumult X, Egern, Hiddify и Karing пока не поддерживаются; при экспорте она пропускается с пояснением."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้ได้กับ Surge (iOS 5.21 / Mac 6.8 ขึ้นไป), Stash 3.4 ขึ้นไป, Clash / mihomo (คอร์ 1.19.25 ขึ้นไป) และ sing-box MT โดย Stash ข้ามช่วงที่อยู่ Tailscale ตามค่าเริ่มต้น จึงควรเข้าถึงอุปกรณ์ด้วยชื่อ MagicDNS ส่วน Shadowrocket, Loon, Quantumult X, Egern, Hiddify และ Karing ยังไม่รองรับ การส่งออกจะข้ามและแจ้งให้ทราบ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surge (iOS 5.21 / Mac 6.8 ve üstü), Stash 3.4 ve üstü, Clash / mihomo (çekirdek 1.19.25 ve üstü) ve sing-box MT ile çalışır. Stash varsayılan olarak Tailscale aralığını atlar; cihazlara MagicDNS adlarıyla erişin. Shadowrocket, Loon, Quantumult X, Egern, Hiddify ve Karing henüz desteklenmiyor; dışa aktarmada bir notla atlanır."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hỗ trợ Surge (iOS 5.21 / Mac 6.8 trở lên), Stash 3.4 trở lên, Clash / mihomo (lõi 1.19.25 trở lên) và sing-box MT. Theo mặc định Stash bỏ qua dải Tailscale, nên hãy truy cập thiết bị bằng tên MagicDNS. Shadowrocket, Loon, Quantumult X, Egern, Hiddify và Karing chưa được hỗ trợ; khi xuất sẽ bỏ qua và có ghi chú."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 Surge（iOS 5.21 / Mac 6.8 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Stash 默认跳过 Tailscale 地址段，请用 MagicDNS 设备名访问。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援 Surge（iOS 5.21 / Mac 6.8 起）、Stash 3.4 起、Clash / mihomo（核心 1.19.25 起）和 sing-box MT。Stash 預設略過 Tailscale 位址段，請用 MagicDNS 裝置名稱存取。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暫不支援，匯出時會略過並提示。"
+          }
+        }
+      }
+    },
+    "显示 Auth Key": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إظهار Auth Key"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Auth Key"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar Auth Key"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher l’Auth Key"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tampilkan Auth Key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key を表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 보기"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar Auth Key"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показать Auth Key"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดง Auth Key"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key’i göster"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiện Auth Key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示 Auth Key"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示 Auth Key"
+          }
+        }
+      }
+    },
+    "隐藏 Auth Key": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إخفاء Auth Key"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key ausblenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Auth Key"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar Auth Key"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masquer l’Auth Key"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sembunyikan Auth Key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key を隠す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key 숨기기"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar Auth Key"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скрыть Auth Key"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ซ่อน Auth Key"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auth Key’i gizle"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ẩn Auth Key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏 Auth Key"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隱藏 Auth Key"
           }
         }
       }

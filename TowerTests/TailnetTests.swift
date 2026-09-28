@@ -70,7 +70,7 @@ final class TailnetTests: XCTestCase {
         ])
         XCTAssertTrue(output.content.hasSuffix("""
         [Tailscale tower-tailnet-a1b2c3d4]
-        auth-key = tskey-auth-test
+        interactive-login = true
         control-url = https://hs.example.com
         hostname = my-iphone-surge
 
@@ -81,15 +81,33 @@ final class TailnetTests: XCTestCase {
         XCTAssertEqual(output.content.components(separatedBy: "家里").count - 1, 6)
     }
 
-    func testWithoutAKeySurgeAndStashSignInInsideTheClient() {
-        let surge = full(.surge, key: nil)
-        XCTAssertTrue(surge.content.contains("interactive-login = true"))
-        XCTAssertFalse(surge.content.contains("auth-key"))
-        XCTAssertEqual(surge.diagnostics.count, 1)
-        let stash = full(.clash, key: nil)
-        XCTAssertFalse(stash.content.contains("auth-key"))
-        XCTAssertEqual(stash.diagnostics.count, 1)
+    /// Surge keys its state to the auth key when one is present, so writing
+    /// the key there would register a second machine beside the one the user
+    /// already signed in. Every client without a working sign-in gets it.
+    func testOnlySurgeSignsInWithoutTheKey() {
+        for target in [ClientTarget.surge, .surgeMac] {
+            XCTAssertFalse(full(target).content.contains("tskey-auth-test"), target.name)
+        }
+        XCTAssertTrue(full(.clash).content.contains("auth-key: \"tskey-auth-test\""))
+        XCTAssertEqual(full(.clash, key: nil).diagnostics.count, 2)
+        XCTAssertTrue(full(.surge).content.contains("interactive-login = true"))
+        XCTAssertTrue(full(.surge).diagnostics.isEmpty)
+        XCTAssertTrue(full(.clashMi).content.contains("auth-key: \"tskey-auth-test\""))
+        XCTAssertTrue(full(.singBox).content.contains("\"auth_key\" : \"tskey-auth-test\""))
+        XCTAssertTrue(full(.clashMi).diagnostics.isEmpty)
         XCTAssertEqual(full(.clashMi, key: nil).diagnostics.count, 1)
+        XCTAssertEqual(full(.singBox, key: nil).diagnostics.count, 1)
+    }
+
+    /// Stash skips 100.64.0.0/10 and the private ranges by default, so only a
+    /// MagicDNS name reaches the rules there.
+    func testStashIsToldToUseMagicDNSNames() throws {
+        let note = try XCTUnwrap(full(.clash).diagnostics.first)
+        XCTAssertTrue(note.contains("tail1234.ts.net"), note)
+        var connection = home
+        connection.magicDNSSuffix = nil
+        let missing = try XCTUnwrap(full(.clash, connection: connection).diagnostics.first)
+        XCTAssertTrue(missing.contains("MagicDNS"), missing)
     }
 
     // MARK: - Stash and mihomo
@@ -235,7 +253,8 @@ final class TailnetTests: XCTestCase {
         model.nodes = nodes
         try model.saveTailnet(home, authKey: .set("tskey-auth-secret"))
         XCTAssertTrue(model.hasTailnetAuthKey(home.id))
-        XCTAssertTrue(model.configuration(target: .surge, contentMode: .fullConfiguration).content.contains("auth-key = tskey-auth-secret"))
+        XCTAssertTrue(model.configuration(target: .clashMi, contentMode: .fullConfiguration).content.contains("auth-key: \"tskey-auth-secret\""))
+        XCTAssertEqual(model.tailnetAuthKey(for: home.id), "tskey-auth-secret")
 
         let saved = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(saved.contains("tail1234.ts.net"))
@@ -245,17 +264,17 @@ final class TailnetTests: XCTestCase {
         let reloaded = makeModel(keys: keys, url: url)
         XCTAssertTrue(reloaded.hasTailnetAuthKey(home.id))
         try reloaded.saveTailnet(home, authKey: .remove)
-        XCTAssertTrue(reloaded.configuration(target: .surge, contentMode: .fullConfiguration).content.contains("interactive-login = true"))
+        XCTAssertFalse(reloaded.configuration(target: .clashMi, contentMode: .fullConfiguration).content.contains("auth-key"))
 
         reloaded.setTailnetEnabled(home.id, false)
         XCTAssertFalse(reloaded.configuration(target: .surge, contentMode: .fullConfiguration).content.contains("tailscale"))
 
         try reloaded.saveTailnet(home, authKey: .set("tskey-auth-second"))
-        let surge = reloaded.configuration(target: .surge, contentMode: .fullConfiguration).content
-        let preview = reloaded.maskingTailnetAuthKeys(in: surge)
+        let mihomo = reloaded.configuration(target: .clashMi, contentMode: .fullConfiguration).content
+        let preview = reloaded.maskingTailnetAuthKeys(in: mihomo)
         XCTAssertFalse(preview.contains("tskey-auth-second"))
-        XCTAssertTrue(preview.contains("auth-key = •••••••••••••••••"))
-        XCTAssertEqual(preview.count, surge.count)
+        XCTAssertTrue(preview.contains("auth-key: \"•••••••••••••••••\""))
+        XCTAssertEqual(preview.count, mihomo.count)
         reloaded.deleteTailnet(home.id)
         XCTAssertNil(keys.authKey(for: home.id))
         XCTAssertTrue(reloaded.tailnets.isEmpty)

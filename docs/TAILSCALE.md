@@ -1,6 +1,6 @@
 # Tailscale 内网：各客户端写法与塔台的实现
 
-更新：2026-09-28。本文依据各客户端官方文档，并用自建 Headscale 在手机和本机内核上实测；版本号以文中注明的为准，发布前应重新核对。
+更新：2026-09-28。本文依据各客户端官方文档和开发者说明，用自建 Headscale 在手机和本机内核上实测，并用官方 Tailscale 账户在手机上验证了 Surge 与 Stash；版本号以文中注明的为准，发布前应重新核对。
 
 ## 它解决什么问题
 
@@ -18,15 +18,18 @@
 2. 字段：
    - **名称**：导出后在客户端里显示的策略名。
    - **控制服务器**：留空为官方 Tailscale；自建 Headscale 填它的 HTTPS 地址。
-   - **Auth Key**（可选）：留空则在 Surge / Stash 里交互登录；Clash / mihomo 和 sing-box MT 实际上需要它。只存本机钥匙串，不同步 iCloud，但会写进导出的配置。
+   - **Auth Key**：Stash、Clash / mihomo 和 sing-box MT 需要它；Surge 不写入，在自己的策略编辑页里登录。只存本机钥匙串，不同步 iCloud，但会写进导出的配置。输入框默认打码，可点眼睛图标查看，直接修改或清空后保存即替换或删除。
+     - 生成时打开 **Reusable**（多个客户端各注册一台设备，一次性 Key 只能用一次）。
+     - 设备加入后，到 Tailscale 控制台的 **Machines** 页面为它关闭 **Key Expiry**，否则到期后设备会掉线。
+     - tailnet 开了设备审批时，生成 Key 勾选 **Pre-approved**。
    - **家里子网**（可选）：例如 `192.168.1.0/24`。家里必须有一台设备在 Tailscale 里发布这个子网，并在控制台批准。
-   - **MagicDNS 后缀**（可选）：Tailscale 控制台 DNS 页面上的 `tailXXXX.ts.net`。Surge 5.21+ / Stash 3.6+ 可以自己发现；mihomo 和 sing-box 需要它才能按设备名访问。
+   - **MagicDNS 后缀**：Tailscale 控制台 DNS 页面上的 `tailXXXX.ts.net`。**用 Stash 时必填**（见下文）；mihomo 和 sing-box 需要它才能按设备名访问；Surge 5.21+ 可以自己发现。
    - **设备名**：默认 `tower`，每个客户端再加后缀，例如 `tower-surge`、`tower-stash`。
 3. 导出时选「完整配置」。「仅节点」模式不写 Tailscale。导出后可在「配置预览」里确认（Auth Key 在预览中打码）。
 
 ## 各客户端
 
-### Surge（iOS 5.20+ / Mac 6.7+）
+### Surge（塔台写法需要 iOS 5.21+ / Mac 6.8+）
 
 官方文档：<https://manual.nssurge.com/policies/tailscale.html>
 
@@ -42,7 +45,8 @@ control-url = https://…       # 可选，默认官方
 hostname = tower-surge        # 可选
 ```
 
-- **登录**：`auth-key` 与 `interactive-login` 二选一。交互登录需要 **iOS 5.21 / Mac 6.8** 以上：在 Surge 里编辑这个策略，从策略编辑页发起登录，在浏览器里授权。`interactive-login = true` 这一行只是「引用本机登录状态」，不含凭据；换设备或本机状态丢失时要重新登录。
+- **登录**：`auth-key` 与 `interactive-login` 二选一。塔台**总是写 `interactive-login = true`，不写 Auth Key**：在 Surge 里编辑这个策略，从策略编辑页发起登录，在浏览器里授权。需要 **iOS 5.21 / Mac 6.8** 以上。这一行只是「引用本机登录状态」，不含凭据；换设备或本机状态丢失时要重新登录。
+- 不写 Key 的原因：Surge 用 Auth Key 登录时按 Key 的哈希保存身份，配置里一旦出现 Key，就会注册成另一台设备，已经交互登录的那台被闲置。
 - **身份保持**：交互登录的状态按**配置段名**保存；Auth Key 登录的状态按 **Key 的哈希**保存。改段名或换 Key 都会变成新设备。
 - **自动路由**（5.21+ 默认开启，`auto-add-magic-dns-rule`）：会话建立后自动把 MagicDNS 后缀和每个对端的 Tailscale 地址路由到这个策略。**子网路由和出口节点不会自动路由**，需要显式规则。
 - 其他字段：`exit-node`（`none` / `auto` / 指定设备）、`derp-only`、`idle-keepalive`（5.21+，默认常驻）、`prefer-ipv6`、`dns-server`、`mtu`；策略行上可加 `underlying-proxy`（让 DERP 走另一个策略，此时只走中继）、`test-url`（只接受 http://）、`test-timeout`。
@@ -64,7 +68,9 @@ proxies:
     # auto-route-disabled: false   # 可选
 ```
 
-- **登录**：填 `auth-key` 自动完成；不填时，在 Stash 的代理列表里打开这个节点的菜单，进入 Tailscale 页面，点「开始认证」。认证过一次后通常不需要再填 Key。
+- **登录：目前必须用 `auth-key`。** 文档和 3.4.0 更新说明提到网页登录，但开发者说明 OAuth 接入仍在开发中，实测也无法在客户端里登录。塔台会把 Auth Key 写进 Stash 配置，没填时在导出页提示。
+- **默认跳过 Tailscale 地址段**（开发者 2026-04-17 说明）：`100.64.0.0/10` 在 Stash 默认的「跳过代理」和「跳过路由」列表里，按 IP 访问 tailnet 设备的请求根本不进 Stash。**请用 MagicDNS 名字访问**（`设备名.tailXXXX.ts.net`）：域名会先解析成 Stash 的虚拟地址，能进入规则。实测：同一台 Mac，按名字能打开，按 IP 打不开。
+- **家里子网同理**：私有网段通常也在默认跳过列表里。要按 IP 访问 tailnet 设备或家里子网，需要先在 Stash 的跳过代理和跳过路由中移除对应网段。这两个列表没有公开的配置字段，塔台无法替你修改。
 - **换控制服务器**会使用另一份身份，需要重新认证。
 - **自动路由**需要 **iOS 3.6+ / macOS 4.3+**：自动把 MagicDNS 后缀和对端地址交给这个节点，且排在配置规则之前。**3.4 / 3.5 没有自动路由**，必须写规则。
 - `exit-node` 不写时会自动从可用出口节点里选一个；在 Tailscale 页面里手动选择的会覆盖配置。
@@ -90,7 +96,7 @@ proxies:
 
 - **没有自动路由**：必须写规则。目的地不在 Tailscale 路由里时直接失败，不回退直连。
 - **懒启动**：第一条匹配的连接才会启动 Tailscale，所以第一次访问超时是正常的，重试即可。
-- **没有交互登录界面**：不填 Key 时登录链接只出现在日志里，实际使用建议填 Auth Key。
+- **没有交互登录界面**：不填 Key 时登录链接只出现在日志里，需要填 Auth Key。
 
 ### sing-box（1.12+）
 
@@ -143,15 +149,16 @@ Tailscale 在 sing-box 里是 **endpoint**，不是 outbound；MagicDNS 需要�
 | `IP-CIDR6,fd7a:115c:a1e0::/48` | Tailscale IPv6 地址段 |
 | `IP-CIDR,<家里子网>` | 家里局域网（经子网路由器） |
 
-策略本身不加入任何策略组。Surge 5.21+ / Stash 3.6+ 自带自动路由，这些规则与之重复但无害；Stash 3.4、mihomo、sing-box 必须靠它们。
+策略本身不加入任何策略组。Surge 5.21+ / Stash 3.6+ 自带自动路由，这些规则与之重复但无害；Stash 3.4、mihomo、sing-box 必须靠它们。Stash 下 IP 类规则默认不会生效（见上文跳过列表），只有域名规则起作用。
 
 ## 已知问题与待确认
 
-1. **塔台自己导出的配置还没在手机上逐个验证过。** 手机实测（Surge、Stash 3.4、Clash Mi、sing-box MT 全部通过）用的是手写的测试配置；塔台的实际导出只在本机 mihomo 和 sing-box 内核上连通过。Surge 和 Stash 的塔台导出需要再上手机确认。
-2. **没填 Auth Key 时，Surge 必须是 iOS 5.21 / Mac 6.8 以上。** 更早的版本不认识 `interactive-login`，等于没有配置登录方式，注册会失败；只能改用 Auth Key。
+1. **实测情况**：用官方 Tailscale 账户，塔台导出的 Surge 配置按 IP 和按名字都能访问家里 Mac；Stash 按名字能访问，按 IP 被默认跳过列表挡住。Clash Mi、sing-box MT 的塔台导出只在自建 Headscale 和本机内核上验证过。
+2. **Surge 必须是 iOS 5.21 / Mac 6.8 以上。** 塔台只写交互登录，更早的版本不认识 `interactive-login`，注册会失败。
 3. **`100.64.0.0/10` 规则范围很大。** 它会把所有该网段的目的地都送进 tailnet，包括不属于你 tailnet 的地址（这个网段也是运营商级 NAT 的共享地址段）。实际很少有公网服务用它，但确实比 Surge / Stash 自动路由的「只路由已知对端」宽。
 4. **家里子网规则在家时也生效**：手机连着家里 Wi-Fi 时，访问 `192.168.1.x` 也会绕 tailnet 走一圈。Tailscale 会尽量直连，通常仍能用，但比直接访问局域网慢。
-5. 导出页把「没有 Auth Key，请在客户端登录」放在「兼容性提示」里，看起来像错误，其实是正常提示。
+5. Stash 的说明（用 MagicDNS 名字访问）会一直出现在导出页「兼容性提示」里，这是提醒，不是错误。
+6. 刚导入或刚登录时，Surge 可能要十几秒才连上 Tailscale 中继；这期间访问会失败，稍等再试。
 
 ## 验证方法
 

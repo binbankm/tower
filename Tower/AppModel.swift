@@ -970,6 +970,10 @@ final class AppModel {
 
     func hasTailnetAuthKey(_ id: UUID) -> Bool { tailnetsWithAuthKey.contains(id) }
 
+    /// Read only when the editor opens, so the field can show the saved key
+    /// (masked until the user reveals it) and be edited in place.
+    func tailnetAuthKey(for id: UUID) -> String? { tailnetAuthKeys.authKey(for: id) }
+
     /// Inserts or replaces a tailnet. The key is written first so a Keychain
     /// failure leaves the saved connection untouched.
     func saveTailnet(_ connection: TailnetConnection, authKey: TailnetAuthKeyChange) throws {

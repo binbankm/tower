@@ -16,10 +16,18 @@ struct TailnetExport: Hashable, Sendable {
 /// 5.21+, Stash 3.6+) still get the rules — Stash 3.4 does not, mihomo and
 /// sing-box never do, and subnet routes always need one.
 ///
+/// The auth key goes to every client except Surge. Surge signs in from its
+/// policy editor and keys its state to the auth key when one is present, so
+/// writing it there would register a new machine beside the one the user
+/// already signed in. Stash documents a web sign-in, but it is not available
+/// yet (StashAppDev, 2026-04-17: OAuth still in development; confirmed on
+/// device), and mihomo / sing-box only print the sign-in link to their logs.
+///
 /// Verified end to end against a Headscale control server on Surge iOS,
 /// Stash 3.4, Clash Mi and sing-box MT, and the mihomo 1.19.31 / sing-box
-/// 1.14.2 cores. Shadowrocket ignored the node in both Clash and Surge syntax;
-/// Hiddify and Karing have no Tailscale outbound.
+/// 1.14.2 cores; Surge and Stash also against the official control server.
+/// Shadowrocket ignored the node in both Clash and Surge syntax; Hiddify and
+/// Karing have no Tailscale outbound.
 struct TailnetConfigurationWriter {
     enum Flavor: Equatable {
         case surge, stash, mihomo, singBox
@@ -69,22 +77,33 @@ struct TailnetConfigurationWriter {
             case .singBox:
                 content = singBox(content, export: export, name: name, hostname: hostname)
             }
-            if export.authKey == nil {
-                diagnostics.append(loginNote(flavor: flavor, target: target, name: name))
-            }
+            diagnostics += notes(flavor: flavor, target: target, export: export, name: name)
         }
         return configuration.replacing(content: content, appendingDiagnostics: diagnostics)
     }
 
-    private func loginNote(flavor: Flavor, target: ClientTarget, name: String) -> String {
-        switch flavor {
-        case .surge:
-            String(localized: "“\(name)”没有 Auth Key：导入后在 Surge 编辑这个策略，完成 Tailscale 登录（需要 Surge iOS 5.21 / Mac 6.8 或更新版本）。")
-        case .stash:
-            String(localized: "“\(name)”没有 Auth Key：导入后在 Stash 的节点菜单进入 Tailscale 页面完成登录。")
-        case .mihomo, .singBox:
-            String(localized: "“\(name)”没有 Auth Key：\(target.name) 只会把登录链接写进日志，建议在塔台里填写 Auth Key。")
+    private func notes(flavor: Flavor, target: ClientTarget, export: TailnetExport, name: String) -> [String] {
+        // Signing in from Surge's policy editor is the normal path, not a problem.
+        guard flavor != .surge else { return [] }
+        var notes: [String] = []
+        if export.authKey == nil {
+            notes.append(String(localized: "“\(name)”没有 Auth Key：\(target.name) 暂时不能在客户端里登录 Tailscale，请在塔台里填写 Auth Key。"))
         }
+        if flavor == .stash {
+            notes.append(stashNote(export: export, name: name))
+        }
+        return notes
+    }
+
+    /// Stash keeps 100.64.0.0/10 and the private ranges in its default
+    /// skip-proxy and skip-route lists (StashAppDev, 2026-04-17), so an
+    /// address never reaches the rules. A MagicDNS name is resolved to a fake
+    /// IP first and does.
+    private func stashNote(export: TailnetExport, name: String) -> String {
+        guard let suffix = export.connection.magicDNSSuffix else {
+            return String(localized: "“\(name)”没有填 MagicDNS 后缀：Stash 默认跳过 Tailscale 地址段，只能通过设备名访问，请在塔台里填写后缀。")
+        }
+        return String(localized: "Stash 默认跳过 Tailscale 地址段和局域网网段：请用“设备名.\(suffix)”访问“\(name)”；按 IP 或访问家里子网，需要先在 Stash 的跳过代理和跳过路由中移除对应网段。")
     }
 
     private func routes(for connection: TailnetConnection) -> (domains: [String], ipv4: [String], ipv6: [String]) {
@@ -114,12 +133,7 @@ struct TailnetConfigurationWriter {
         if let index = lines.firstIndex(of: "[Rule]") {
             lines.insert(contentsOf: rules, at: index + 1)
         }
-        var section = ["", "[Tailscale \(connection.stableSlug)]"]
-        if let key = export.authKey {
-            section.append("auth-key = \(key)")
-        } else {
-            section.append("interactive-login = true")
-        }
+        var section = ["", "[Tailscale \(connection.stableSlug)]", "interactive-login = true"]
         if let url = connection.customControlURL { section.append("control-url = \(url)") }
         section.append("hostname = \(hostname)")
         while lines.last == "" { lines.removeLast() }

@@ -40,7 +40,7 @@ struct TailnetListView: View {
                     Text("代理客户端开着的时候，也能通过 Tailscale 访问家里的电脑和局域网。塔台把它写成一个单独的策略，只有 Tailscale 地址、MagicDNS 和你填写的子网会走它，其他流量不受影响。")
                         .font(.subheadline)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("支持 Surge（iOS 5.20 / Mac 6.7 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。")
+                    Text("支持 Surge（iOS 5.21 / Mac 6.8 起）、Stash 3.4 起、Clash / mihomo（内核 1.19.25 起）和 sing-box MT。Stash 默认跳过 Tailscale 地址段，请用 MagicDNS 设备名访问。Shadowrocket、Loon、Quantumult X、Egern、Hiddify 和 Karing 暂不支持，导出时会跳过并提示。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -102,16 +102,16 @@ private struct TailnetRow: View {
 
     private var detail: String {
         var parts: [String] = [
-            connection.customControlURL == nil
+            connection.magicDNSSuffix ?? (connection.customControlURL == nil
                 ? String(localized: "官方控制服务器")
-                : String(localized: "自建控制服务器"),
+                : String(localized: "自建控制服务器")),
         ]
         if !connection.subnets.isEmpty {
             parts.append(String(localized: "\(connection.subnets.count) 个子网"))
         }
-        parts.append(model.hasTailnetAuthKey(connection.id)
-            ? String(localized: "已保存 Auth Key")
-            : String(localized: "在客户端内登录"))
+        if model.hasTailnetAuthKey(connection.id) {
+            parts.append(String(localized: "已保存 Auth Key"))
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -153,8 +153,11 @@ private struct TailnetEditorSheet: View {
 
     @State private var name: String
     @State private var controlURL: String
+    /// The key as it stands in the field. Filled from the Keychain when the
+    /// sheet opens; clearing it and saving removes the saved key.
     @State private var authKey = ""
-    @State private var removesSavedKey = false
+    @State private var savedAuthKey: String?
+    @State private var revealsAuthKey = false
     @State private var subnets: String
     @State private var magicDNSSuffix: String
     @State private var deviceName: String
@@ -172,12 +175,10 @@ private struct TailnetEditorSheet: View {
         _deviceName = State(initialValue: connection.deviceName ?? "")
     }
 
-    private var hasSavedKey: Bool { model.hasTailnetAuthKey(item.connection.id) && !removesSavedKey }
-
     private var hasChanges: Bool {
         let connection = item.connection
         return name != connection.name || controlURL != (connection.controlURLString ?? "")
-            || !authKey.isEmpty || removesSavedKey
+            || authKey != (savedAuthKey ?? "")
             || subnets != connection.subnets.joined(separator: "\n")
             || magicDNSSuffix != (connection.magicDNSSuffix ?? "")
             || deviceName != (connection.deviceName ?? "")
@@ -199,22 +200,11 @@ private struct TailnetEditorSheet: View {
                 }
 
                 Section {
-                    if hasSavedKey {
-                        HStack {
-                            Label("Auth Key 已保存在这台设备", systemImage: "key.fill")
-                            Spacer()
-                            Button("移除", role: .destructive) { removesSavedKey = true }
-                                .buttonStyle(.borderless)
-                        }
-                    }
-                    SecureField(hasSavedKey ? "输入新的 Auth Key 替换" : "Auth Key（可选）", text: $authKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .accessibilityIdentifier("tailnet-auth-key")
+                    AuthKeyField(key: $authKey, isRevealed: $revealsAuthKey)
                 } header: {
-                    Text("登录")
+                    Text("Auth Key（可选）")
                 } footer: {
-                    Text("留空时，Surge 和 Stash 可以在客户端里登录；Clash / mihomo 和 sing-box MT 需要 Auth Key。Auth Key 只存在这台设备的钥匙串，不会同步到 iCloud，但会写进导出的配置。")
+                    Text("Stash、Clash / mihomo 和 sing-box MT 需要它；Surge 在自己的策略编辑页里登录，不写入 Auth Key。生成时请打开 Reusable；设备加入后，在 Tailscale 后台的 Machines 页面为它关闭 Key Expiry。只存在这台设备的钥匙串，不同步到 iCloud。")
                 }
 
                 Section {
@@ -269,6 +259,11 @@ private struct TailnetEditorSheet: View {
                 }
             }
             .confirmDiscardChanges(hasChanges: hasChanges, isBusy: false, requested: $requestsDiscard) {}
+            .onAppear {
+                guard savedAuthKey == nil, let key = model.tailnetAuthKey(for: item.connection.id) else { return }
+                savedAuthKey = key
+                authKey = key
+            }
             .confirmationDialog("删除这个 Tailscale 内网？", isPresented: $confirmsDelete, titleVisibility: .visible) {
                 Button("删除", role: .destructive) {
                     model.deleteTailnet(item.connection.id)
@@ -291,7 +286,11 @@ private struct TailnetEditorSheet: View {
             connection.magicDNSSuffix = try TailnetConnection.normalizedMagicDNSSuffix(magicDNSSuffix)
             connection.deviceName = TailnetConnection.normalizedDeviceName(deviceName)
             let key = try TailnetConnection.normalizedAuthKey(authKey)
-            let change: AppModel.TailnetAuthKeyChange = key.map { .set($0) } ?? (removesSavedKey ? .remove : .keep)
+            let change: AppModel.TailnetAuthKeyChange = switch (key, savedAuthKey) {
+            case (nil, nil): .keep
+            case (nil, _?): .remove
+            case (let key?, let saved): key == saved ? .keep : .set(key)
+            }
             try model.saveTailnet(connection, authKey: change)
             dismiss()
         } catch let error as TailnetConnection.ValidationError {
@@ -303,6 +302,54 @@ private struct TailnetEditorSheet: View {
             }
         } catch {
             errorMessage = String(localized: "无法保存到钥匙串，请重试。")
+        }
+    }
+}
+
+/// One field for the whole life of the key: it opens showing the saved key
+/// masked, the eye reveals it for checking, and editing it in place is how it
+/// is replaced or (by clearing it) removed. The same pattern as a password in
+/// the Passwords app.
+private struct AuthKeyField: View {
+    @Binding var key: String
+    @Binding var isRevealed: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Group {
+                if isRevealed {
+                    // A key is ~60 characters; wrapping shows all of it.
+                    TextField("tskey-auth-…", text: $key, axis: .vertical)
+                        .lineLimit(1...3)
+                        .font(.callout.monospaced())
+                } else {
+                    SecureField("tskey-auth-…", text: $key)
+                }
+            }
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textContentType(.none)
+            .accessibilityIdentifier("tailnet-auth-key")
+
+            if key.isEmpty {
+                PasteButton(payloadType: String.self) { strings in
+                    guard let value = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+                    key = value
+                }
+                .labelStyle(.iconOnly)
+                .buttonBorderShape(.capsule)
+                .controlSize(.small)
+            } else {
+                Button {
+                    isRevealed.toggle()
+                } label: {
+                    Image(systemName: isRevealed ? "eye.slash" : "eye")
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(isRevealed ? Text("隐藏 Auth Key") : Text("显示 Auth Key"))
+            }
         }
     }
 }
