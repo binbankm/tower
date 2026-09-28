@@ -58,8 +58,11 @@ struct ProxyNodeShareLinkGenerator {
     /// original link is otherwise reusable. In particular, percent-encoding
     /// the fragment keeps flag emoji and non-ASCII names intact after a client
     /// decodes the outer base64 subscription.
-    func canonicalLink(for node: ProxyNode) -> String {
-        let original = node.rawURI.trimmingCharacters(in: .whitespacesAndNewlines)
+    func canonicalLink(for source: ProxyNode) -> String {
+        let original = source.rawURI.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Anywhere showed an IP-fronted node as insecure until the Host was
+        // written as SNI; clients reading these links differ on the fallback.
+        let node = source.withTransportHostAsSNI
 
         return switch node.kind {
         case .shadowsocks: shadowsocksLink(for: node) ?? original

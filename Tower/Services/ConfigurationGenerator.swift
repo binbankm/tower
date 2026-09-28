@@ -979,22 +979,6 @@ struct ConfigurationGenerator {
         return cipher.isEmpty || allowed.contains(cipher)
     }
 
-    /// A VMess/VLESS/Trojan link without `sni` means "use the Host header"
-    /// (v2rayN's rule), which is how CDN-fronted nodes on a bare IP are
-    /// written. Mihomo and sing-box apply it themselves; Stash, Surge, Loon,
-    /// QuanX and Egern instead fall back to the server address, so they got
-    /// the IP as SNI and failed the certificate check. Spell it out.
-    private func withTransportHostAsSNI(_ node: ProxyNode) -> ProxyNode {
-        guard [.vmess, .vless, .trojan].contains(node.kind), node.tls, !node.usesReality,
-              (node.sni ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              ["ws", "h2", "httpupgrade"].contains(node.transport?.lowercased() ?? ""),
-              let host = node.hostHeader?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !host.isEmpty, host.lowercased() != node.server.lowercased() else { return node }
-        var node = node
-        node.sni = host
-        return node
-    }
-
     /// Characters that would end or split an unquoted Loon value.
     private static let loonBareFieldDelimiters = CharacterSet.whitespacesAndNewlines
         .union(.controlCharacters)
@@ -1057,7 +1041,9 @@ struct ConfigurationGenerator {
         case .anywhere:
             return node.kind == .vless && ["ws", "grpc", "httpupgrade", "xhttp"].contains(transport)
         case .v2box:
-            return ["ws", "http", "h2", "grpc", "httpupgrade", "xhttp"].contains(transport)
+            // V2Box runs Xray, which removed its HTTP/2 transport; those
+            // nodes timed out on device.
+            return ["ws", "http", "grpc", "httpupgrade", "xhttp"].contains(transport)
                 && (transport != "xhttp" || node.kind == .vless)
         }
     }
@@ -1981,7 +1967,7 @@ struct ConfigurationGenerator {
         // Stash, unlike mihomo, does not fall back to the WebSocket Host for
         // SNI; an IP-fronted node timed out there. Writing it is harmless for
         // the clients that would have inferred it anyway.
-        let node = withTransportHostAsSNI(source)
+        let node = source.withTransportHostAsSNI
         var values: [String] = [
             "  - name: \(yaml(NodeRegionResolver.displayName(for: node)))",
             "    type: \(node.kind.rawValue)",
@@ -2510,7 +2496,7 @@ struct ConfigurationGenerator {
     }
 
     private func surgeNode(_ source: ProxyNode, shadowrocket: Bool) -> String {
-        let node = withTransportHostAsSNI(source)
+        let node = source.withTransportHostAsSNI
         let name = confName(NodeRegionResolver.displayName(for: node))
         var components: [String] = []
         switch node.kind {
@@ -2992,7 +2978,7 @@ struct ConfigurationGenerator {
     }
 
     private func loonNode(_ source: ProxyNode) -> String {
-        let node = withTransportHostAsSNI(source)
+        let node = source.withTransportHostAsSNI
         let name = confName(NodeRegionResolver.displayName(for: node))
         var values: [String]
         switch node.kind {
@@ -3279,7 +3265,7 @@ struct ConfigurationGenerator {
     }
 
     private func quanXNode(_ source: ProxyNode) -> String {
-        let node = withTransportHostAsSNI(source)
+        let node = source.withTransportHostAsSNI
         var values = [node.endpoint]
         let prefix: String
         switch node.kind {
@@ -3866,9 +3852,12 @@ extension ConfigurationGenerator {
             }
             return outbound
         }
+        // Hiddify lists every outbound as a choice; without §hide§ the
+        // ShadowTLS helper appeared there and failed its latency test.
         outbounds += singBoxNodeOutbounds(
             nodes.filter { target != .singBox || $0.kind != .wireguard },
-            reservedTags: Set(outbounds.compactMap { $0["tag"] as? String })
+            reservedTags: Set(outbounds.compactMap { $0["tag"] as? String }),
+            hideHelpers: target == .hiddify
         )
         outbounds.append(["tag": Self.singBoxDirectTag, "type": "direct"])
 
@@ -4394,9 +4383,12 @@ extension ConfigurationGenerator {
             }
             return outbound
         }
+        // Hiddify lists every outbound as a choice; without §hide§ the
+        // ShadowTLS helper appeared there and failed its latency test.
         outbounds += singBoxNodeOutbounds(
             nodes.filter { target != .singBox || $0.kind != .wireguard },
-            reservedTags: Set(outbounds.compactMap { $0["tag"] as? String })
+            reservedTags: Set(outbounds.compactMap { $0["tag"] as? String }),
+            hideHelpers: target == .hiddify
         )
 
         // A route-level `action: reject` is sufficient for direct blocking
@@ -4852,7 +4844,7 @@ extension ConfigurationGenerator {
 
     /// One `- <type>:` entry with the snake_case keys Egern uses.
     func egernProxy(_ source: ProxyNode) -> String? {
-        let node = withTransportHostAsSNI(source)
+        let node = source.withTransportHostAsSNI
         var body: [String] = ["      name: \(yaml(NodeRegionResolver.displayName(for: node)))"]
         func endpoint() {
             body.append("      server: \(yaml(node.server))")

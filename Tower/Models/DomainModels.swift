@@ -824,6 +824,23 @@ struct ProxyNode: Identifiable, Codable, Hashable {
         return path.hasPrefix("/") ? path : "/" + path
     }
 
+    /// A VMess/VLESS/Trojan link without `sni` means "use the Host header"
+    /// (v2rayN's rule), which is how CDN-fronted nodes on a bare IP are
+    /// written. Mihomo and sing-box apply it themselves; Stash, Surge, Loon,
+    /// QuanX, Egern and Anywhere instead fall back to the server address, so
+    /// they got the IP as SNI and failed the certificate check. Every writer
+    /// spells it out instead.
+    var withTransportHostAsSNI: ProxyNode {
+        guard [.vmess, .vless, .trojan].contains(kind), tls, !usesReality,
+              (sni ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              ["ws", "h2", "httpupgrade"].contains(transport?.lowercased() ?? ""),
+              let host = hostHeader?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !host.isEmpty, host.lowercased() != server.lowercased() else { return self }
+        var node = self
+        node.sni = host
+        return node
+    }
+
     /// Xray-style links put WebSocket early data in the path as `?ed=2048`.
     /// Mihomo and Shadowrocket read it from there; other clients either take
     /// it as separate settings or not at all.

@@ -287,6 +287,32 @@ final class ProtocolAuditTests: XCTestCase {
         XCTAssertTrue(content([reality(.anytls)], .karing).contains("r.example.com"))
     }
 
+    // MARK: - Hiddify, V2Box, Anywhere
+
+    func testHiddifyHidesTheShadowTLSHelperInFullProfiles() throws {
+        var node = ProxyNode(kind: .shadowsocks, name: "STLS", server: "s.example.com", port: 443,
+                             cipher: "aes-128-gcm", password: "pw", plugin: "shadow-tls", rawURI: "")
+        node.shadowTLS = ShadowTLSOptions(version: 3, host: "cover.example.com", password: "tls")
+        let hiddify = content([node], .hiddify)
+        XCTAssertTrue(hiddify.contains("§hide§tower-shadowtls"), hiddify)
+        // Official sing-box lists only group members, so its tag stays plain.
+        XCTAssertFalse(content([node], .singBox).contains("§hide§"))
+    }
+
+    func testV2BoxSkipsHTTP2WhichXrayRemoved() {
+        let h2 = ProxyNode(kind: .vless, name: "H2", server: "h.example.com", port: 443, uuid: uuid,
+                           transport: "h2", tls: true, sni: "h.example.com", path: "/h2", rawURI: "")
+        XCTAssertEqual(nodesOnly([h2], .v2box).supportedNodeCount, 0)
+    }
+
+    func testShareLinksCarryTheHostAsSNI() throws {
+        let fronted = ProxyNode(kind: .vless, name: "CDN", server: "203.0.113.7", port: 443, uuid: uuid,
+                                transport: "ws", tls: true, hostHeader: "front.example.com", path: "/ws", rawURI: "")
+        let link = ProxyNodeShareLinkGenerator().canonicalLink(for: fronted)
+        XCTAssertEqual(URLComponents(string: link)?.queryItems?.first { $0.name == "sni" }?.value, "front.example.com")
+        XCTAssertTrue(AnywhereExport.link(for: fronted).contains("sni=front.example.com"))
+    }
+
     // MARK: - Stash field names
 
     func testStashUsesItsOwnHysteriaAndTUICFields() {
