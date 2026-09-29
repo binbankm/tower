@@ -46,7 +46,7 @@
   - DMG SHA-256：`53a076dd1f929069c6dcdb3ce9cdd5ab3b246ab06c2bcd51cd0753be0dc8e20a`。从公开链接回下载后哈希一致。
 - GitHub Release `v1.0.22` 已公开，附 DMG 与 SHA256SUMS.txt，并标为 Latest。README 的 Mac 下载按钮已指向新版。
 - Homebrew：tap 更新到 1.0.22（60），`brew style` / `brew audit` 通过，本机 `brew upgrade` 后的签名与 Gatekeeper 验证通过，已推送。
-- 未做：iOS TestFlight 上传（本次只要求推送代码和发布 GitHub 版本）。
+- iOS：用户随后要求上传 TestFlight。本机 M4 正式版 Xcode 27.1 用 `release_testflight_remote.sh --aqua` 按提交 `a748352` 归档 1.0.22（60），日志显示 Upload succeeded。App Store Connect 的处理状态、测试说明和测试组要到后台确认；未提交外部 Beta 审核或 App Store 审核。
 
 ## 未发布：mihomo 子规则 SUB-RULE / sub-rules（issue #7，2026-09-29）
 
