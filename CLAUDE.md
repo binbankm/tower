@@ -41,7 +41,11 @@
 21. `Tower/Resources/` 下的第三方数据不适用源码的 MIT 许可。新增或更新打包资源时，必须同步更新 `THIRD-PARTY-NOTICES.md` 和对应目录的 NOTICE，注明来源、固定版本和许可证。`LICENSE` 里「仅覆盖源码」那段说明不要删除，即使 GitHub 因此把许可证识别成 `Other`。
 22. 刷新订阅必须保住用户「取消勾选」的节点。节点 id 每次解析都会重新生成，机场又常把剩余流量、倍率写进 remark，塔台自己也会给纯国旗节点重编号——所以不能只按含 name 的精确 identity 匹配。`AppModel.carriedOverExclusions` 是唯一的判定入口：先精确匹配，失配再用去掉 remark 的宽松键，且只有该键在刷新前后都唯一时才认。丢失排除的后果是静默的——节点直接回到每一份导出配置里。
 23. `AppModel.apply()` 必须把 `snapshot.updatedAt` 恢复到 `lastLocalEditAt`。不恢复的话，启动后第一次前台同步会拿 `.distantPast` 去和 iCloud 比，任何远端快照都赢——包括更旧的那份，然后覆盖本地文件。离线时改的订阅会在下次启动被静默丢弃。
-24. Tailscale 内网（`TailnetConnection`）不是节点，不能进任何策略组、测速组或地区组，只接收置顶的 Tailscale 地址段、MagicDNS 后缀和用户子网规则。Auth Key 只存本机钥匙串（`TailnetAuthKeyStore`），不进快照、不同步 iCloud，配置预览里要打码；不要写给 Surge（它按 Key 哈希存身份，会多注册一台设备），Stash 目前没有可用的客户端登录，必须写。`stableSlug` 来自连接 UUID，Surge 配置段名和 mihomo / sing-box 状态目录都依赖它，改了会让每次重新导入都多出一台设备。
+24. Tailscale 内网（`TailnetConnection`）不是节点，不能进任何策略组、测速组或地区组，只接收置顶的 Tailscale 地址段、MagicDNS 后缀和用户子网规则。Auth Key 只存本机钥匙串（`TailnetAuthKeyStore`），不进快照、不同步 iCloud，配置预览里要打码；不要写给 Surge（它按 Key 哈希存身份，会多注册一台设备），Stash 目前没有可用的客户端登录，必须写。`stableSlug` 来自连接 UUID，Surge 配置段名和 mihomo / sing-box 状态目录都依赖它，改了会让每次重新导入都多出一台设备。塔台不代用户登录 Tailscale 或自动生成 Key（OAuth apps 只限同一 tailnet、Key 一次性且 1 小时过期），评估见 `docs/TAILSCALE.md`。
+
+25. 分流规则只按各客户端文档输出：规则类型、选项、内置策略都以 `RoutingRuleCapabilities` / `RoutingBuiltinPolicies` 的白名单为准，选项写在策略名后面。不能表达的规则跳过并提示；拦截规则跳过时，要在兼容性提示最前面说明「这些请求不会被拦截」，但不阻止整份导出。可以换成等价写法的就换（例如 Loon 的 `*.x` 通配改写成「后缀 x 且不是 x 本身」的 `AND`/`NOT` 逻辑规则、sing-box 的 GEOIP / IP-ASN 用内置库展开），不能为了「看起来能导」把 Surge 方言原样透传，也不能改写成更宽的拦截范围。MRS 规则集没有解码器，只给 mihomo 系远程引用。Loon 和 QuanX 先匹配本地规则、再匹配远程列表，远程规则集不能排到任何本地规则前面。IP 规则默认自动加 `no-resolve`；唯一例外是 mihomo 系（不含 Karing 和与 Stash 同文档的「Clash」App）MATCH 前最后一条自动加的 `GEOIP`，而且只在 DNS 经代理带 ECS 解析时（或「跟随方案」）才去掉——别在 DNS 仍走国内解析时去掉，否则列表外的域名会全部泄露给国内 DNS。依据见 `docs/RULE_EXPORT_AUDIT.md`。
+
+26. 规则定制页拖动策略组只改变**显示顺序**（`groupOrder`），不改变规则匹配顺序。匹配顺序 = 来源方案顺序 + 用户添加的规则插到第一条冲突规则前面（`customRulesetInsertionIndex`）。策略组显示顺序和规则顺序本来就不一样（ACL4SSR 的「节点选择」显示第一，它的 GFW 大列表却在规则末尾），按显示顺序重排会让大列表压过 AI、奈飞、直连和广告拦截（issue #40）。`rulePriorityOrder` 只为清理旧数据保留读取，不要再写入或应用。以后要调整优先级，按 TODO 里的「优先匹配」方案单独做。
 
 ## 开发入口
 

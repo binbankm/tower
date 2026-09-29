@@ -106,7 +106,11 @@ final class RuleSetGenerationTests: XCTestCase {
         ).content
         XCTAssertFalse(shadowrocket.contains(domainURL.absoluteString), shadowrocket)
         XCTAssertFalse(shadowrocket.contains(ipURL.absoluteString), shadowrocket)
-        XCTAssertTrue(shadowrocket.contains(url.absoluteString), shadowrocket)
+        // PROCESS-NAME is not in Shadowrocket's rule vocabulary, so the list
+        // is written locally and only that line is left out.
+        XCTAssertFalse(shadowrocket.contains(url.absoluteString), shadowrocket)
+        XCTAssertTrue(shadowrocket.contains("DOMAIN,exact.example,Proxy"), shadowrocket)
+        XCTAssertFalse(shadowrocket.contains("PROCESS-NAME"), shadowrocket)
 
         let karing = fixture.generator.generate(
             nodes: [],
@@ -851,7 +855,14 @@ final class RuleSetGenerationTests: XCTestCase {
         XCTAssertTrue(clash.contains("/Rulesets/ACL4SSR/"), clash)
         XCTAssertFalse(clash.contains("/main/Rulesets/ACL4SSR/"), clash)
         XCTAssertTrue(surge.contains("RULE-SET,https://raw.githubusercontent.com/"), surge)
-        XCTAssertTrue(loon.contains("[Remote Rule]"), loon)
+        // Loon matches every local rule before any remote list, and ACL4SSR
+        // ends with a local GEOIP,CN. Referencing the lists remotely would let
+        // that rule overtake them, so they are written locally, in order.
+        XCTAssertFalse(loon.contains("[Remote Rule]"), loon)
+        let loonRules = try XCTUnwrap(loon.components(separatedBy: "[Rule]\n").last)
+        let geoIP = try XCTUnwrap(loonRules.range(of: "GEOIP,CN,"))
+        let lanRule = try XCTUnwrap(loonRules.range(of: "IP-CIDR,10.0.0.0/8,"))
+        XCTAssertLessThan(lanRule.lowerBound, geoIP.lowerBound)
 
         // ACL4SSR's IP-only resource uses Clash's trailing `no-resolve`, which
         // is not valid QuanX filter syntax. It must be normalized locally

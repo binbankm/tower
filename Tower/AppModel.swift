@@ -768,7 +768,6 @@ final class AppModel {
         }
         customization.groupRenames = renames.isEmpty ? nil : renames
         customization.groupOrder = customization.groupOrder.map { $0 == oldName ? newName : $0 }
-        customization.rulePriorityOrder = customization.rulePriorityOrder?.map { $0 == oldName ? newName : $0 }
 
         if let existingOverride = customization.groupOverrides.removeValue(forKey: oldName) {
             customization.groupOverrides[newName] = existingOverride
@@ -813,16 +812,17 @@ final class AppModel {
         setRuleGroupOrder(names, for: scheme)
     }
 
+    static let rulePriorityResetNoticeKey = "didRestoreRulePriority-issue40"
+
     func setRuleGroupOrder(_ names: [String], for scheme: RuleScheme) {
         var seen = Set<String>()
         let uniqueNames = names.filter { seen.insert($0).inserted }
         guard !uniqueNames.isEmpty else { return }
         var customization = ruleSchemeCustomizations[scheme.id]
             ?? RuleSchemeCustomization(schemeID: scheme.id)
-        guard customization.groupOrder != uniqueNames
-            || customization.rulePriorityOrder != uniqueNames else { return }
+        // Display order only. Rule matching keeps the source order (issue #40).
+        guard customization.groupOrder != uniqueNames else { return }
         customization.groupOrder = uniqueNames
-        customization.rulePriorityOrder = uniqueNames
         ruleSchemeCustomizations[scheme.id] = customization
         persist()
     }
@@ -1300,7 +1300,6 @@ final class AppModel {
             customization.groupOrder = customizableRuleGroups(for: scheme).map(\.name)
         }
         customization.groupOrder.removeAll { $0 == groupName }
-        customization.rulePriorityOrder?.removeAll { $0 == groupName }
         customization.groupOverrides[groupName] = nil
         ruleSchemeCustomizations[scheme.id] = customization
 
@@ -1927,6 +1926,37 @@ final class AppModel {
         if learnedAnything { persistLocalCache() }
     }
 
+    /// Fills in every country Tower already knows without a lookup: literal
+    /// IP addresses straight from the offline database, host names from a
+    /// fresh cached answer. Rows used to learn these only once they scrolled
+    /// into view, so the same list showed flags for some nodes and protocol
+    /// icons for others until each resolution landed.
+    func seedKnownCountries(for candidates: [ProxyNode]) {
+        var countryCodes = nodeIPCountryCodes
+        var completedIDs = countryResolutionCompletedNodeIDs
+        var seeded = false
+        for node in candidates where countryCodes[node.id] == nil {
+            let host = node.server.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if let code = ipCountryLookupService.countryCode(forLiteralAddress: host) {
+                countryCodes[node.id] = code
+                countryResolutionDates[node.id] = .now
+            } else if let code = resolvedHostCountryCodes[host],
+                      Self.isResolvedHostCountryCodeFresh(updatedAt: resolvedHostCountryCodeUpdatedAt[host]) {
+                countryCodes[node.id] = code
+                countryResolutionDates[node.id] = resolvedHostCountryCodeUpdatedAt[host]
+            } else {
+                continue
+            }
+            completedIDs.insert(node.id)
+            seeded = true
+        }
+        // One published change per collection, not one per node.
+        if seeded {
+            nodeIPCountryCodes = countryCodes
+            countryResolutionCompletedNodeIDs = completedIDs
+        }
+    }
+
     private func hasFreshCountryResolution(for node: ProxyNode) -> Bool {
         guard countryResolutionCompletedNodeIDs.contains(node.id),
               let date = countryResolutionDates[node.id] else { return false }
@@ -2180,6 +2210,7 @@ final class AppModel {
         }
 
         subscriptions.append(contentsOf: stagedSources)
+        seedKnownCountries(for: stagedNodes)
         nodes.append(contentsOf: stagedNodes)
         persist()
         await synchronizeRenewalReminders(showFailure: false)
@@ -2352,25 +2383,9 @@ final class AppModel {
         excludedNodeIDs.subtract(replacedNodeIDs)
         forgetRuntimeState(of: replacedNodeIDs)
         let replacements = Self.carryingOverCountryOverrides(previous: replacedNodes, refreshed: refreshed)
-        // Refresh creates new IDs. Seed their fresh host results before publishing
+        // Refresh creates new IDs. Seed their known answers before publishing
         // the nodes so rows never briefly fall back to protocol icons.
-        var countryCodes = nodeIPCountryCodes
-        var completedIDs = countryResolutionCompletedNodeIDs
-        var seeded = false
-        for node in replacements {
-            let host = node.server.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            guard let code = resolvedHostCountryCodes[host],
-                  Self.isResolvedHostCountryCodeFresh(updatedAt: resolvedHostCountryCodeUpdatedAt[host]) else { continue }
-            countryCodes[node.id] = code
-            countryResolutionDates[node.id] = resolvedHostCountryCodeUpdatedAt[host]
-            completedIDs.insert(node.id)
-            seeded = true
-        }
-        // One published change per collection, not one per node.
-        if seeded {
-            nodeIPCountryCodes = countryCodes
-            countryResolutionCompletedNodeIDs = completedIDs
-        }
+        seedKnownCountries(for: replacements)
         nodes.append(contentsOf: replacements)
         excludedNodeIDs.formUnion(carriedExclusions)
     }
@@ -2596,6 +2611,7 @@ final class AppModel {
 
     func addLocalNode(name: String, uri: String) throws {
         let result = try LocalNodeImporter().parse(uri, preferredName: name)
+        seedKnownCountries(for: result.nodes)
         nodes.append(contentsOf: result.nodes)
         persist()
         showToast(String(localized: "节点已保存在本机"), symbol: "checkmark.circle.fill")
@@ -2604,6 +2620,7 @@ final class AppModel {
     @discardableResult
     func addLocalNodes(name: String, content: String) throws -> Int {
         let result = try LocalNodeImporter().parse(content, preferredName: name)
+        seedKnownCountries(for: result.nodes)
         nodes.append(contentsOf: result.nodes)
         persist()
         showToast(importSummary(String(localized: "已添加"), result: result), symbol: "checkmark.circle.fill")
@@ -2611,7 +2628,9 @@ final class AppModel {
     }
 
     func addManualNode(_ draft: ManualNodeDraft) throws {
-        nodes.append(try draft.makeNode())
+        let node = try draft.makeNode()
+        seedKnownCountries(for: [node])
+        nodes.append(node)
         persist()
         showToast(String(localized: "节点已保存在本机"), symbol: "checkmark.circle.fill")
     }
@@ -2687,6 +2706,7 @@ final class AppModel {
         nodeLatencies[node.id] = nil
         nodeIPCountryCodes[node.id] = nil
         countryResolutionCompletedNodeIDs.remove(node.id)
+        seedKnownCountries(for: [updated])
         persist()
         showToast(String(localized: "节点已保存在本机"), symbol: "checkmark.circle.fill")
     }
@@ -3820,7 +3840,21 @@ final class AppModel {
             RuleSchemeParser().restoringLegacySmartGroups(in: $0)
         }
         selectedRuleGroups = snapshot.selectedRuleGroups?.mapValues(Set.init) ?? [:]
-        ruleSchemeCustomizations = snapshot.ruleSchemeCustomizations ?? [:]
+        var customizations = snapshot.ruleSchemeCustomizations ?? [:]
+        // Issue #40: dragging a group used to rewrite rule priority from the
+        // display order. Drop it so routing follows the source again, and say
+        // so once per device; an older build syncing it back is cleared too.
+        let hadRulePriority = customizations.values.contains { $0.rulePriorityOrder != nil }
+        for key in customizations.keys { customizations[key]?.rulePriorityOrder = nil }
+        ruleSchemeCustomizations = customizations
+        if hadRulePriority, !UserDefaults.standard.bool(forKey: Self.rulePriorityResetNoticeKey) {
+            UserDefaults.standard.set(true, forKey: Self.rulePriorityResetNoticeKey)
+            showToast(
+                String(localized: "规则匹配顺序已恢复为方案原始顺序，拖动排序现在只影响显示。"),
+                symbol: "arrow.uturn.backward.circle.fill",
+                tone: .success
+            )
+        }
         ruleGroupEmojisEnabled = snapshot.ruleGroupEmojisEnabled ?? [:]
         excludedNodeIDs = Set(snapshot.excludedNodeIDs ?? [])
         nodeExportNameFilter = snapshot.nodeExportNameFilter
@@ -3926,6 +3960,7 @@ final class AppModel {
         resolvedHostCountryCodeUpdatedAt = resolvedHostCountryCodeUpdatedAt.filter {
             resolvedHostCountryCodes[$0.key] != nil
         }
+        seedKnownCountries(for: nodes)
         selectedPresetID = snapshot.selectedPresetID
         let snapshotTarget = clientPlatform == .mac
             ? snapshot.macClientPreferences?.selectedTarget ?? .shadowrocket

@@ -57,7 +57,10 @@ struct RuleScheme: Identifiable, Codable, Hashable {
     var remoteRulesetURLs: [URL] {
         var seen = Set<String>()
         return rulesets.compactMap { ruleset in
-            guard let url = ruleset.resource.downloadURL,
+            // A binary MRS list cannot be read here; mihomo clients fetch it
+            // themselves and the others are told it was left out.
+            guard !ruleset.isBinaryRuleSet,
+                  let url = ruleset.resource.downloadURL,
                   seen.insert(url.absoluteString).inserted else { return nil }
             return url
         }
@@ -289,24 +292,10 @@ struct RuleScheme: Identifiable, Codable, Hashable {
 
         var result = self
         result.groups = availableGroups
-        // Only a new explicit user reorder changes matching priority. Legacy
-        // groupOrder snapshots described display order and must not silently
-        // change routing on upgrade. Keep unlisted rules in their original slots.
-        if let priority = groupCustomization?.rulePriorityOrder {
-            var rank: [String: Int] = [:]
-            for name in priority where rank[name] == nil { rank[name] = rank.count }
-            let ordered = mergedRulesets.enumerated().filter { rank[$0.element.groupName] != nil }
-                .sorted {
-                    let lhs = rank[$0.element.groupName]!
-                    let rhs = rank[$1.element.groupName]!
-                    return lhs == rhs ? $0.offset < $1.offset : lhs < rhs
-                }.map(\.element)
-            var next = 0
-            for index in mergedRulesets.indices where rank[mergedRulesets[index].groupName] != nil {
-                mergedRulesets[index] = ordered[next]
-                next += 1
-            }
-        }
+        // Matching order is the source's, with added rules ahead of the first
+        // rule they overlap. Group order is display only: applying it to the
+        // rules put 🚀 节点选择's GFW list ahead of AI, Netflix, direct and
+        // ad-block lists after any drag (issue #40).
         result.rulesets = mergedRulesets + finalRulesets
         if groupCustomization?.overridesNetworkSettings == true {
             result.networkSettings = groupCustomization?.networkSettingsOverride
@@ -578,7 +567,12 @@ struct RuleScheme: Identifiable, Codable, Hashable {
 struct RuleSchemeNetworkSettings: Codable, Hashable {
     var ipv6Enabled: Bool?
     var dnsServers: [String]
+    /// Domestic resolvers, used directly for Chinese and direct traffic.
     var encryptedDNSServers: [String]
+    /// Resolvers reached only through the proxy, for everything else. Empty
+    /// in settings saved before 2026-09-29, which then fall back to
+    /// `towerDefault` rather than sending foreign names to the domestic list.
+    var remoteDNSServers: [String]
     var proxyTestURLString: String?
     var dnsProtectionMode: RuleSchemeDNSProtectionMode
 
@@ -586,12 +580,14 @@ struct RuleSchemeNetworkSettings: Codable, Hashable {
         ipv6Enabled: Bool? = nil,
         dnsServers: [String] = [],
         encryptedDNSServers: [String] = [],
+        remoteDNSServers: [String] = [],
         proxyTestURLString: String? = nil,
         dnsProtectionMode: RuleSchemeDNSProtectionMode = .standard
     ) {
         self.ipv6Enabled = ipv6Enabled
         self.dnsServers = dnsServers
         self.encryptedDNSServers = encryptedDNSServers
+        self.remoteDNSServers = remoteDNSServers
         self.proxyTestURLString = proxyTestURLString
         self.dnsProtectionMode = dnsProtectionMode
     }
@@ -600,6 +596,7 @@ struct RuleSchemeNetworkSettings: Codable, Hashable {
         ipv6Enabled == nil
             && dnsServers.isEmpty
             && encryptedDNSServers.isEmpty
+            && remoteDNSServers.isEmpty
             && proxyTestURLString == nil
             && dnsProtectionMode == .standard
     }
@@ -624,6 +621,7 @@ struct RuleSchemeNetworkSettings: Codable, Hashable {
         case ipv6Enabled
         case dnsServers
         case encryptedDNSServers
+        case remoteDNSServers
         case proxyTestURLString
         case dnsProtectionMode
     }
@@ -636,6 +634,7 @@ struct RuleSchemeNetworkSettings: Codable, Hashable {
             [String].self,
             forKey: .encryptedDNSServers
         ) ?? []
+        remoteDNSServers = try container.decodeIfPresent([String].self, forKey: .remoteDNSServers) ?? []
         proxyTestURLString = try container.decodeIfPresent(
             String.self,
             forKey: .proxyTestURLString
@@ -650,6 +649,7 @@ struct RuleSchemeNetworkSettings: Codable, Hashable {
         try container.encodeIfPresent(ipv6Enabled, forKey: .ipv6Enabled)
         try container.encode(dnsServers, forKey: .dnsServers)
         try container.encode(encryptedDNSServers, forKey: .encryptedDNSServers)
+        if !remoteDNSServers.isEmpty { try container.encode(remoteDNSServers, forKey: .remoteDNSServers) }
         try container.encodeIfPresent(proxyTestURLString, forKey: .proxyTestURLString)
         try container.encode(dnsProtectionMode.rawValue, forKey: .dnsProtectionMode)
     }
@@ -661,8 +661,26 @@ struct RuleSchemeNetworkSettings: Codable, Hashable {
             "https://223.5.5.5/dns-query",
             "https://doh.pub/dns-query",
         ],
+        // Google first: it honours EDNS Client Subnet, which lets Tower ask
+        // for a Chinese answer through the proxy. Cloudflare ignores ECS.
+        // Literal addresses, because the name dns.google is itself blocked
+        // and a domestic resolver may answer it with a forged address.
+        remoteDNSServers: [
+            "https://8.8.8.8/dns-query",
+            "https://1.1.1.1/dns-query",
+        ],
         proxyTestURLString: "http://www.gstatic.com/generate_204"
     )
+
+    var effectiveRemoteDNSServers: [String] {
+        remoteDNSServers.isEmpty ? Self.towerDefault.remoteDNSServers : remoteDNSServers
+    }
+
+    /// Public resolvers known to answer with the client subnet they are given.
+    static func supportsClientSubnet(_ value: String) -> Bool {
+        guard let host = URLComponents(string: value)?.host?.lowercased() else { return false }
+        return ["dns.google", "8.8.8.8", "8.8.4.4", "dns11.quad9.net", "9.9.9.11", "149.112.112.11"].contains(host)
+    }
 }
 
 enum RuleSchemeDNSProtectionMode: String, CaseIterable, Identifiable {
@@ -683,11 +701,11 @@ enum RuleSchemeDNSProtectionMode: String, CaseIterable, Identifiable {
     var summary: String {
         switch self {
         case .followScheme:
-            String(localized: "只使用当前方案的 DNS，不额外启用 Fake-IP 或 DNS 接管。")
+            String(localized: "只使用当前方案的 DNS，不额外启用 Fake-IP 或 DNS 接管。Clash 系客户端会先在本机解析每个域名。")
         case .standard:
-            String(localized: "使用加密 DNS、Fake-IP、节点域名专用解析和 no-resolve。")
+            String(localized: "国内和直连域名用国内 DNS，其余域名交给代理或经代理的远程 DNS，不会发给国内 DNS。")
         case .strict:
-            String(localized: "在支持的客户端中额外接管传统 DNS，并启用严格路由。")
+            String(localized: "在支持的客户端中所有域名都经代理解析，并接管传统 DNS、启用严格路由。")
         }
     }
 }
@@ -768,6 +786,7 @@ enum RuleSchemeNetworkSettingsDraftError: LocalizedError, Equatable {
     case invalidPlainDNS(String)
     case missingEncryptedDNS
     case invalidEncryptedDNS(String)
+    case missingRemoteDNS
     case invalidTestURL(String)
 
     var errorDescription: String? {
@@ -777,9 +796,11 @@ enum RuleSchemeNetworkSettingsDraftError: LocalizedError, Equatable {
         case .invalidPlainDNS(let value):
             String(localized: "普通 DNS 地址无效：\(value)")
         case .missingEncryptedDNS:
-            String(localized: "请至少保留一个加密 DNS 服务器")
+            String(localized: "请至少保留一个国内 DNS 服务器")
         case .invalidEncryptedDNS(let value):
             String(localized: "加密 DNS 地址无效：\(value)")
+        case .missingRemoteDNS:
+            String(localized: "请至少保留一个远程 DNS 服务器")
         case .invalidTestURL(let value):
             String(localized: "测速地址无效：\(value)")
         }
@@ -798,6 +819,7 @@ struct RuleSchemeNetworkSettingsDraft: Equatable {
     }
     var dnsServers: [String]
     var encryptedDNSServers: [String]
+    var remoteDNSServers: [String]
     var proxyTestURLString: String
     var dnsProtectionMode: RuleSchemeDNSProtectionMode
 
@@ -810,6 +832,7 @@ struct RuleSchemeNetworkSettingsDraft: Equatable {
         encryptedDNSServers = settings?.encryptedDNSServers.isEmpty == false
             ? settings?.encryptedDNSServers ?? defaults.encryptedDNSServers
             : defaults.encryptedDNSServers
+        remoteDNSServers = settings?.effectiveRemoteDNSServers ?? defaults.remoteDNSServers
         proxyTestURLString = settings?.proxyTestURLString ?? defaults.proxyTestURLString ?? ""
         dnsProtectionMode = settings?.dnsProtectionMode ?? defaults.dnsProtectionMode
     }
@@ -831,7 +854,19 @@ struct RuleSchemeNetworkSettingsDraft: Equatable {
         }
         for value in encryptedDNS {
             guard let url = URL(string: value),
-                  ["https", "tls", "quic"].contains(url.scheme?.lowercased() ?? ""),
+                  ["https", "h3", "tls", "quic"].contains(url.scheme?.lowercased() ?? ""),
+                  url.host != nil else {
+                throw RuleSchemeNetworkSettingsDraftError.invalidEncryptedDNS(value)
+            }
+        }
+
+        let remoteDNS = normalized(remoteDNSServers)
+        guard !remoteDNS.isEmpty else {
+            throw RuleSchemeNetworkSettingsDraftError.missingRemoteDNS
+        }
+        for value in remoteDNS {
+            guard let url = URL(string: value),
+                  ["https", "h3", "tls", "quic"].contains(url.scheme?.lowercased() ?? ""),
                   url.host != nil else {
                 throw RuleSchemeNetworkSettingsDraftError.invalidEncryptedDNS(value)
             }
@@ -846,6 +881,7 @@ struct RuleSchemeNetworkSettingsDraft: Equatable {
             ipv6Enabled: ipv6Override,
             dnsServers: plainDNS,
             encryptedDNSServers: encryptedDNS,
+            remoteDNSServers: remoteDNS,
             proxyTestURLString: testURL,
             dnsProtectionMode: dnsProtectionMode
         )
@@ -889,7 +925,9 @@ struct RuleSchemeCustomization: Codable, Hashable {
     /// User-owned filters survive source refreshes independently of overrides.
     var addedNodeGroups: [RuleSchemeGroup]?
     var groupOrder: [String]
-    /// Explicit rule priority, absent in older display-only customizations.
+    /// Rule priority written by 1.0.6–1.0.21 whenever a group was dragged.
+    /// No longer applied or written; still decoded so `AppModel.apply` can
+    /// clear it and tell the user their routing was restored (issue #40).
     var rulePriorityOrder: [String]?
     var groupOverrides: [String: RuleSchemeGroupOverride]
     /// Source policy names mapped to user-facing names. Optional keeps every
@@ -1165,6 +1203,13 @@ struct RuleSchemeRuleset: Codable, Hashable {
 
     let groupName: String
     let resource: Resource
+
+    /// mihomo's binary rule set format (`format: mrs`). Tower has no decoder
+    /// for it: it is never downloaded or read as text.
+    var isBinaryRuleSet: Bool {
+        provider?.format?.lowercased() == "mrs" || resource.downloadURL?.pathExtension.lowercased() == "mrs"
+    }
+
     /// Options on a FINAL or remote reference survive persistence and group edits.
     var options: [String]? = nil
     var provider: RuleProviderMetadata? = nil

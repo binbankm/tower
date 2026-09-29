@@ -296,6 +296,22 @@ struct RuleSchemeParser {
                 guard let object = try reader.read() as? [String: Any] else { throw RuleSchemeParseError.unsupportedSyntax }
                 root = object
             }
+            // `proxies:` entries are dropped with their credentials, but a
+            // direct or reject outbound under its own name (`{name: 直连,
+            // type: direct}`) carries none and is referenced by groups and
+            // rules; it becomes the built-in policy it stands for.
+            var builtinAliases: [String: String] = [:]
+            if format == "clash" {
+                for proxy in root["proxies"] as? [[String: Any]] ?? [] {
+                    guard let name = string(proxy["name"]), let type = string(proxy["type"])?.lowercased(),
+                          let builtin = ["direct": "DIRECT", "reject": "REJECT", "reject-drop": "REJECT-DROP"][type] else { continue }
+                    builtinAliases[name] = builtin
+                }
+            }
+            func aliased(_ rule: RuleSchemeRuleset) -> RuleSchemeRuleset {
+                guard let builtin = builtinAliases[rule.groupName] else { return rule }
+                return RuleSchemeRuleset(groupName: builtin, resource: rule.resource, options: rule.options, provider: rule.provider)
+            }
             if format == "clash" {
                 for (name, provider) in root["proxy-providers"] as? [String: [String: Any]] ?? [:] {
                     if let address = string(provider["url"]) { sourceBindings[name] = Self.sourceURLHash(address) }
@@ -310,10 +326,10 @@ struct RuleSchemeParser {
                         }
                     }
                     guard let name = string(item["name"]), let type = string(item["type"]) else { throw RuleSchemeParseError.unsupportedSyntax }
-                    drafts.append((name, type, strings(item["proxies"]), item))
+                    drafts.append((name, type, strings(item["proxies"]).map { builtinAliases[$0] ?? $0 }, item))
                 }
                 let providers = root["rule-providers"] as? [String: [String: Any]] ?? [:]
-                for raw in strings(root["rules"]) {
+                func appendClashRule(_ raw: String) throws {
                     let fields = surgeFields(raw)
                     if fields.first?.uppercased() == "RULE-SET", fields.count >= 3 {
                         guard let provider = providers[fields[1]] else { throw RuleSchemeParseError.unsupportedSyntax }
@@ -324,19 +340,67 @@ struct RuleSchemeParser {
                         let metadata = RuleProviderMetadata(behavior: string(provider["behavior"]), format: string(provider["format"]),
                                                             interval: string(provider["interval"]).flatMap(Int.init))
                         let options = Array(fields.dropFirst(3))
+                        let policy = builtinAliases[fields[2]] ?? fields[2]
                         if string(provider["type"]) == "inline" {
                             let lines = RuleResourceContent.normalized(strings(provider["payload"]), behavior: metadata.behavior)
                             for line in lines {
-                                rules.append(.init(groupName: fields[2], resource: .inline(RuleResourceContent.applying(options, to: line))))
+                                rules.append(.init(groupName: policy, resource: .inline(RuleResourceContent.applying(options, to: line))))
                             }
                         } else {
                             guard let address = string(provider["url"]), let url = URL(string: address), url.scheme == "https" else { throw RuleSchemeParseError.unsupportedSyntax }
-                            rules.append(.init(groupName: fields[2], resource: .remote(url), options: options.isEmpty ? nil : options, provider: metadata))
+                            rules.append(.init(groupName: policy, resource: .remote(url), options: options.isEmpty ? nil : options, provider: metadata))
                         }
                     } else {
                         let canonical = fields.first?.uppercased() == "MATCH" ? "FINAL" + raw.dropFirst(5) : raw
                         guard let rule = parseSurgeRuleLine(canonical) else { throw RuleSchemeParseError.unsupportedSyntax }
-                        rules.append(rule)
+                        rules.append(aliased(rule))
+                    }
+                }
+                // mihomo sub-rules (issue #7): `SUB-RULE,(condition),name` runs
+                // the named list from `sub-rules:` for traffic the condition
+                // matches, and falls through to the next rule if nothing in the
+                // list does. The same order written as flat rules is
+                // `AND,((condition),(entry)),policy` for each entry and
+                // `condition,policy` for its MATCH. Combinations every client
+                // cannot express (a rule set inside AND) stay as rules and are
+                // skipped with a notice at export.
+                let subRules = (root["sub-rules"] as? [String: Any] ?? [:]).mapValues { strings($0) }
+                func appendSubRule(condition: String, name: String, depth: Int) throws {
+                    guard depth < 8, let entries = subRules[name] else { throw RuleSchemeParseError.unsupportedSyntax }
+                    // Parenthesis-aware: conditions and entries can be logical rules.
+                    guard let conditionFields = RoutingRuleSyntax.fields(condition), conditionFields.count >= 2 else {
+                        throw RuleSchemeParseError.unsupportedSyntax
+                    }
+                    for entry in entries {
+                        guard let fields = RoutingRuleSyntax.fields(entry), let type = fields.first?.uppercased(), fields.count >= 2 else {
+                            throw RuleSchemeParseError.unsupportedSyntax
+                        }
+                        switch type {
+                        case "MATCH", "FINAL":
+                            // Options follow the policy: `RULE-SET,name,policy,no-resolve`.
+                            let flat = Array(conditionFields.prefix(2)) + [fields[1]] + Array(conditionFields.dropFirst(2))
+                            try appendClashRule(flat.joined(separator: ","))
+                        case "SUB-RULE":
+                            guard fields.count >= 3 else { throw RuleSchemeParseError.unsupportedSyntax }
+                            try appendSubRule(condition: "AND,((\(condition)),\(fields[1]))", name: fields[2], depth: depth + 1)
+                        default:
+                            guard let rule = parseSurgeRuleLine(entry), case .inline(let body) = rule.resource else {
+                                throw RuleSchemeParseError.unsupportedSyntax
+                            }
+                            let policy = builtinAliases[rule.groupName] ?? rule.groupName
+                            rules.append(.init(groupName: policy, resource: .inline("AND,((\(condition)),(\(body)))")))
+                        }
+                    }
+                }
+                for raw in strings(root["rules"]) {
+                    let fields = RoutingRuleSyntax.fields(raw) ?? []
+                    if fields.first?.uppercased() == "SUB-RULE" {
+                        guard fields.count >= 3, fields[1].hasPrefix("("), fields[1].hasSuffix(")") else {
+                            throw RuleSchemeParseError.unsupportedSyntax
+                        }
+                        try appendSubRule(condition: String(fields[1].dropFirst().dropLast()), name: fields[2], depth: 0)
+                    } else {
+                        try appendClashRule(raw)
                     }
                 }
             } else if format == "egern" {
@@ -655,6 +719,7 @@ struct RuleSchemeParser {
         var ipv6Enabled: Bool?
         var dnsServers: [String] = []
         var encryptedDNSServers: [String] = []
+        var remoteDNSServers: [String] = []
         var proxyTestURLString: String?
         var inGeneral = false
         var inClashDNS = false
@@ -694,6 +759,9 @@ struct RuleSchemeParser {
                       let value = assignmentValue(for: "encrypted-dns-server", in: line) {
                 encryptedDNSServers += commaSeparatedValues(value)
             } else if inGeneral,
+                      let value = assignmentValue(for: "tower-remote-dns-server", in: line) {
+                remoteDNSServers += commaSeparatedValues(value)
+            } else if inGeneral,
                       let value = assignmentValue(for: "proxy-test-url", in: line)
                         ?? assignmentValue(for: "server_check_url", in: line) {
                 proxyTestURLString = value
@@ -710,10 +778,23 @@ struct RuleSchemeParser {
             case "default-nameserver":
                 dnsServers.append(value)
             case "nameserver", "fallback":
-                if isEncryptedDNS(value) {
-                    encryptedDNSServers.append(value)
+                // mihomo's `#<proxy>` suffix and a fallback list both mean a
+                // resolver meant to be reached through the proxy.
+                let parts = value.split(separator: "#", maxSplits: 1).map(String.init)
+                let options = parts.count > 1 ? parts[1].split(separator: "&").map(String.init) : []
+                var address = parts.first ?? value
+                if options.contains(where: { $0.lowercased() == "h3=true" }), address.lowercased().hasPrefix("https://") {
+                    address = "h3://" + address.dropFirst("https://".count)
+                }
+                let proxy = options.first { !$0.contains("=") }
+                let proxied = clashDNSList == "fallback"
+                    || (proxy.map { !["", "DIRECT"].contains($0.uppercased()) } ?? false)
+                if !isEncryptedDNS(address) {
+                    if !proxied { dnsServers.append(address) }
+                } else if proxied {
+                    remoteDNSServers.append(address)
                 } else {
-                    dnsServers.append(value)
+                    encryptedDNSServers.append(address)
                 }
             default:
                 break
@@ -726,6 +807,7 @@ struct RuleSchemeParser {
                 RuleSchemeNetworkSettings.normalizedPlainDNSServer
             )),
             encryptedDNSServers: unique(encryptedDNSServers),
+            remoteDNSServers: unique(remoteDNSServers),
             proxyTestURLString: proxyTestURLString
         )
         return settings.isEmpty ? nil : settings
@@ -758,7 +840,7 @@ struct RuleSchemeParser {
     }
 
     private func isEncryptedDNS(_ value: String) -> Bool {
-        ["https://", "tls://", "quic://"].contains { value.lowercased().hasPrefix($0) }
+        ["https://", "h3://", "tls://", "quic://"].contains { value.lowercased().hasPrefix($0) }
     }
 
     private func unique(_ values: [String]) -> [String] {
@@ -833,15 +915,38 @@ struct RuleSchemeParser {
             return RuleSchemeRuleset(groupName: groupName, resource: .inline(rule))
         }
 
-        if let url = acl4SSRRulesetURL(for: target, sourceURLString: sourceURLString) {
-            return RuleSchemeRuleset(groupName: groupName, resource: .remote(url))
+        // subconverter reads `ruleset=<group>,[<type>:]<url>[,<interval>]`
+        // (tindy2013/subconverter src/config/binding.h). The type prefix says
+        // which dialect the list is written in; blackmatrix7 lists are almost
+        // always referenced as `clash-classic:`.
+        var location = target
+        if let comma = location.lastIndex(of: ","),
+           Int(location[location.index(after: comma)...].trimmingCharacters(in: .whitespaces)) != nil {
+            location = String(location[..<comma]).trimmingCharacters(in: .whitespaces)
+        }
+        var provider: RuleProviderMetadata?
+        for (prefix, behavior) in Self.subconverterRulesetTypes where location.lowercased().hasPrefix(prefix) {
+            location = String(location.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+            provider = behavior.map { RuleProviderMetadata(behavior: $0, format: nil, interval: nil) }
+            break
         }
 
-        guard let url = URL(string: target),
+        if let url = acl4SSRRulesetURL(for: location, sourceURLString: sourceURLString) {
+            return RuleSchemeRuleset(groupName: groupName, resource: .remote(url), provider: provider)
+        }
+
+        guard let url = URL(string: location),
               let scheme = url.scheme?.lowercased(),
               scheme == "https" || scheme == "http" else { return nil }
-        return RuleSchemeRuleset(groupName: groupName, resource: .remote(url))
+        return RuleSchemeRuleset(groupName: groupName, resource: .remote(url), provider: provider)
     }
+
+    /// subconverter's ruleset type prefixes and the Clash provider behavior
+    /// each implies. `surge:` and `quanx:` lists are read line by line.
+    private static let subconverterRulesetTypes: [(String, String?)] = [
+        ("clash-domain:", "domain"), ("clash-ipcidr:", "ipcidr"), ("clash-classic:", "classical"),
+        ("quanx:", nil), ("surge:", nil)
+    ]
 
     /// ACL4SSR's local templates refer to subconverter's bundled checkout,
     /// not to files next to the INI or on this device. Resolve that known

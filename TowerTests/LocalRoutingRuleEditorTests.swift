@@ -76,14 +76,15 @@ final class LocalRoutingRuleEditorTests: XCTestCase {
         XCTAssertEqual(model.localRuleSets.first(where: { $0.id == set.id })?.rulesText, reject)
     }
 
-    func testIncompatibleLocalRejectBlocksExportInsteadOfBroadening() throws {
+    func testIncompatibleLocalRejectIsSkippedInsteadOfBroadening() throws {
         let scheme = try RuleSchemeParser().parse(text: "[Proxy Group]\nOpenAI = select,Test\n[Rule]\nFINAL,OpenAI", id: "ui", name: "UI", summary: "")
         let flow = CustomRuleFlow(schemeID: scheme.id, name: "QUIC", policyName: "OpenAI", rulesText: "AND,((PROTOCOL,QUIC),(DOMAIN-SUFFIX,openai.com)),REJECT")
         let selected = scheme.customized(enabledRuleGroupNames: ["OpenAI"], customRuleFlows: [flow])
         let node = ProxyNode(kind: .trojan, name: "Test", server: "example.com", port: 443, password: "test", rawURI: "")
         let result = ConfigurationGenerator().generate(nodes: [node], scheme: selected, target: .clashMi, preferRuleSets: false)
-        XCTAssertTrue(result.hasInvalidPolicyReferences)
+        XCTAssertFalse(result.hasInvalidPolicyReferences)
         XCTAssertFalse(result.content.contains("DOMAIN-SUFFIX,openai.com,REJECT"))
+        XCTAssertTrue(result.diagnostics.first?.contains("拦截规则") == true, "\(result.diagnostics)")
     }
 
     func testStoredLocalRuleRejectSurvivesPlacementAndExport() throws {
@@ -109,11 +110,27 @@ final class LocalRoutingRuleEditorTests: XCTestCase {
                 XCTAssertTrue(result.content.contains("udp"))
             } else if RoutingRuleCapabilities.compiledTargets.contains(target) {
                 XCTAssertFalse(result.hasInvalidPolicyReferences)
-                let expected = RoutingRuleCapabilities.surgeTargets.contains(target) ? reject.replacingOccurrences(of: "NETWORK", with: "PROTOCOL").replacingOccurrences(of: "DST-PORT", with: "DEST-PORT") : reject
-                XCTAssertTrue(result.content.contains(expected))
+                let expected: String
+                switch target {
+                case .surge, .surgeMac, .loon:
+                    expected = reject.replacingOccurrences(of: "NETWORK", with: "PROTOCOL").replacingOccurrences(of: "DST-PORT", with: "DEST-PORT")
+                case .shadowrocket:
+                    expected = reject.replacingOccurrences(of: "NETWORK", with: "PROTOCOL")
+                default:
+                    expected = reject
+                }
+                XCTAssertTrue(result.content.contains(expected), "\(target): \(result.content)")
                 XCTAssertTrue(result.content.contains("DOMAIN-SUFFIX,openai.com,OpenAI"))
+            } else if target == .egern {
+                XCTAssertFalse(result.hasInvalidPolicyReferences)
+                XCTAssertTrue(result.content.contains("  - and:\n      match:\n"), result.content)
+                XCTAssertTrue(result.content.contains("protocol:\n            match: \"udp\""), result.content)
             } else {
-                XCTAssertTrue(result.hasInvalidPolicyReferences, "\(target) must block unsupported REJECT conditions")
+                // QuanX has no logical rules: the reject is skipped with a
+                // notice and the plain domain rule is kept.
+                XCTAssertFalse(result.hasInvalidPolicyReferences, "\(target)")
+                XCTAssertTrue(result.diagnostics.first?.contains("拦截规则") == true, "\(target): \(result.diagnostics)")
+                XCTAssertTrue(result.content.contains("openai.com"), "\(target)")
             }
         }
     }

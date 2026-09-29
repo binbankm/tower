@@ -1,21 +1,180 @@
 # 待办与待验证
 
-这里只保留未完成事项。已实施的审查修复及测试结果见[审查报告](../plans/2026-09-05-project-audit.md)。
+这里保留未完成事项及最近一轮实测结果。已实施的审查修复及测试结果见[审查报告](../plans/2026-09-05-project-audit.md)。
+
+## Mac mini M2 实测记录（2026-09-29，进行中）
+
+环境：Mac mini M2，macOS 26.3.1(a)，塔台 1.0.21 (59) Debug Catalyst；本轮使用与当前工作区一致的源码构建。通过屏幕共享实际操作；配置文件检查、导入、启动和实际连接分别记录。
+
+| 项目 | 实际结果 | 尚待验证 |
+| --- | --- | --- |
+| 测试订阅导入 | UI 成功添加，25 个节点；原始 26 条 URI 中的 `naive+https` 未进入节点列表。其余为 VLESS 9、VMess 5、SS 4、Hysteria2 4、Trojan 3。 | Naive 输入的产品支持边界；各客户端连接结果。 |
+| ACL4SSR 全分组 → SFM 1.14.2 | 塔台一键导出成功唤起 SFM，确认导入后产生 968,630 字节完整 JSON；23 个兼容节点、2 个跳过。奈飞 selector 首项为「🚀 节点选择」，两个出站保留 uTLS。 | 系统网络扩展已获用户确认并启用；启动、内存、DNS、规则命中与连接未验收。Mac SFM 结果不等同于 iOS sing-box MT。 |
+| 远程 DNS 设置（M2 UI） | 旧方案预填 `8.8.8.8` / `1.1.1.1`；删空后保存出现「请至少保留一个远程 DNS 服务器」；保存 `8.8.8.8` 后重新一键导入 SFM，实际 `config_2.json` 的 `remote` 为 HTTPS `8.8.8.8:443`、detour 为「🚀 手动切换」。三项通过。 | 实际 DNS 请求与分流仍需启动客户端验证。 |
+| FlClash 0.8.98 手动文件导入 | 完整 YAML 在配置页添加成功并加载：25 节点、29 组、10,410 条规则；实际配置保留 `#🚀 手动切换&ecs=…` 及 `direct-nameserver`。UI 延迟测试全部节点有成功延迟（约 71–158 ms），44 XHTTP 为 127 ms、53 Encryption 为 74 ms；「奈飞视频」默认选中「🚀 节点选择」。 | SSH 经应用实际监听端口请求：gstatic 204、国内/国外站 200；连接页证实 `8.8.8.8:443` 经手动组、国内站 `GeoIP(cn)` → DIRECT、国外站经漏网之鱼 → 节点选择。测试后已停止代理。仅一键导入仍误唤起其他 Clash。 |
+| Clash Mi 1.0.30 (1605) / 官方 Tailscale | 塔台生成的完整 YAML 手动文件导入成功；扩展启用后 UI 显示已连接，实际核心为 mihomo 1.19.31。经应用的 loopback 代理访问 M4，Tailscale IP 与 MagicDNS 均首次成功返回预期正文及 HTTP 200（约 2.865 s / 35 ms）；应用实际核心 delay API 的 HTTPS 测试 25/25 成功，包括 44 XHTTP 和 53 Encryption。 | 本轮 TUN 关闭，仅验证应用实际代理服务；家里子网与重启身份复用仍待验证。首次授权后曾出现启动超时，重新连接后成功。 |
+| Clash Mi / ACL4SSR 标准保护 | UI 导入并连接完整配置，实际加载 25 节点、10,410 条规则；「奈飞视频」默认选「🚀 节点选择」。关闭客户端 DNS 覆写并重连后，实际配置保留塔台的 ECS DoH 与 direct-nameserver；日志证实 8.8.8.8:443 经手动组，国内站命中 GeoIP → 全球直连 → DIRECT（200），国外站走漏网之鱼 → 节点选择（200），gstatic 返回 204。扩展 RSS 单次快照 70,256 KiB。 | TUN 关闭，经应用实际 loopback 代理验收；严格保护与系统接管另测。客户端默认开启 DNS 覆写，直接导入会替换塔台 DNS，必须区分。 |
+| 客户端准备 | 新装官方 Clash Mi 1.0.30 (1605)、FlClash 0.8.98、Hiddify 4.1.1、SFM 1.14.2，下载包 SHA-256 与官方发布资产一致。 | 安装完成不代表兼容性通过，继续逐项实测。 |
+
+### 独立内核实测（不能替代客户端 UI / 网络扩展验收）
+
+在 M2 上运行；保留塔台导出的节点、DNS 和完整 ACL4SSR 规则，仅把入口改为 `127.0.0.1` 的独立 mixed 端口，隔离控制端口及缓存，不开启系统代理或 TUN。每个节点通过内核 delay API 实际请求 HTTPS `generate_204`，不是只测 TCP 端口；结束后测试进程均退出。
+
+| 内核 / 输入 | 结果 | 限制或发现 |
+| --- | --- | --- |
+| sing-box 1.14.2 / SFM 实际收到的 JSON | 两份完整 JSON 均 `check` 退出 0；含 11,605 条国内 CIDR 的配置成功启动；23/23 个可导出节点请求成功。含 uTLS 的 VLESS Reality + gRPC、Trojan Reality 分别为 303 / 166 ms。 | 44 XHTTP、53 VLESS Encryption 不在本目标可导出节点内；不能将 CLI 结果写成 SFM 网络扩展、iOS MT 或其他客户端通过。 |
+| sing-box 标准 DNS / 8.8.8.8 | 日志证实 DNS 的 `8.8.8.8:443` 经测试节点发出；`www.volcengine.com` 解析得到国内地址、命中 `tower-geoip-cn` 并由 `DIRECT` 连接，HTTP 200；`example.com` 走代理、HTTP 200；gstatic 返回 204。 | 单次运行 RSS 72,256 KiB（约 70.6 MiB）；不是峰值或长期内存泄漏测试。 |
+| Mihomo Party 1.5.12 自带 mihomo 1.18.10 / 本轮生成的完整 YAML | `#🚀 手动切换&ecs=114.114.114.0/24&ecs-override=true` 被接受；完整配置校验及启动通过；23/25 节点成功。 | 44 VLESS Reality XHTTP、53 VLESS Encryption 返回 delay API 503。初次 GeoIP 数据下载超时；提供本地 Country.mmdb 后校验通过，需与配置语法失败区分。 |
+| 同一 YAML / mihomo 1.19.31 | 25/25 节点成功，包括上述 44 和 53；国内测试站 200、gstatic 204、国外测试站 200。 | 单独运行新内核作为版本对照，没有据此宣称已升级或验收 Mihomo Party UI。 |
+| mihomo 标准保护 | 输出无 `fallback`、有 `direct-nameserver`，最终 GEOIP 不带 `no-resolve`；1.18.10 日志证实 8.8.8.8 经节点请求、国内站命中 `GeoIP(cn)` → `DIRECT`、国外站命中兜底代理。节点域名及国内直连的 DNS 解析成功。 | FlClash 与 Clash Mi 实际加载、标准保护分流已通过；严格保护模式仍待继续。 |
+| mihomo 1.19.31 严格保护 | M2 塔台 UI 切换严格保护并分享得到完整 FlClash 目标 YAML：25 节点、10,410 条规则，无 `fallback` / `direct-nameserver`。隔离 CLI 运行后 25/25 节点 HTTPS 请求成功；国内站 200、国外站 200、gstatic 204。日志证实 8.8.8.8:443 经手动组，国内站 GeoIP(cn) → DIRECT、国外站兜底代理。RSS 单次快照 53,888 KiB。 | CLI 测试关闭 TUN，结束后进程已退出；Clash Mi UI 已显示此文件「添加成功」，但受远程点击被识别为长按影响，尚未完成选用与连接，不算 Clash Mi 严格保护通过。 |
+| 本轮私密订阅生成回归 | `LocalCompatibilityCorpusTests` 在 iPhone 17 / iOS 26.1 模拟器通过（1 项、0 失败），生成各目标客户端的节点及完整配置。 | 只作为当前源码生成证据，不替代客户端兼容性测试。 |
+
+### 实测发现与继续条件
+
+- **FlClash 一键导出误唤起**：M2 已安装 FlClash 0.8.98 和 Clash 1.0.12；在塔台选 FlClash 并点击一键导出，实际出现 Clash 的添加配置确认框。首次启动完成后再次复测仍误唤起 Clash，两次均取消；需继续核对 macOS URL Scheme 路由，不能标为 FlClash 一键导入通过。
+- **FlClash 首次启动**：先前出现免责声明；12:28 恢复屏幕操作后弹窗已消失，可进入仪表盘及配置页。
+- **SFM 网络扩展**：导入已完成，用户确认后，SFM 与 Clash Mi 网络扩展均为 `activated enabled`；这只证明扩展已启用，尚不代表 TUN / 系统流量验收通过。
+- **屏幕控制恢复**：11:53 后曾因本机锁定中断；12:28 已恢复操作。中断期间补做 SSH 独立内核测试，继续 Hiddify DNS、Clash Mi / FlClash / Loon / Egern / Shadowrocket / QuanX 的剩余 UI、规则命中及往返测试。
+- **样本与设备边界**：本次订阅没有 AnyTLS，不能覆盖 Anywhere 的 AnyTLS 逐原因提示；没有反馈者原始 VMess 复制片段，不能关闭该项。官方 Tailscale Key 已由用户提供，M4 已在线并启动私有测试服务，M2 验证进行中；子网审批、受控 iCloud 第二设备、iPhone Instruments / 真机触摸 / VoiceOver 另需相应环境。既有明确暂缓事项不据本轮核心测速结果解除。
+
+本轮私密输入、客户端配置与详细本地证据保存在被 Git 忽略的 `.artifacts/todo-m2-20260929/`；不在本文记录订阅地址、节点凭据或设备标识。
+
+## 首页滑到底部卡顿（2026-09-29，暂缓）
+
+- 用户反馈：滑到首页底部时回弹「有点卡顿，不流畅」。已把「订阅」「自有节点」两个内层 `LazyVStack` 改回 `VStack`，用户说仍然不流畅。
+- **主要嫌疑**：自有节点卡片的 `CardSwipeDeletion`。每张卡片渲染两遍（隐藏的测量副本加一份原生 `List`），而内层改成 `VStack` 后，滑到底部附近时这些 `List` 会一次性全部创建。
+- **真机对照**：iPhone，1000 节点测试数据，其中 40 个自有节点；先滚到自有节点区，再上下滑，各 5 轮。
+  - 带滑动删除：每轮 CPU 指令 25.0M kI，CPU 时间 6.47 秒。
+  - 不带：13.1M kI（少 48%），5.14 秒。
+  - 两者帧率都约 83.7 fps，XCTHitchMetric 都记为 0 次卡顿。
+  - 这组测的是卡片已创建好之后的滚动，没有覆盖「第一次滑到底、卡片一次性创建」那一刻。按用户要求中断，没有测完。
+- **下一步**：从顶部冷启动、一路滑到底再回弹，对比带和不带滑动删除（测试写法见本次记录，未提交）。如果确认是它，可选方案：
+  - 首页卡片去掉滑动删除，删除保留在长按菜单和管理页。
+  - 自有节点区改用一个共享的 `List`。
+
+## GitHub Issues 状态（2026-09-29 核对）
+
+对照代码、HANDOFF 和实际导入逐条核对了 17 个未关闭 issue。已关闭的 issue 没有重新核对。
+
+**已完成、已随版本发布，可以回复后关闭**
+- [#17](https://github.com/pengchujin/tower/issues/17) 导出 sing-box JSON：已支持（官方 sing-box、Hiddify 两个目标）。
+- [#19](https://github.com/pengchujin/tower/issues/19) sing-box 模式切换和防 DNS 泄露：「规则判定 / 全局代理 / 直接连接」三模式和 DNS 分流从 1.0.15 起就有（同 #18）。
+- [#33](https://github.com/pengchujin/tower/issues/33) Mac 版「手动切换 / 自动选择」只有 DIRECT：1.0.19 修了一次；1.0.20 补修了缺原文的旧方案迁移，不用再删除后重新下载方案。报告者已用变通方法解决。
+- [#36](https://github.com/pengchujin/tower/issues/36) 删除规则后无法重新添加，以及 brew 警告：1.0.20 已修复，Homebrew tap 的两条弃用写法也已改正。
+- [#15](https://github.com/pengchujin/tower/issues/15) 订阅批量操作、单个订阅测速：管理页可以批量删除；订阅卡片长按菜单里有「测速」。
+
+**已完成、未发布（1.0.21 之后的提交或当前工作区）**
+- [#40](https://github.com/pengchujin/tower/issues/40) 拖动策略组导致规则优先级被改：当前工作区已修，还没提交。
+- [#37](https://github.com/pengchujin/tower/issues/37) MASQUE 节点：已支持导入和导出（`bac4ff9` 之后）。
+- [#38](https://github.com/pengchujin/tower/issues/38) 手动添加节点支持证书 SHA-256 指纹：已加「证书 SHA-256 指纹（可选）」输入框，编辑已导入节点时保留指纹。
+- [#30](https://github.com/pengchujin/tower/issues/30) 优先规则集时 AI.list 被展开：Surge 在 1.0.19 修复，Mihomo 系在 1.0.19 之后修复。「关闭优先规则集时内联规则的参数兼容」由本轮规则导出审计一并处理：参数按客户端白名单过滤。未发布。
+
+- [#7](https://github.com/pengchujin/tower/issues/7) 无法导入 echs-top/proxy：已支持 mihomo 子规则（`SUB-RULE` + `sub-rules`），未发布，见 HANDOFF。这份模板导出到 mihomo 系正常；其他客户端被「代理QUIC」组的 `PASS-RULE` 挡住，这是 mihomo 独有的策略，其他客户端没有等价写法。
+
+**部分完成**
+- [#22](https://github.com/pengchujin/tower/issues/22) Mac 闪退：已在 1.0.10 修复，地区组变 REJECT 的问题也在 1.0.11 修复。剩下 Mac 手动编辑配置时中文输入法重复出拼音，HANDOFF 里一直记为未修，需要在 Mac 上复现后再改。
+- [#31](https://github.com/pengchujin/tower/issues/31) Self-Configuration 的地区组匹配不到节点：地区按节点名匹配，名字里没有地区就进不了地区组。塔台已有节点详情里的「手动地区」，但它只影响塔台自己按 IP 库分组的内置预设和界面，不影响导入方案里按名字正则匹配的地区组。报告者想要的「重命名覆写 / 手动归类」还没做。
+- [#13](https://github.com/pengchujin/tower/issues/13) 代理链：规则定制里的策略组已有「中继（relay）」类型；节点级的前置代理（mihomo 的 `dialer-proxy`、Surge 的 `underlying-proxy`）还没有。
+
+**未做**
+- [#35](https://github.com/pengchujin/tower/issues/35) 测速后自动剔除或隐藏超时节点：没做。需要设计：连续失败多少次才剔除、刷新后是否沿用、能否一键恢复。
+- [#16](https://github.com/pengchujin/tower/issues/16) Base Profile / 原样保留模式：没做，是很大的功能，需要单独设计。
+- [#39](https://github.com/pengchujin/tower/issues/39) Nextin 模板覆写订阅：没做。这类客户端要定期去拉一个模板地址，而塔台的本机服务只绑定 127.0.0.1、3 分钟失效（CLAUDE.md #3），也不上传到第三方。可行性要先评估。
+- [#11](https://github.com/pengchujin/tower/issues/11) 支持 iOS 16：没做，最低版本仍是 iOS 17。
+
+## DNS：待真机验证与后续（2026-09-29）
+
+- **Hiddify**：按 hiddify-core `main` 分支源码（`v2/config/builder.go` 的 `BuildConfig` / `setOutbounds` / `setRoutingOptions`，`dns.go` 的 `setDns`）：
+  - Hiddify 只保留导入配置里的单个节点，`selector` / `urltest` 策略组、route 规则和 DNS 都会被它自己的设置替换。即使开了 `enable-full-config`，后面也照样整段覆盖。
+  - 分流由它的「地区」选项决定，比如选中国就用 geosite-cn / geoip-cn 直连；DNS 用它的「远程 DNS / 直连 DNS」。
+  - 也就是说，塔台给 Hiddify 生成的策略组、ACL4SSR 规则和 DNS 都不生效，给它套 `SingBoxDNSPolicy` 没有意义。
+  - **待决定**：先在 M2 上导入一次，确认 4.1.1 确实如此。确认后，Hiddify 目标改为只导出节点，并在导出页提示在 Hiddify 里把「地区」设为中国。
+
+## Codex 审查修复：待真机验证（2026-09-29）
+
+- **Loon**：确认 `AND,((DOMAIN-SUFFIX,x),(NOT,((DOMAIN,x)))),REJECT` 能导入，而且只拦子域名、不拦 x 本身。
+- **Clash Mi**：用一份每个组都带 DIRECT 的方案，确认隐藏的「DNS 自动选择」组不在界面上显示，DNS 经它走代理。
+
+## 规则优先级（issue #40 后续，2026-09-29）
+
+- **真机**：
+  - 在拖动过策略组的手机上升级，应当看到一次「规则匹配顺序已恢复…」提示。
+  - 导出后，`openai.com` 应当先命中「💬 Ai平台」。
+- **待定**：单独的「优先匹配」开关，放在策略组详情里。
+  - 只把该组规则挪到与它重叠的规则前面，复用 `customRulesetInsertionIndex` 的判定。
+  - 打开前提示会让哪些组的多少条规则不再生效。
+  - 有用户需要时再做。
+
+## 节点与策略组：待真机验证（2026-09-29）
+
+- **Anywhere**：导出页「已跳过」列表里，每个 AnyTLS 节点现在会显示具体原因。如果原因是「跳过证书校验」，说明订阅本身要求不校验证书，Anywhere 做不到；如果是某个指纹，把名字告诉开发者。
+- **ACL4SSR 全分组（订阅里没有奈飞节点时）**：「🎥 奈飞视频」的默认选项应当是「🚀 节点选择」，不再是直连。
+- **sing-box MT**：带 `client-fingerprint` 的节点能正常连接（现在会写 uTLS）。
+- **QuanX**：VLESS HTTP 伪装节点能导入、能连接。
+- **Egern**：VLESS Reality + gRPC 节点能导入、能连接。这是按文档新放开的组合，之前没有做过真机验证。
+- **Loon**：带指纹的 Reality 节点（`tls-profile`）能正常连接。
+
+## 规则导入：待真机验证（2026-09-28）
+
+真实配置测试发现的问题已全部修复，见 [RULE_EXPORT_AUDIT](RULE_EXPORT_AUDIT.md#导入这一侧真实配置测试2026-09-28-晚)。需要在手机上确认：
+
+- **666OS / qichiyuhub 这类 MRS 配置**：导入后导出到 Clash Mi（mihomo 内核），配置能加载，规则集能下载并生效；导出到其他客户端时，兼容性提示里是按规则集列出的「无法读取 MRS 规则集」，不再是几千条乱码。
+- **带 `clash-classic:` 的第三方 `.ini`**：能导入，blackmatrix7 规则集的规则都在。
+- **Surge 配置导出到其他客户端**：兼容性提示第一条是「N 条拦截规则…已跳过」，配置能正常导入。
+- **带 `encrypted-dns-server = h3://…` 的 Surge 配置**：导出到 Clash Mi 能加载（`#h3=true`），导出到 sing-box MT 时 DNS 可用。
+
+## 分流规则导出：待真机验证（2026-09-28）
+
+审计发现的问题都已修复，见 [RULE_EXPORT_AUDIT](RULE_EXPORT_AUDIT.md) 和 [HANDOFF](HANDOFF.md#未发布分流规则导出审计修复2026-09-28)。下面这些只能在真机或客户端里确认：
+
+- **Loon**
+  - 导入 ACL4SSR 全分组的完整配置，确认 8 个地区组不再报错、能正常测速。
+  - 用一份带屏蔽 QUIC 规则的 Surge 配置，确认 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT` 生效。
+  - 确认 `REJECT-IMG` 可用。
+  - 打开远程规则集后，ACL4SSR 会全部内联：看配置能否正常加载，以及加载速度。
+- **Shadowrocket**
+  - 确认 YAML 导入能识别写在策略名后面的 `pre-matching` / `extended-matching`、`REJECT-NO-DROP` / `REJECT-TINYGIF`、`AND,((PROTOCOL,UDP),(DST-PORT,443)),…`。
+  - 远程模式的 `rule-providers` 写法仍然没有验收过。
+- **QuanX**
+  - 确认 `REJECT-TINYGIF` 换成 `REJECT` 后能正常导入。第一版写成了 `reject-img`，QuanX 报「未知策略或节点」，已修正。
+  - 确认保留 `filter_remote` 时，远程列表的域名规则能命中（此时不再写 `host-keyword, .` 兜底）。
+- **Egern**
+  - 确认 `ip_cidr6`、`asn`、`domain_wildcard`、`user_agent`，以及 `and` / `not` 嵌套写法能被接受并命中。
+- **sing-box MT / Hiddify**
+  - ACL4SSR 全分组的配置现在约 0.9 MB，其中 `GEOIP,CN` 展开成约 1.16 万条 CIDR。确认导入、启动和内存都正常，国内 IP 能直连。Hiddify 的内核版本可能比官方 1.14 旧。
+- **iCloud 第二台设备**
+  - 方案同步过来、规则列表还没下载时，导出应提示「部分规则还没下载完成 · 刷新规则」并阻止导出；点「刷新规则」后应能正常导出。
+- **可能要按实测放宽的**：Loon / Shadowrocket 的 `PROCESS-NAME`、`DOMAIN-WILDCARD`（Loon）、`SRC-IP`、`SUBNET`，以及 Stash 的 `SRC-PORT` / `IN-PORT`。这些现在都按文档跳过并提示；如果客户端实测接受，再加回白名单。
 
 ## Shadowrocket 批量复制的 VMess WebSocket Host 异常（2026-09-24 邮件反馈）
 
-- 反馈者在 TestFlight 1.0.20（58）中，从 Shadowrocket 批量复制大量 VMess + WebSocket + TLS 节点，粘贴到塔台后，部分节点的 Host 显示为类似 `{"Host":"xxx.xxxx.com"}` 的 JSON 对象字符串，而不是 `xxx.xxxx.com`。2026-09-25 已用虚构旧式 VMess URI 复现 JSON obfsParam 原样落入 Host，并修复该分支；原反馈片段及 Shadowrocket 真机往返仍待确认，不能据此判断所有节点或导出格式都有同一问题。
-- 获取脱敏后的原始复制片段及对应异常节点，覆盖批量粘贴解析与保存后的 Host 显示，并检查是否有协议或来源格式差异。不要收集真实订阅链接或节点凭据。
+- 旧式 VMess URI 里 `obfsParam` 为 JSON 时原样落入 Host 的分支已于 2026-09-25 修复（`LegacyVMessTests`）。
+- 仍待：拿到反馈者脱敏后的原始复制片段，确认是不是同一个原因，并做一次 Shadowrocket 真机往返。不要收集真实订阅链接或节点凭据。
 - 反馈者另表示有多项规则调整建议，但邮件没有具体规则与预期结果；待取得脱敏示例后逐项记录。
 
 ## Tailscale：剩余验收
 
-- 已实现（见 [HANDOFF](HANDOFF.md#未发布tailscale-内网2026-09-28)）。自建 Headscale 下 Surge、Stash 3.4、Clash Mi、sing-box MT 实测通过。
-- 待用户在手机上用真实 Tailscale 账户验收一次：Surge / Stash 不填 Key、在客户端里交互登录；确认重复导入仍是同一台设备、子网路由需在管理后台批准。塔台不代用户生成 Key 或修改账户。
-- 未做：出口节点（`exit-node`）；Shadowrocket 的格式（Clash YAML 与 Surge 格式都没有注册，官方未公开字段，不要猜）；Hiddify、Karing 等其 Tailscale 出站正式发布后再评估。
-- Surge 用 Auth Key 登录时身份绑定在 Key 的哈希上：换 Key 就是新设备。不要为了“只用一次”在导出后删除 Key。
+- 已实现，见 [HANDOFF](HANDOFF.md#未发布tailscale-内网2026-09-28)。
+  - 自建 Headscale：Surge、Stash 3.4、Clash Mi、sing-box MT 实测通过。
+  - 官方 Tailscale 账户：Surge（交互登录）和 Stash（Auth Key）实测通过。
+- 本轮补充（2026-09-29）：官方 sing-box 1.14.2 在 M2 上加载塔台生成的完整 Tailscale 配置，仅以 loopback mixed 入口替换 TUN；通过 Tailscale IP / MagicDNS 分别读到 M4 私有服务的预期内容，均 HTTP 200（首次请求约 609 / 88 ms）。RSS 单次快照 77,008 KiB，结束后独立内核已退出。此结果属于 CLI，不替代 SFM / iOS MT 图形客户端验收。
+- 待验收：
+  - Clash Mi 官方账户的设备 IP / MagicDNS 访问已于本轮通过（见上表）；重启身份复用和子网访问仍待验收。
+  - sing-box MT 图形客户端官方账户验收仍待完成；本轮 CLI 结果不能替代。
+  - 官方账户下访问家里子网尚未单独验证。子网路由需要在管理后台批准。
+- 未做：
+  - 出口节点（`exit-node`）。
+  - Shadowrocket 的格式：Clash YAML 和 Surge 写法都没有向控制服务器注册，官方也没有公开字段，不要猜。
+  - Hiddify、Karing 等：等它们正式发布 Tailscale 出站后再评估。
+- Stash 以后如果能在客户端里登录（OAuth 上线），可以改成和 Surge 一样：不写 Key，改走交互登录。改之前要先实测确认：
+  - 能登录。
+  - 重复导入仍然是同一台设备。
+- **不做**：
+  - 塔台代用户登录 Tailscale、自动获取或生成 Auth Key。2026-09-28 已评估，原因见 [TAILSCALE](TAILSCALE.md#为什么塔台不能自动获取-auth-key)。塔台不代用户生成 Key，也不修改用户账户。
+  - 不要把 Auth Key 写给 Surge。Surge 按 Key 的哈希保存身份，写了就会多注册一台设备，也不要为了「只用一次」在导出后删除 Key。
 
-研究入口：[Surge](https://manual.nssurge.com/policies/tailscale.html)、[Stash](https://stash.wiki/en/proxy-protocols/proxy-types#tailscale)、[Mihomo](https://wiki.metacubex.one/en/config/proxies/tailscale/)、[sing-box](https://sing-box.sagernet.org/configuration/endpoint/tailscale/)、[Auth Key 安全](https://tailscale.com/docs/features/access-control/auth-keys/how-to/secure-auth-keys)。
+研究入口：[Surge](https://manual.nssurge.com/policies/tailscale.html)、[Stash](https://stash.wiki/en/proxy-protocols/proxy-types#tailscale)、[Mihomo](https://wiki.metacubex.one/en/config/proxies/tailscale/)、[sing-box](https://sing-box.sagernet.org/configuration/endpoint/tailscale/)、[Auth Key 安全](https://tailscale.com/docs/features/access-control/auth-keys/how-to/secure-auth-keys)、[OAuth apps](https://tailscale.com/docs/features/oauth-apps)。
 
 ## Stash 3.4：兼容性暂缓
 
@@ -29,9 +188,8 @@
 
 ## Loon 剩余节点待定位（暂缓）
 
-- 07 AnyTLS Reality、08 Trojan Reality 补齐参数后已获用户测速成功反馈，生成器修复见 HANDOFF。
-- 2026-09-06 用户要求先记文档、转查 Surge，暂停继续试改 Loon。
-- Loon 3.5.0：01/02 已经用户名引号对照实测恢复；09、10、11、13 仍失败。13 日志为 QUIC 握手超时且 UDP 收包数为 0，需进一步区分网络/服务端/客户端原因；09 需原始 Reality 参数，不能从其他节点复制公钥。
+- 2026-09-06 用户要求先记文档、转查 Surge，暂停继续试改 Loon。07、08、01、02 已修好，见 HANDOFF。
+- Loon 3.5.0：09、10、11、13 仍失败。13 日志为 QUIC 握手超时且 UDP 收包数为 0，需进一步区分网络/服务端/客户端原因；09 需原始 Reality 参数，不能从其他节点复制公钥。
 - 区分漏字段、客户端协议能力和服务端/网络故障。不要仅凭测速失败判定“不支持”并跳过；仅有协议名也不表示完整 TLS / Reality 组合可用。
 
 ## Surge 原生 SS TLS 与版本差异（暂记）
@@ -54,5 +212,5 @@
 
 - YAML 导出文件命名（2026-09-14 用户建议，待实现）：采用 `塔台-订阅备注-YYYYMMDD-HHmm.yaml`，例如 `塔台-美国节点-20260914-1418.yaml`，便于区分订阅、导出时间及备份恢复；对订阅备注中的文件名非法字符自动做安全处理。实施前明确多订阅合并导出、备注为空及同一分钟重复导出的命名规则，并验证保存与分享后的实际文件名。
 - iOS 16 兼容尚未开始，当前最低仍是 iOS 17；需要单独确认收益和替代交互，不降低现有功能质量。
-- 用真机 Instruments 测地图和大量节点切换。先收集长 body、hitch、CPU/内存证据，再决定是否后台化生成或进一步拆分视图。
+- 真机 Instruments：2026-09-27 已录制三轮并修复（iCloud 合并移出主线程、离屏渲染、规则缓存不再每次保存清空，见 HANDOFF）。还差规则缓存修复之后的一次对比录制，最好用 Release 构建。
 - [开发清单](DEVELOPMENT.md)中的真机触摸、VoiceOver、权限和分享回归不能由单元测试替代。

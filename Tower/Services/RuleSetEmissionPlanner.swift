@@ -34,10 +34,17 @@ struct RuleSetEmissionPlanner {
         case inline(InlineRule)
     }
 
+    /// A binary MRS rule set the target cannot read or reference.
+    struct UnreadableResource: Equatable {
+        let policyName: String
+        let url: URL
+    }
+
     struct Plan: Equatable {
         let entries: [Entry]
         let finalGroupName: String?
         var finalOptions: [String] = []
+        var unreadableResources: [UnreadableResource] = []
 
         var remoteResources: [RemoteResource] {
             entries.compactMap {
@@ -69,8 +76,30 @@ struct RuleSetEmissionPlanner {
         var finalGroupName: String?
         var finalOptions: [String] = []
         var remoteIndex = 0
+        // What each generic remote entry expands to if it has to be inlined.
+        var inlineFallbacks: [Int: [Entry]] = [:]
+        var unreadable: [UnreadableResource] = []
 
         for ruleset in scheme.rulesets {
+            // Only mihomo reads MRS, and it can only fetch it: there are no
+            // lines to write locally, whatever the rule-set preference.
+            if ruleset.isBinaryRuleSet, let url = ruleset.resource.downloadURL {
+                let behavior = ruleset.provider?.behavior?.lowercased()
+                if Self.mrsTargets.contains(target), behavior == "domain" || behavior == "ipcidr" {
+                    remoteIndex += 1
+                    entries.append(.remote(RemoteResource(
+                        identifier: identifier(for: url, index: remoteIndex, suffix: behavior == "ipcidr" ? "ip" : "domain"),
+                        url: url,
+                        policyName: ruleset.groupName,
+                        format: behavior == "ipcidr" ? .clashIPCIDRMRS : .clashDomainMRS,
+                        options: ruleset.options ?? [],
+                        provider: ruleset.provider
+                    )))
+                } else {
+                    unreadable.append(UnreadableResource(policyName: ruleset.groupName, url: url))
+                }
+                continue
+            }
             if ruleset.resource.domainSetURL != nil, !([.surge, .surgeMac].contains(target) && preferRuleSets) {
                 let options: [String]
                 if case .inline(let body) = ruleset.resource {
@@ -123,6 +152,9 @@ struct RuleSetEmissionPlanner {
                     isClashProviderYAML: repository.isClashProviderYAML(ruleset.resource)
                    ) {
                     remoteIndex += 1
+                    inlineFallbacks[entries.count] = RuleResourceContent.normalized(lines, behavior: ruleset.provider?.behavior).map {
+                        .inline(InlineRule(policyName: ruleset.groupName, line: RuleResourceContent.applying(ruleset.options ?? [], to: $0)))
+                    }
                     entries.append(.remote(RemoteResource(
                         identifier: identifier(for: url, index: remoteIndex),
                         url: url,
@@ -138,8 +170,23 @@ struct RuleSetEmissionPlanner {
             }
         }
 
-        return Plan(entries: entries, finalGroupName: finalGroupName, finalOptions: finalOptions)
+        // Loon and Quantumult X keep remote rule lists in their own section
+        // and match every local rule before any of them (Loon: local > plugin
+        // > remote; Quantumult X: filter_local > filter_remote). A list that
+        // came before a local rule would lose to it, so it is inlined instead.
+        if [.loon, .quanx].contains(target),
+           let lastInline = entries.lastIndex(where: { if case .inline = $0 { return true } else { return false } }) {
+            entries = entries.indices.flatMap { index -> [Entry] in
+                guard index < lastInline, let fallback = inlineFallbacks[index] else { return [entries[index]] }
+                return fallback
+            }
+        }
+
+        return Plan(entries: entries, finalGroupName: finalGroupName, finalOptions: finalOptions, unreadableResources: unreadable)
     }
+
+    /// Karing is left out: its core is sing-box, which has no MRS reader.
+    private static let mrsTargets: Set<ClientTarget> = [.clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi]
 
     /// MRS supports compact domain and CIDR tries, not the mixed `classical`
     /// grammar used by ACL4SSR. Tower therefore emits verified binary slices
@@ -276,7 +323,7 @@ struct RuleSetEmissionPlanner {
             // Shadowrocket receives a Clash-compatible YAML profile, so its
             // remote resources use Clash provider syntax. The lines inside
             // still have to stay within Shadowrocket's own rule vocabulary.
-            guard linesAreClassical(lines, allowedTypes: Self.surgeRuleTypes) else { return nil }
+            guard linesAreClassical(lines, allowedTypes: Self.shadowrocketRuleTypes) else { return nil }
             return isClashProviderYAML ? .clashProviderYAML : .classicalText
         case .loon:
             return !isClashProviderYAML && linesAreClassical(lines, allowedTypes: Self.loonRuleTypes)
@@ -395,7 +442,17 @@ struct RuleSetEmissionPlanner {
         "PROTOCOL", "SUBNET"
     ]
 
-    private static let loonRuleTypes = surgeRuleTypes
+    /// Loon's remote rule lists (nsloon.app/docs/Rule/sub_rule).
+    private static let loonRuleTypes: Set<String> = [
+        "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "IP-CIDR", "IP-CIDR6",
+        "GEOIP", "IP-ASN", "USER-AGENT", "URL-REGEX"
+    ]
+
+    /// Shadowrocket's documented rule types, without its logical rules.
+    private static let shadowrocketRuleTypes: Set<String> = [
+        "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "DOMAIN-WILDCARD", "USER-AGENT",
+        "URL-REGEX", "IP-CIDR", "IP-CIDR6", "IP-ASN", "GEOIP", "DST-PORT"
+    ]
 
     private static let quanXRuleTypes: Set<String> = [
         "host", "host-suffix", "host-keyword", "host-wildcard",

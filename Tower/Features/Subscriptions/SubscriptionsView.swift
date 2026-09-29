@@ -177,7 +177,11 @@ struct SubscriptionsView: View {
     @ViewBuilder
     private var subscriptionsSection: some View {
         if !model.subscriptions.isEmpty {
-            LazyVStack(spacing: 12) {
+            // Plain stacks inside the page's LazyVStack: nested lazy stacks
+            // measured their rows only as they scrolled in, so the content
+            // height kept changing near the bottom and the page bounced.
+            // 2026-09-07 measurements also showed more hitches with them.
+            VStack(spacing: 12) {
                 SectionHeading(title: "订阅", detail: String(localized: "\(model.subscriptions.count) 个来源"))
                 // Always the user's own order; enabled sources are not
                 // floated to the top.
@@ -200,7 +204,7 @@ struct SubscriptionsView: View {
     @ViewBuilder
     private var localNodesSection: some View {
         if !model.localNodes.isEmpty {
-            LazyVStack(spacing: 12) {
+            VStack(spacing: 12) {
                 SectionHeading(title: "自有节点", detail: String(localized: "\(model.localNodes.count) 个"))
                 ForEach(model.localNodes) { node in
                     LocalNodeCard(node: node) {

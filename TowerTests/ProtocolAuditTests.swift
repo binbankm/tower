@@ -186,11 +186,15 @@ final class ProtocolAuditTests: XCTestCase {
 
     // MARK: - Egern transports
 
-    func testEgernOnlyPairsRealityWithTCP() {
+    /// Egern documents Reality on its `tls` and `grpc` transports (proxies
+    /// page, re-read 2026-09-28); HTTP/2 stays ordinary TLS.
+    func testEgernPairsRealityOnlyWithTCPAndGRPC() {
         let grpc = ProxyNode(kind: .vless, name: "Reality gRPC", server: "e.example.com", port: 443, uuid: uuid,
                              transport: "grpc", tls: true, sni: "cover.example.com", path: "svc",
                              realityPublicKey: "LgJ9bNTyUqBLFkDA12-QgEL7c1yQ1ztk-V1Q-3OLXSk", rawURI: "")
-        XCTAssertFalse(content([grpc], .egern).contains("e.example.com"))
+        XCTAssertTrue(content([grpc], .egern).contains("          reality:"))
+        var h2 = grpc; h2.transport = "h2"; h2.server = "h2.example.com"
+        XCTAssertFalse(content([h2], .egern).contains("h2.example.com"))
         let trojanHTTP = ProxyNode(kind: .trojan, name: "T", server: "t.example.com", port: 443, password: "pw",
                                    transport: "http", tls: true, rawURI: "")
         XCTAssertFalse(content([trojanHTTP], .egern).contains("t.example.com"))

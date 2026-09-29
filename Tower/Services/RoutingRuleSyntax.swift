@@ -91,20 +91,69 @@ enum RoutingRuleSyntax {
 
 enum RoutingRuleCapabilities {
     static let mihomoTargets: Set<ClientTarget> = [.clashApple, .clashVerge, .clashMac, .flClash, .mihomoParty, .clashMi, .karing]
-    static let compiledTargets = mihomoTargets.union(surgeTargets).union([.clash])
+    static let compiledTargets = mihomoTargets.union(surgeTargets).union([.clash, .loon, .shadowrocket])
     static let surgeTargets: Set<ClientTarget> = [.surge, .surgeMac]
     static let common: Set<String> = ["DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "DOMAIN-WILDCARD", "IP-CIDR", "IP-CIDR6", "IP-ASN", "GEOIP", "PROCESS-NAME", "SRC-PORT", "IN-PORT"]
-    static let mihomo = common.union(["DOMAIN-REGEX", "GEOSITE", "IP-SUFFIX", "SRC-GEOIP", "SRC-IP-ASN", "SRC-IP-CIDR", "SRC-IP-SUFFIX", "DST-PORT", "NETWORK", "IN-TYPE", "IN-USER", "IN-NAME", "REMATCH-NAME", "PROCESS-PATH", "PROCESS-PATH-WILDCARD", "PROCESS-PATH-REGEX", "PROCESS-NAME-WILDCARD", "PROCESS-NAME-REGEX", "UID", "DSCP"])
+    // UID is left out: mihomo implements it only on Linux and Android, and on
+    // every other platform `uid rule not support this platform` fails the
+    // whole profile. Tower's mihomo targets run on macOS, iOS and Windows.
+    static let mihomo = common.union(["DOMAIN-REGEX", "GEOSITE", "IP-SUFFIX", "SRC-GEOIP", "SRC-IP-ASN", "SRC-IP-CIDR", "SRC-IP-SUFFIX", "DST-PORT", "NETWORK", "IN-TYPE", "IN-USER", "IN-NAME", "REMATCH-NAME", "PROCESS-PATH", "PROCESS-PATH-WILDCARD", "PROCESS-PATH-REGEX", "PROCESS-NAME-WILDCARD", "PROCESS-NAME-REGEX", "DSCP"])
     static let surge = common.union(["DOMAIN-SET", "RULE-SET", "DEST-PORT", "SRC-IP", "PROTOCOL", "USER-AGENT", "URL-REGEX", "SUBNET", "DEVICE-NAME", "MAC-ADDRESS", "HOSTNAME-TYPE", "CELLULAR-RADIO", "CELLULAR-CARRIER"])
+    // stash.wiki/en/rules/rule-types. SRC-PORT and IN-PORT are not listed.
+    static let stash: Set<String> = ["DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "DOMAIN-WILDCARD", "DOMAIN-REGEX", "GEOSITE", "IP-CIDR", "IP-CIDR6", "IP-ASN", "GEOIP", "DST-PORT", "NETWORK", "PROTOCOL", "PROCESS-NAME", "PROCESS-PATH", "USER-AGENT", "URL-REGEX", "SRC-IP"]
+    // nsloon.app/docs/Rule: domain, IP, HTTP, port (3.1.7+), protocol (3.1.7+)
+    // and logical (3.1.7+) rules. PROCESS-NAME, DOMAIN-WILDCARD, SRC-IP and
+    // SUBNET are not documented, so they are not written.
+    static let loon: Set<String> = ["DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "IP-CIDR", "IP-CIDR6", "GEOIP", "IP-ASN", "URL-REGEX", "USER-AGENT", "SRC-PORT", "DEST-PORT", "PROTOCOL"]
+    static let loonProtocols: Set<String> = ["HTTP", "HTTPS", "TCP", "QUIC", "STUN", "UDP"]
+    // Shadowrocket has no official reference; this follows the maintained
+    // manual (github.com/LOWERTOP/Shadowrocket, 规则类型). PROTOCOL is valid
+    // only inside a logical rule, and the port rule is spelled DST-PORT.
+    static let shadowrocket: Set<String> = ["DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "DOMAIN-WILDCARD", "USER-AGENT", "URL-REGEX", "IP-CIDR", "IP-CIDR6", "IP-ASN", "GEOIP", "DST-PORT", "PROTOCOL"]
     static let surgeOptions: Set<String> = ["no-resolve", "dns-failed", "extended-matching", "pre-matching", "notification-text", "notification-interval", "always-capture", "update-interval"]
+    /// Surge options that only change how or when a rule is evaluated, never
+    /// what it matches, so a client without them can drop them and keep the
+    /// rule. `extended-matching` also reads the HTTP Host header; mihomo and
+    /// Stash match the sniffed host anyway.
+    static let ignorableOptions: Set<String> = ["extended-matching", "pre-matching", "notification-text", "notification-interval", "always-capture"]
 
     static func optionKey(_ option: String) -> String {
         String(option.split(separator: "=", maxSplits: 1).first ?? "").lowercased()
     }
 
+    static func allowedOptions(for target: ClientTarget) -> Set<String> {
+        if surgeTargets.contains(target) { return surgeOptions }
+        switch target {
+        case .clash: return ["no-resolve", "no-track"]
+        case .shadowrocket: return ["no-resolve", "extended-matching", "pre-matching"]
+        case .loon: return ["no-resolve"]
+        default: return ["no-resolve", "src"]
+        }
+    }
+
     static func optionsSupported(_ options: [String], target: ClientTarget) -> Bool {
-        let allowed: Set<String> = surgeTargets.contains(target) ? surgeOptions : (target == .clash ? ["no-resolve", "no-track"] : ["no-resolve", "src"])
+        let allowed = allowedOptions(for: target)
         return options.allSatisfy { allowed.contains(optionKey($0)) }
+    }
+
+    /// The options in `options` the target will not receive but that can be
+    /// dropped without changing what the rule matches.
+    static func droppedOptions(_ options: [String], target: ClientTarget) -> [String] {
+        let allowed = allowedOptions(for: target)
+        return options.filter {
+            let key = optionKey($0)
+            return ignorableOptions.contains(key) && !allowed.contains(key)
+        }
+    }
+
+    /// Every ignorable option a rule line would lose on `target`, including
+    /// those on the children of a logical rule.
+    static func droppedOptions(inRule body: String, target: ClientTarget) -> [String] {
+        guard let condition = RoutingRuleSyntax.condition(body) else { return [] }
+        func collect(_ condition: RoutingRuleSyntax.Condition) -> [String] {
+            droppedOptions(condition.options, target: target) + (condition.children ?? []).flatMap(collect)
+        }
+        return collect(condition)
     }
 
     static func render(_ body: String, policy: String, target: ClientTarget) -> String? {
@@ -125,8 +174,12 @@ enum RoutingRuleCapabilities {
         let isMihomo = mihomoTargets.contains(target)
         let isSurge = surgeTargets.contains(target)
         let isStash = target == .clash
-        guard isMihomo || isSurge || isStash else { return nil }
+        let isLoon = target == .loon
+        let isShadowrocket = target == .shadowrocket
+        guard isMihomo || isSurge || isStash || isLoon || isShadowrocket else { return nil }
         var result = original
+        let dropped = droppedOptions(result.options, target: target)
+        result.options.removeAll { dropped.contains($0) }
         if let children = original.children {
             guard !isSurge || depth < 10 else { return nil }
             let converted = children.compactMap { convert($0, target: target, depth: depth + 1) }
@@ -137,9 +190,10 @@ enum RoutingRuleCapabilities {
         }
         if result.type == "IP6-CIDR" { result.type = "IP-CIDR6" }
         let value = RoutingRuleSyntax.unquote(result.value)
+        // Only Surge documents quoting a comma inside a value; mihomo's CSV
+        // parser splits it, and Stash, Loon and Shadowrocket say nothing.
+        guard isSurge || !value.contains(",") else { return nil }
         if isMihomo {
-            // Mihomo's rule CSV parser cannot quote a comma inside a leaf value.
-            guard !value.contains(",") else { return nil }
             switch result.type {
             case "DEST-PORT": result.type = "DST-PORT"
             case "PROTOCOL":
@@ -158,8 +212,40 @@ enum RoutingRuleCapabilities {
             guard mihomo.contains(result.type) else { return nil }
         } else if isStash {
             if result.type == "DEST-PORT" { result.type = "DST-PORT" }
-            let types = common.union(["DOMAIN-REGEX", "GEOSITE", "NETWORK", "DST-PORT", "PROTOCOL", "PROCESS-PATH", "USER-AGENT", "URL-REGEX", "RULE-SET", "DOMAIN-SET", "SRC-IP"])
-            guard types.contains(result.type) else { return nil }
+            guard stash.contains(result.type) else { return nil }
+        } else if isLoon || isShadowrocket {
+            // Neither client has a source-address form of an IP rule.
+            guard !result.options.contains("src") else { return nil }
+            switch result.type {
+            // Loon has no wildcard rule. `*.example.com` matches every
+            // subdomain but not example.com itself, so it becomes a suffix
+            // rule minus the apex (logical rules, Loon 3.1.7+): a bare suffix
+            // rule would also block or route the apex (CLAUDE.md #25). Any
+            // other pattern cannot be written without regular expressions.
+            case "DOMAIN-WILDCARD" where isLoon:
+                if !value.contains("*") && !value.contains("?") {
+                    result.type = "DOMAIN"
+                } else if value.hasPrefix("*."), !value.dropFirst(2).contains(where: { $0 == "*" || $0 == "?" }) {
+                    let apex = String(value.dropFirst(2))
+                    let notApex = RoutingRuleSyntax.Condition(type: "NOT", value: "", options: [],
+                        children: [.init(type: "DOMAIN", value: apex, options: [])])
+                    return .init(type: "AND", value: "", options: result.options,
+                        children: [.init(type: "DOMAIN-SUFFIX", value: apex, options: []), notApex])
+                } else {
+                    return nil
+                }
+            case "DST-PORT", "DEST-PORT": result.type = isLoon ? "DEST-PORT" : "DST-PORT"
+            case "NETWORK", "PROTOCOL":
+                let name = value.uppercased()
+                if isLoon {
+                    guard loonProtocols.contains(name) else { return nil }
+                } else {
+                    guard depth > 0, ["TCP", "UDP"].contains(name) else { return nil }
+                }
+                result.type = "PROTOCOL"; result.value = name
+            default: break
+            }
+            guard (isLoon ? loon : shadowrocket).contains(result.type) else { return nil }
         } else {
             if result.options.contains("src") {
                 guard ["IP-CIDR", "IP-CIDR6"].contains(result.type) else { return nil }
@@ -188,7 +274,7 @@ enum RoutingRuleCapabilities {
         guard optionsSupported(result.options, target: target) else { return nil }
         if ["DST-PORT", "DEST-PORT", "SRC-PORT", "IN-PORT"].contains(result.type) {
             guard let ranges = portRanges(value) else { return nil }
-            if isSurge, ranges.count > 1 {
+            if isSurge || isLoon || isShadowrocket, ranges.count > 1 {
                 let children = ranges.map { RoutingRuleSyntax.Condition(type: result.type, value: $0, options: []) }
                 return .init(type: "OR", value: "", options: result.options, children: children)
             }
@@ -210,7 +296,7 @@ enum RoutingRuleCapabilities {
         return value
     }
 
-    private static func portRanges(_ value: String) -> [String]? {
+    static func portRanges(_ value: String) -> [String]? {
         var result: [String] = []
         for part in value.split(separator: "/", omittingEmptySubsequences: false) {
             let text = String(part)
@@ -235,33 +321,102 @@ enum RoutingBuiltinPolicies {
     static let common: Set<String> = ["DIRECT", "REJECT", "REJECT-DROP"]
     static let mihomo: Set<String> = ["PASS", "PASS-RULE", "COMPATIBLE"]
     static let surge: Set<String> = ["REJECT-NO-DROP", "REJECT-TINYGIF", "CELLULAR", "CELLULAR-ONLY", "HYBRID", "NO-HYBRID"]
-    static let canonical = common.union(mihomo).union(surge)
+    /// Loon's 1x1 image reject (nsloon.app/docs/Policy), only ever written as
+    /// the stand-in for Surge's REJECT-TINYGIF. Quantumult X has `reject-img`
+    /// only as a rewrite action; its filters know `reject` alone and refuse
+    /// the whole profile over an unknown policy.
+    static let imageReject = "REJECT-IMG"
+    static let canonical = common.union(mihomo).union(surge).union([imageReject])
     static let names = canonical.union(canonical.map { $0.lowercased() })
 
     static func supports(_ policy: String, target: ClientTarget) -> Bool {
         let name = policy.uppercased()
         if ["DIRECT", "REJECT"].contains(name) { return true }
         if name == "REJECT-DROP" { return target.usesClashFormat || [.surge, .surgeMac, .loon, .shadowrocket].contains(target) }
+        if name == imageReject { return target == .loon }
         if mihomo.contains(name) { return RoutingRuleCapabilities.mihomoTargets.contains(target) }
+        // Shadowrocket documents both of these rejects (LOWERTOP manual, 规则策略).
+        if target == .shadowrocket, ["REJECT-NO-DROP", "REJECT-TINYGIF"].contains(name) { return true }
         if surge.contains(name) {
             return target == .surge || (target == .surgeMac && name.hasPrefix("REJECT-"))
         }
         return false
+    }
+
+    /// The closest built-in the target has for a Surge reject it lacks. The
+    /// request is still refused; only the reply differs (an image, or an
+    /// ICMP error instead of a drop). Nil when the target already supports
+    /// the policy or no reject stands in for it.
+    static func substitute(for policy: String, target: ClientTarget) -> String? {
+        guard !supports(policy, target: target) else { return nil }
+        switch policy.uppercased() {
+        case "REJECT-TINYGIF":
+            return target == .loon ? imageReject : "REJECT"
+        case "REJECT-NO-DROP", "REJECT-DROP":
+            return "REJECT"
+        default:
+            return nil
+        }
     }
 }
 
 extension RoutingRuleCapabilities {
     /// sing-box logical rules keep the original expression tree, so an AND
     /// blocking UDP 443 never becomes a domain-wide reject.
-    static func singBoxCondition(_ body: String) -> [String: Any]? {
+    /// `localRuleSets` writes GEOIP and IP-ASN as references to inline rule
+    /// sets (`localRuleSetDefinitions`) instead of repeating thousands of
+    /// ranges at every use; DNS rules then share the same set.
+    static func singBoxCondition(_ body: String, localRuleSets: Bool = false) -> [String: Any]? {
         guard let condition = RoutingRuleSyntax.condition(body) else { return nil }
-        return singBoxCondition(condition)
+        return singBoxCondition(condition, localRuleSets: localRuleSets)
     }
 
-    private static func singBoxCondition(_ condition: RoutingRuleSyntax.Condition) -> [String: Any]? {
-        guard condition.options.allSatisfy({ ["src", "no-resolve"].contains($0) }) else { return nil }
+    static let localGeoIPPrefix = "tower-geoip-"
+    static let localASNPrefix = "tower-asn-"
+
+    /// Inline definitions for every local rule set tag referenced anywhere in
+    /// `object` (route rules, DNS rules, nested logical rules).
+    static func localRuleSetDefinitions(referencedIn object: Any) -> [[String: Any]] {
+        var tags: [String] = []
+        func scan(_ value: Any) {
+            if let dictionary = value as? [String: Any] {
+                if let sets = dictionary["rule_set"] as? [String] {
+                    tags += sets.filter { $0.hasPrefix(localGeoIPPrefix) || $0.hasPrefix(localASNPrefix) }
+                }
+                dictionary.values.forEach(scan)
+            } else if let array = value as? [Any] {
+                array.forEach(scan)
+            }
+        }
+        scan(object)
+        var seen = Set<String>()
+        return tags.filter { seen.insert($0).inserted }.compactMap { tag in
+            let cidrs: [String]
+            if tag.hasPrefix(localGeoIPPrefix) {
+                cidrs = IPCountryDatabase.cidrs(forCountry: String(tag.dropFirst(localGeoIPPrefix.count)))
+            } else if let asn = UInt32(tag.dropFirst(localASNPrefix.count)) {
+                cidrs = IPASNDatabase.cidrs(forASN: asn)
+            } else {
+                cidrs = []
+            }
+            return cidrs.isEmpty ? nil : ["type": "inline", "tag": tag, "rules": [["ip_cidr": cidrs]]]
+        }
+    }
+
+    /// A rule set's addresses match the destination unless the rule asks for
+    /// its source instead (`rule_set_ip_cidr_match_source`, sing-box 1.10+).
+    private static func singBoxAddressCondition(_ cidrs: [String], ruleSet: String, source: Bool,
+                                                localRuleSets: Bool) -> [String: Any] {
+        guard localRuleSets else { return [source ? "source_ip_cidr" : "ip_cidr": cidrs] }
+        var result: [String: Any] = ["rule_set": [ruleSet]]
+        if source { result["rule_set_ip_cidr_match_source"] = true }
+        return result
+    }
+
+    private static func singBoxCondition(_ condition: RoutingRuleSyntax.Condition, localRuleSets: Bool) -> [String: Any]? {
+        guard condition.options.allSatisfy({ ["src", "no-resolve"].contains($0) || ignorableOptions.contains(optionKey($0)) }) else { return nil }
         if let children = condition.children {
-            let mapped = children.compactMap(singBoxCondition)
+            let mapped = children.compactMap { singBoxCondition($0, localRuleSets: localRuleSets) }
             guard mapped.count == children.count else { return nil }
             var rule: [String: Any] = ["type": "logical", "mode": condition.type == "OR" ? "or" : "and", "rules": mapped]
             if condition.type == "NOT" { rule["invert"] = true }
@@ -279,6 +434,28 @@ extension RoutingRuleCapabilities {
         case "IP-CIDR", "IP-CIDR6", "IP6-CIDR":
             return [condition.options.contains("src") ? "source_ip_cidr" : "ip_cidr": [value]]
         case "SRC-IP", "SRC-IP-CIDR": return ["source_ip_cidr": [value]]
+        case "GEOIP":
+            // sing-box 1.12 removed its GeoIP database. LAN is Surge's and
+            // mihomo's name for the private ranges; a country is spelled out
+            // from the offline database the app already ships. `src` matches
+            // the connection's source, not its destination.
+            let source = condition.options.contains("src")
+            if ["LAN", "PRIVATE"].contains(value.uppercased()) {
+                return [source ? "source_ip_is_private" : "ip_is_private": true]
+            }
+            let cidrs = IPCountryDatabase.cidrs(forCountry: value)
+            guard !cidrs.isEmpty else { return nil }
+            return singBoxAddressCondition(cidrs, ruleSet: localGeoIPPrefix + value.lowercased(),
+                                           source: source, localRuleSets: localRuleSets)
+        case "IP-ASN":
+            // sing-box has no ASN matcher; the bundled ASN database lists the
+            // ranges an AS originates, as it does for node network names.
+            let digits = value.uppercased().hasPrefix("AS") ? String(value.dropFirst(2)) : value
+            guard let asn = UInt32(digits) else { return nil }
+            let cidrs = IPASNDatabase.cidrs(forASN: asn)
+            guard !cidrs.isEmpty else { return nil }
+            return singBoxAddressCondition(cidrs, ruleSet: localASNPrefix + String(asn),
+                                           source: condition.options.contains("src"), localRuleSets: localRuleSets)
         case "NETWORK":
             guard ["tcp", "udp"].contains(value.lowercased()) else { return nil }
             return ["network": [value.lowercased()]]

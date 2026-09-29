@@ -102029,6 +102029,2450 @@
           }
         }
       }
+    },
+    "已将内置策略 %@ 转换为 %@。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تحويل السياسة المضمنة %1$@ إلى %2$@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die integrierte Richtlinie %1$@ wurde in %2$@ umgewandelt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Converted the built-in policy %1$@ to %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se convirtió la política integrada %1$@ en %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La stratégie intégrée %1$@ a été convertie en %2$@."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kebijakan bawaan %1$@ diubah menjadi %2$@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "組み込みポリシー %1$@ を %2$@ に変換しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본 제공 정책 %1$@을(를) %2$@(으)로 변환했습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A política integrada %1$@ foi convertida em %2$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Встроенная политика %1$@ заменена на %2$@."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แปลงนโยบายในตัว %1$@ เป็น %2$@ แล้ว"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yerleşik politika %1$@, %2$@ olarak dönüştürüldü."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chuyển chính sách tích hợp %1$@ thành %2$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已将内置策略 %1$@ 转换为 %2$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已將內建策略 %1$@ 轉換為 %2$@。"
+          }
+        }
+      }
+    },
+    "已忽略当前客户端不支持的规则参数：%@。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تجاهل خيارات القواعد غير المدعومة من قبل العميل الحالي: %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vom aktuellen Client nicht unterstützte Regeloptionen wurden ignoriert: %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignored rule options the current client does not support: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se ignoraron las opciones de regla que el cliente actual no admite: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Options de règle non prises en charge par le client actuel ignorées : %@."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opsi aturan yang tidak didukung klien saat ini diabaikan: %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のクライアントがサポートしていないルールオプションを無視しました：%@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 클라이언트에서 지원하지 않는 규칙 옵션을 무시했습니다: %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As opções de regra não suportadas pelo cliente atual foram ignoradas: %@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Параметры правил, которые не поддерживает текущий клиент, пропущены: %@."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ละเว้นตัวเลือกกฎที่ไคลเอนต์ปัจจุบันไม่รองรับ: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geçerli istemcinin desteklemediği kural seçenekleri göz ardı edildi: %@."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã bỏ qua các tùy chọn quy tắc mà ứng dụng khách hiện tại không hỗ trợ: %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已忽略当前客户端不支持的规则参数：%@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已忽略目前客戶端不支援的規則參數：%@。"
+          }
+        }
+      }
+    },
+    "%@ 无法读取 MRS 规则集，已跳过：%@（%@）。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يستطيع %1$@ قراءة مجموعات قواعد MRS؛ تم تخطي %2$@ (%3$@)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ kann keine MRS-Regelsätze lesen; %2$@ (%3$@) wurde übersprungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ cannot read MRS rule sets; skipped %2$@ (%3$@)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ no puede leer conjuntos de reglas MRS; se omitió %2$@ (%3$@)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ne peut pas lire les ensembles de règles MRS ; %2$@ (%3$@) a été ignoré."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ tidak dapat membaca set aturan MRS; %2$@ (%3$@) dilewati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ は MRS ルールセットを読み込めないため、%2$@（%3$@）をスキップしました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@에서 MRS 규칙 세트를 읽을 수 없어 %2$@(%3$@)을(를) 건너뛰었습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ não consegue ler conjuntos de regras MRS; %2$@ (%3$@) foi ignorado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ не читает наборы правил MRS; пропущено: %2$@ (%3$@)."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ อ่านชุดกฎ MRS ไม่ได้ จึงข้าม %2$@ (%3$@)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ MRS kural setlerini okuyamaz; %2$@ (%3$@) atlandı."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ không đọc được bộ quy tắc MRS; đã bỏ qua %2$@ (%3$@)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 无法读取 MRS 规则集，已跳过：%2$@（%3$@）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 無法讀取 MRS 規則集，已略過：%2$@（%3$@）。"
+          }
+        }
+      }
+    },
+    "%lld 条拦截规则无法在 %@ 中表达，已跳过：这些请求不会被拦截。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر التعبير عن %1$lld من قواعد الحظر في %2$@ فتم تخطيها: لن يتم حظر هذه الطلبات."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld Sperrregeln lassen sich in %2$@ nicht ausdrücken und wurden übersprungen: Diese Anfragen werden nicht blockiert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld blocking rules cannot be expressed in %2$@ and were skipped: those requests will not be blocked."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld reglas de bloqueo no se pueden expresar en %2$@ y se omitieron: esas solicitudes no se bloquearán."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld règles de blocage ne peuvent pas être exprimées dans %2$@ et ont été ignorées : ces requêtes ne seront pas bloquées."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld aturan pemblokiran tidak dapat dinyatakan di %2$@ dan dilewati: permintaan tersebut tidak akan diblokir."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 件のブロックルールは %2$@ で表現できないためスキップしました。これらのリクエストはブロックされません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "차단 규칙 %1$lld개는 %2$@에서 표현할 수 없어 건너뛰었습니다. 해당 요청은 차단되지 않습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld regras de bloqueio não podem ser expressas no %2$@ e foram ignoradas: essas solicitações não serão bloqueadas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Правил блокировки, которые нельзя выразить в %2$@: %1$lld. Они пропущены, эти запросы не будут блокироваться."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "กฎการบล็อก %1$lld ข้อไม่สามารถเขียนใน %2$@ ได้จึงถูกข้าม คำขอเหล่านั้นจะไม่ถูกบล็อก"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld engelleme kuralı %2$@ içinde ifade edilemediği için atlandı: bu istekler engellenmeyecek."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld quy tắc chặn không thể biểu diễn trong %2$@ nên đã bị bỏ qua: các yêu cầu đó sẽ không bị chặn."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 条拦截规则无法在 %2$@ 中表达，已跳过：这些请求不会被拦截。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 條攔截規則無法在 %2$@ 中表達，已略過：這些請求不會被攔截。"
+          }
+        }
+      }
+    },
+    "Anywhere 总是校验服务器证书，无法保留此节点的“跳过证书校验”，导出后会连接失败。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتحقق Anywhere دائمًا من شهادة الخادم ولا يمكنه الإبقاء على «تخطي التحقق من الشهادة» لهذه العقدة؛ وعند التصدير سيفشل الاتصال."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere prüft das Serverzertifikat immer und kann „Zertifikatsprüfung überspringen“ für diesen Knoten nicht übernehmen; exportiert würde die Verbindung fehlschlagen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere always verifies the server certificate and cannot keep this node's “skip certificate verification”; exported, it would fail to connect."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere siempre verifica el certificado del servidor y no puede conservar la opción de omitir la verificación de este nodo; exportado, no podría conectarse."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere vérifie toujours le certificat du serveur et ne peut pas conserver l’option « ignorer la vérification du certificat » de ce nœud ; exporté, il ne se connecterait pas."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere selalu memverifikasi sertifikat server dan tidak dapat mempertahankan “lewati verifikasi sertifikat” node ini; jika diekspor, koneksi akan gagal."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere は常にサーバー証明書を検証するため、このノードの「証明書検証をスキップ」を維持できず、エクスポートしても接続できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere는 항상 서버 인증서를 검증하므로 이 노드의 '인증서 검증 건너뛰기'를 유지할 수 없으며, 내보내도 연결에 실패합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Anywhere sempre verifica o certificado do servidor e não mantém a opção de ignorar a verificação deste nó; exportado, não conseguiria se conectar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere всегда проверяет сертификат сервера и не может сохранить для этого узла пропуск проверки сертификата; после экспорта подключение не удастся."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ตรวจสอบใบรับรองเซิร์ฟเวอร์เสมอ จึงคงการตั้งค่า “ข้ามการตรวจสอบใบรับรอง” ของโหนดนี้ไว้ไม่ได้ หากส่งออกจะเชื่อมต่อไม่สำเร็จ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere sunucu sertifikasını her zaman doğrular ve bu düğümün “sertifika doğrulamasını atla” ayarını koruyamaz; dışa aktarılırsa bağlanamaz."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere luôn xác minh chứng chỉ máy chủ nên không giữ được tùy chọn “bỏ qua xác minh chứng chỉ” của nút này; nếu xuất ra sẽ không kết nối được."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 总是校验服务器证书，无法保留此节点的“跳过证书校验”，导出后会连接失败。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 一律驗證伺服器憑證，無法保留此節點的「略過憑證驗證」，匯出後會無法連線。"
+          }
+        }
+      }
+    },
+    "Anywhere 不支持证书指纹固定。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يدعم Anywhere تثبيت الشهادة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere unterstützt kein Zertifikat-Pinning."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere does not support certificate pinning."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere no admite la fijación de certificados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ne prend pas en charge l’épinglage de certificat."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere tidak mendukung penyematan sertifikat."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere は証明書ピンニングに対応していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere는 인증서 고정을 지원하지 않습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Anywhere não suporta fixação de certificado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere не поддерживает закрепление сертификата."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ไม่รองรับการตรึงใบรับรอง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere sertifika sabitlemeyi desteklemiyor."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere không hỗ trợ ghim chứng chỉ."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 不支持证书指纹固定。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 不支援憑證指紋固定。"
+          }
+        }
+      }
+    },
+    "Anywhere 无法关闭此节点的 UDP 转发。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يستطيع Anywhere إيقاف ترحيل UDP لهذه العقدة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere kann die UDP-Weiterleitung für diesen Knoten nicht abschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere cannot turn off UDP relay for this node."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere no puede desactivar el reenvío UDP de este nodo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ne peut pas désactiver le relais UDP de ce nœud."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere tidak dapat menonaktifkan relai UDP untuk node ini."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere はこのノードの UDP リレーをオフにできません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere는 이 노드의 UDP 릴레이를 끌 수 없습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Anywhere não consegue desativar o encaminhamento UDP deste nó."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere не может отключить ретрансляцию UDP для этого узла."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ปิดการส่งต่อ UDP ของโหนดนี้ไม่ได้"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere bu düğüm için UDP aktarımını kapatamaz."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere không thể tắt chuyển tiếp UDP cho nút này."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 无法关闭此节点的 UDP 转发。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 無法關閉此節點的 UDP 轉送。"
+          }
+        }
+      }
+    },
+    "Anywhere 不支持 TLS 指纹 %@。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يدعم Anywhere بصمة TLS %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere unterstützt den TLS-Fingerabdruck %@ nicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere does not support the TLS fingerprint %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere no admite la huella TLS %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ne prend pas en charge l’empreinte TLS %@."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere tidak mendukung sidik jari TLS %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere は TLS フィンガープリント %@ に対応していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere는 TLS 지문 %@을(를) 지원하지 않습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Anywhere não suporta a impressão digital TLS %@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere не поддерживает TLS-отпечаток %@."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ไม่รองรับลายนิ้วมือ TLS %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere %@ TLS parmak izini desteklemiyor."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere không hỗ trợ dấu vân tay TLS %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 不支持 TLS 指纹 %@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 不支援 TLS 指紋 %@。"
+          }
+        }
+      }
+    },
+    "Anywhere 不支持此节点的端口跳跃或插件。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يدعم Anywhere تنقل المنافذ أو الإضافة لهذه العقدة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere unterstützt Port-Hopping oder das Plugin dieses Knotens nicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere does not support this node's port hopping or plugin."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere no admite el salto de puertos ni el plugin de este nodo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ne prend pas en charge le saut de port ni le plugin de ce nœud."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere tidak mendukung lompatan port atau plugin node ini."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere はこのノードのポートホッピングやプラグインに対応していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere는 이 노드의 포트 호핑이나 플러그인을 지원하지 않습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Anywhere não suporta o salto de portas nem o plugin deste nó."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere не поддерживает смену портов или плагин этого узла."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere ไม่รองรับการสลับพอร์ตหรือปลั๊กอินของโหนดนี้"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere bu düğümün port atlamasını veya eklentisini desteklemiyor."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere không hỗ trợ nhảy cổng hoặc plugin của nút này."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 不支持此节点的端口跳跃或插件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 不支援此節點的連接埠跳躍或外掛。"
+          }
+        }
+      }
+    },
+    "Anywhere 只有 VLESS 支持 Reality 和 TCP 以外的传输方式。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في Anywhere، يدعم VLESS فقط Reality ووسائل النقل غير TCP."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Anywhere unterstützt nur VLESS Reality und andere Transporte als TCP."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Anywhere, only VLESS supports Reality and transports other than TCP."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En Anywhere, solo VLESS admite Reality y transportes distintos de TCP."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans Anywhere, seul VLESS prend en charge Reality et les transports autres que TCP."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Di Anywhere, hanya VLESS yang mendukung Reality dan transport selain TCP."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere では、Reality と TCP 以外のトランスポートに対応するのは VLESS だけです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere에서는 VLESS만 Reality와 TCP 이외의 전송 방식을 지원합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Anywhere, apenas o VLESS suporta Reality e transportes além de TCP."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В Anywhere только VLESS поддерживает Reality и транспорты, кроме TCP."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใน Anywhere มีเพียง VLESS ที่รองรับ Reality และการส่งผ่านนอกเหนือจาก TCP"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere'de Reality'yi ve TCP dışındaki aktarımları yalnızca VLESS destekler."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trong Anywhere, chỉ VLESS hỗ trợ Reality và các phương thức truyền khác TCP."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anywhere 只有 VLESS 支持 Reality 和 TCP 以外的传输方式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Anywhere 中，只有 VLESS 支援 Reality 和 TCP 以外的傳輸方式。"
+          }
+        }
+      }
+    },
+    "策略组“%@”没有可用节点：其他策略组不再引用它，规则直接指向它时走直连。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا تحتوي مجموعة السياسات «%@» على عقد صالحة: لم تعد المجموعات الأخرى تشير إليها، والقواعد التي تشير إليها مباشرة تتصل مباشرة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Richtliniengruppe „%@“ hat keine nutzbaren Knoten: Andere Gruppen verweisen nicht mehr auf sie, und Regeln, die direkt auf sie zeigen, verbinden direkt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Policy group “%@” has no usable nodes: other groups no longer include it, and rules that point to it go direct."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El grupo de políticas “%@” no tiene nodos utilizables: los demás grupos ya no lo incluyen y las reglas que apuntan a él van en directo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le groupe de stratégies « %@ » n’a aucun nœud utilisable : les autres groupes ne l’incluent plus et les règles qui le visent passent en direct."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grup kebijakan “%@” tidak memiliki node yang dapat dipakai: grup lain tidak lagi merujuknya, dan aturan yang langsung menunjuk ke sana memakai koneksi langsung."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ポリシーグループ「%@」に使用できるノードがありません。ほかのグループからは外し、直接指すルールは直接接続になります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "정책 그룹 '%@'에 사용할 수 있는 노드가 없습니다. 다른 그룹에서는 제외되며, 이 그룹을 직접 가리키는 규칙은 직접 연결됩니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O grupo de políticas “%@” não tem nós utilizáveis: os outros grupos não o incluem mais, e as regras que apontam para ele vão direto."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В группе политик «%@» нет пригодных узлов: другие группы больше на неё не ссылаются, а правила, указывающие на неё, идут напрямую."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "กลุ่มนโยบาย “%@” ไม่มีโหนดที่ใช้ได้ กลุ่มอื่นจะไม่อ้างถึงกลุ่มนี้อีก และกฎที่ชี้มาที่กลุ่มนี้โดยตรงจะเชื่อมต่อโดยตรง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” politika grubunda kullanılabilir düğüm yok: diğer gruplar artık ona başvurmuyor, doğrudan onu gösteren kurallar doğrudan bağlanır."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhóm chính sách “%@” không có nút dùng được: các nhóm khác không còn tham chiếu đến nó, và quy tắc trỏ thẳng đến nó sẽ đi trực tiếp."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "策略组“%@”没有可用节点：其他策略组不再引用它，规则直接指向它时走直连。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "策略組「%@」沒有可用節點：其他策略組不再引用它，規則直接指向它時走直連。"
+          }
+        }
+      }
+    },
+    "只使用当前方案的 DNS，不额外启用 Fake-IP 或 DNS 接管。Clash 系客户端会先在本机解析每个域名。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يستخدم DNS الخاص بهذا المخطط فقط، دون Fake-IP أو الاستحواذ على DNS. تحلّ عملاء Clash كل نطاق على الجهاز أولاً."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwendet nur das DNS dieses Schemas, ohne Fake-IP oder DNS-Übernahme. Clash-basierte Clients lösen jede Domain zuerst auf dem Gerät auf."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses only this scheme's DNS, without Fake-IP or DNS takeover. Clash-based clients resolve every domain on the device first."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa solo el DNS de este esquema, sin Fake-IP ni control del DNS. Los clientes basados en Clash resuelven primero cada dominio en el dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilise uniquement le DNS de ce schéma, sans Fake-IP ni prise en charge du DNS. Les clients basés sur Clash résolvent d’abord chaque domaine sur l’appareil."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hanya memakai DNS skema ini, tanpa Fake-IP atau pengambilalihan DNS. Klien berbasis Clash menyelesaikan setiap domain di perangkat terlebih dahulu."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスキームの DNS のみを使い、Fake-IP や DNS の引き継ぎは行いません。Clash 系クライアントはすべてのドメインをまず端末で解決します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 구성의 DNS만 사용하며 Fake-IP나 DNS 가로채기를 사용하지 않습니다. Clash 계열 클라이언트는 모든 도메인을 먼저 기기에서 확인합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa apenas o DNS deste esquema, sem Fake-IP nem controle do DNS. Clientes baseados em Clash resolvem cada domínio primeiro no dispositivo."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использует только DNS этой схемы, без Fake-IP и перехвата DNS. Клиенты на базе Clash сначала разрешают каждый домен на устройстве."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้เฉพาะ DNS ของแผนนี้ โดยไม่เปิด Fake-IP หรือการรับช่วง DNS ไคลเอนต์ตระกูล Clash จะแปลงทุกโดเมนบนอุปกรณ์ก่อน"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yalnızca bu şemanın DNS'ini kullanır; Fake-IP veya DNS devralma yoktur. Clash tabanlı istemciler her alan adını önce cihazda çözer."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ dùng DNS của phương án này, không bật Fake-IP hay tiếp quản DNS. Ứng dụng họ Clash sẽ phân giải mọi tên miền trên thiết bị trước."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只使用当前方案的 DNS，不额外启用 Fake-IP 或 DNS 接管。Clash 系客户端会先在本机解析每个域名。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只使用目前方案的 DNS，不額外啟用 Fake-IP 或 DNS 接管。Clash 系用戶端會先在本機解析每個網域。"
+          }
+        }
+      }
+    },
+    "国内和直连域名用国内 DNS，其余域名交给代理或经代理的远程 DNS，不会发给国内 DNS。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تستخدم النطاقات المحلية والمباشرة DNS المحلي؛ وكل ما عدا ذلك يذهب إلى الوكيل أو إلى DNS البعيد عبر الوكيل، ولا يُرسل أبدًا إلى DNS المحلي."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inländische und direkte Domains nutzen inländisches DNS; alles andere geht an den Proxy oder über den Proxy an Remote-DNS, nie an inländisches DNS."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domestic and direct domains use domestic DNS; everything else goes to the proxy or to remote DNS through the proxy, never to domestic DNS."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los dominios nacionales y directos usan DNS nacional; el resto va al proxy o al DNS remoto a través del proxy, nunca al DNS nacional."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les domaines nationaux et directs utilisent le DNS national ; le reste passe par le proxy ou par un DNS distant via le proxy, jamais par le DNS national."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domain domestik dan langsung memakai DNS domestik; selebihnya diserahkan ke proxy atau DNS jarak jauh melalui proxy, tidak pernah ke DNS domestik."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内と直結のドメインは国内 DNS を使い、それ以外はプロキシ、またはプロキシ経由のリモート DNS に任せ、国内 DNS には送りません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국내 및 직접 연결 도메인은 국내 DNS를 쓰고, 나머지는 프록시나 프록시를 거친 원격 DNS로 보내며 국내 DNS로는 보내지 않습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domínios nacionais e diretos usam DNS nacional; o restante vai para o proxy ou para o DNS remoto pelo proxy, nunca para o DNS nacional."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Внутренние и прямые домены используют внутренний DNS; остальное уходит в прокси или в удалённый DNS через прокси и никогда — во внутренний DNS."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โดเมนในประเทศและโดเมนที่เชื่อมต่อตรงใช้ DNS ในประเทศ ส่วนที่เหลือส่งให้พร็อกซีหรือ DNS ระยะไกลผ่านพร็อกซี ไม่ส่งไปยัง DNS ในประเทศ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yurt içi ve doğrudan alan adları yurt içi DNS'i kullanır; geri kalanı proxy'ye veya proxy üzerinden uzak DNS'e gider, asla yurt içi DNS'e gitmez."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tên miền trong nước và kết nối trực tiếp dùng DNS trong nước; phần còn lại giao cho proxy hoặc DNS từ xa qua proxy, không gửi tới DNS trong nước."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内和直连域名用国内 DNS，其余域名交给代理或经代理的远程 DNS，不会发给国内 DNS。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "國內和直連網域使用國內 DNS，其餘網域交給代理或經代理的遠端 DNS，不會送往國內 DNS。"
+          }
+        }
+      }
+    },
+    "在支持的客户端中所有域名都经代理解析，并接管传统 DNS、启用严格路由。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في العملاء المدعومة يُحلّ كل نطاق عبر الوكيل، ويُستحوذ على DNS التقليدي، ويُفعَّل التوجيه الصارم."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In unterstützten Clients wird jede Domain über den Proxy aufgelöst, klassisches DNS übernommen und striktes Routing aktiviert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In supported clients every domain is resolved through the proxy, legacy DNS is taken over, and strict routing is on."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En los clientes compatibles, todos los dominios se resuelven a través del proxy, se toma el control del DNS tradicional y se activa el enrutamiento estricto."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans les clients compatibles, chaque domaine est résolu via le proxy, le DNS classique est pris en charge et le routage strict est activé."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Di klien yang mendukung, setiap domain diselesaikan melalui proxy, DNS tradisional diambil alih, dan perutean ketat diaktifkan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応クライアントではすべてのドメインをプロキシ経由で解決し、従来の DNS を引き継いで厳格なルーティングを有効にします。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지원되는 클라이언트에서는 모든 도메인을 프록시로 확인하고, 기존 DNS를 가로채며, 엄격한 라우팅을 켭니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nos clientes compatíveis, todos os domínios são resolvidos pelo proxy, o DNS tradicional é assumido e o roteamento estrito é ativado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В поддерживаемых клиентах каждый домен разрешается через прокси, обычный DNS перехватывается и включается строгая маршрутизация."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ในไคลเอนต์ที่รองรับ ทุกโดเมนจะแปลงผ่านพร็อกซี รับช่วง DNS แบบเดิม และเปิดการกำหนดเส้นทางแบบเข้มงวด"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desteklenen istemcilerde her alan adı proxy üzerinden çözülür, geleneksel DNS devralınır ve katı yönlendirme açılır."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trên các ứng dụng hỗ trợ, mọi tên miền đều được phân giải qua proxy, DNS truyền thống được tiếp quản và bật định tuyến nghiêm ngặt."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在支持的客户端中所有域名都经代理解析，并接管传统 DNS、启用严格路由。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在支援的用戶端中所有網域都經代理解析，並接管傳統 DNS、啟用嚴格路由。"
+          }
+        }
+      }
+    },
+    "请至少保留一个国内 DNS 服务器": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احتفظ بخادم DNS محلي واحد على الأقل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behalten Sie mindestens einen inländischen DNS-Server"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep at least one domestic DNS server"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserva al menos un servidor DNS nacional"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conservez au moins un serveur DNS national"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pertahankan setidaknya satu server DNS domestik"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内 DNS サーバーを少なくとも 1 つ残してください"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국내 DNS 서버를 하나 이상 남겨 두세요"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenha pelo menos um servidor DNS nacional"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оставьте хотя бы один внутренний DNS-сервер"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โปรดเก็บเซิร์ฟเวอร์ DNS ในประเทศไว้อย่างน้อยหนึ่งรายการ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En az bir yurt içi DNS sunucusu bırakın"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hãy giữ lại ít nhất một máy chủ DNS trong nước"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请至少保留一个国内 DNS 服务器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請至少保留一個國內 DNS 伺服器"
+          }
+        }
+      }
+    },
+    "请至少保留一个远程 DNS 服务器": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احتفظ بخادم DNS بعيد واحد على الأقل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behalten Sie mindestens einen Remote-DNS-Server"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep at least one remote DNS server"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserva al menos un servidor DNS remoto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conservez au moins un serveur DNS distant"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pertahankan setidaknya satu server DNS jarak jauh"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモート DNS サーバーを少なくとも 1 つ残してください"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원격 DNS 서버를 하나 이상 남겨 두세요"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenha pelo menos um servidor DNS remoto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оставьте хотя бы один удалённый DNS-сервер"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โปรดเก็บเซิร์ฟเวอร์ DNS ระยะไกลไว้อย่างน้อยหนึ่งรายการ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En az bir uzak DNS sunucusu bırakın"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hãy giữ lại ít nhất một máy chủ DNS từ xa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请至少保留一个远程 DNS 服务器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請至少保留一個遠端 DNS 伺服器"
+          }
+        }
+      }
+    },
+    "添加国内 DNS": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إضافة DNS محلي"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inländisches DNS hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Domestic DNS"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar DNS nacional"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un DNS national"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tambah DNS domestik"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内 DNS を追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국내 DNS 추가"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar DNS nacional"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить внутренний DNS"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เพิ่ม DNS ในประเทศ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yurt içi DNS ekle"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm DNS trong nước"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加国内 DNS"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增國內 DNS"
+          }
+        }
+      }
+    },
+    "国内 DNS（直连）": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS محلي (مباشر)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inländisches DNS (direkt)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domestic DNS (Direct)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS nacional (directo)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS national (direct)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS domestik (langsung)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内 DNS（直結）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국내 DNS(직접 연결)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS nacional (direto)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Внутренний DNS (напрямую)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS ในประเทศ (เชื่อมต่อตรง)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yurt içi DNS (doğrudan)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS trong nước (trực tiếp)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内 DNS（直连）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "國內 DNS（直連）"
+          }
+        }
+      }
+    },
+    "解析国内和直连网站，也用来解析代理节点的域名。支持 HTTPS、TLS 和 QUIC 地址；保存时会自动检查。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يحلّ المواقع المحلية والمباشرة، وأسماء نطاقات عُقد الوكيل. عناوين HTTPS وTLS وQUIC مدعومة ويتم فحصها عند الحفظ."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löst inländische und direkte Websites sowie die Domainnamen der Proxy-Knoten auf. HTTPS-, TLS- und QUIC-Adressen werden unterstützt und beim Sichern geprüft."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resolves domestic and direct sites, and the domain names of proxy nodes. HTTPS, TLS and QUIC addresses are supported and checked when you save."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resuelve los sitios nacionales y directos, y los nombres de dominio de los nodos proxy. Admite direcciones HTTPS, TLS y QUIC, que se comprueban al guardar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Résout les sites nationaux et directs, ainsi que les noms de domaine des nœuds proxy. Les adresses HTTPS, TLS et QUIC sont prises en charge et vérifiées à l’enregistrement."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menyelesaikan situs domestik dan langsung, serta nama domain node proxy. Alamat HTTPS, TLS, dan QUIC didukung dan diperiksa saat disimpan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国内サイトと直結サイト、およびプロキシノードのドメイン名を解決します。HTTPS、TLS、QUIC のアドレスに対応し、保存時に自動で確認します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국내 및 직접 연결 사이트와 프록시 노드의 도메인 이름을 확인합니다. HTTPS, TLS, QUIC 주소를 지원하며 저장할 때 자동으로 검사합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resolve sites nacionais e diretos, e os nomes de domínio dos nós proxy. Endereços HTTPS, TLS e QUIC são aceitos e verificados ao salvar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешает внутренние и прямые сайты, а также доменные имена прокси-узлов. Поддерживаются адреса HTTPS, TLS и QUIC; они проверяются при сохранении."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้แปลงเว็บไซต์ในประเทศและที่เชื่อมต่อตรง รวมถึงชื่อโดเมนของโหนดพร็อกซี รองรับที่อยู่ HTTPS, TLS และ QUIC และจะตรวจสอบเมื่อบันทึก"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yurt içi ve doğrudan siteleri ile proxy düğümlerinin alan adlarını çözer. HTTPS, TLS ve QUIC adresleri desteklenir ve kaydederken denetlenir."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phân giải các trang trong nước, kết nối trực tiếp và tên miền của các nút proxy. Hỗ trợ địa chỉ HTTPS, TLS và QUIC; sẽ tự kiểm tra khi lưu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解析国内和直连网站，也用来解析代理节点的域名。支持 HTTPS、TLS 和 QUIC 地址；保存时会自动检查。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解析國內和直連網站，也用來解析代理節點的網域。支援 HTTPS、TLS 和 QUIC 位址；儲存時會自動檢查。"
+          }
+        }
+      }
+    },
+    "添加远程 DNS": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إضافة DNS بعيد"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote-DNS hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Remote DNS"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar DNS remoto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un DNS distant"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tambah DNS jarak jauh"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモート DNS を追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원격 DNS 추가"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar DNS remoto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить удалённый DNS"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เพิ่ม DNS ระยะไกล"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzak DNS ekle"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm DNS từ xa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加远程 DNS"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增遠端 DNS"
+          }
+        }
+      }
+    },
+    "远程 DNS（经代理）": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS بعيد (عبر الوكيل)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote-DNS (über Proxy)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote DNS (via Proxy)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS remoto (a través del proxy)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS distant (via le proxy)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS jarak jauh (lewat proxy)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモート DNS（プロキシ経由）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원격 DNS(프록시 경유)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS remoto (via proxy)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалённый DNS (через прокси)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS ระยะไกล (ผ่านพร็อกซี)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzak DNS (proxy üzerinden)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS từ xa (qua proxy)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程 DNS（经代理）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遠端 DNS（經代理）"
+          }
+        }
+      }
+    },
+    "只经代理访问，用于 sing-box 和 mihomo 系客户端。Google DNS 支持 ECS，能为未列出的国内网站取回国内地址。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يُوصل إليه إلا عبر الوكيل؛ يستخدمه sing-box والعملاء المبنية على mihomo. يدعم Google DNS ميزة ECS، فيمكنه إرجاع عناوين صينية للمواقع المحلية غير المدرجة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur über den Proxy erreichbar; genutzt von sing-box und mihomo-basierten Clients. Google DNS unterstützt ECS und kann so chinesische Adressen für nicht gelistete inländische Websites liefern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reached only through the proxy; used by sing-box and mihomo-based clients. Google DNS supports ECS, so it can return Chinese addresses for unlisted domestic sites."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo se accede a través del proxy; lo usan sing-box y los clientes basados en mihomo. Google DNS admite ECS, así que puede devolver direcciones chinas para sitios nacionales no incluidos en las listas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessible uniquement via le proxy ; utilisé par sing-box et les clients basés sur mihomo. Google DNS prend en charge ECS et peut donc renvoyer des adresses chinoises pour les sites nationaux non listés."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hanya diakses melalui proxy; dipakai sing-box dan klien berbasis mihomo. Google DNS mendukung ECS sehingga dapat mengembalikan alamat Tiongkok untuk situs domestik yang tidak terdaftar."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロキシ経由でのみ接続し、sing-box と mihomo 系クライアントが使います。Google DNS は ECS に対応しており、リストにない国内サイトにも国内のアドレスを返せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프록시를 통해서만 접속하며 sing-box와 mihomo 계열 클라이언트가 사용합니다. Google DNS는 ECS를 지원해 목록에 없는 국내 사이트에도 중국 주소를 돌려줄 수 있습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acessado apenas pelo proxy; usado pelo sing-box e por clientes baseados em mihomo. O Google DNS suporta ECS e pode retornar endereços chineses para sites nacionais fora das listas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступен только через прокси; используется sing-box и клиентами на базе mihomo. Google DNS поддерживает ECS и может возвращать китайские адреса для внутренних сайтов, которых нет в списках."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เข้าถึงผ่านพร็อกซีเท่านั้น ใช้โดย sing-box และไคลเอนต์ตระกูล mihomo Google DNS รองรับ ECS จึงส่งที่อยู่ในจีนกลับมาให้เว็บไซต์ในประเทศที่ไม่อยู่ในรายการได้"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yalnızca proxy üzerinden erişilir; sing-box ve mihomo tabanlı istemciler kullanır. Google DNS ECS'yi desteklediği için listede olmayan yurt içi sitelere Çin adresleri döndürebilir."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ truy cập qua proxy; dùng cho sing-box và các ứng dụng họ mihomo. Google DNS hỗ trợ ECS nên có thể trả về địa chỉ Trung Quốc cho các trang trong nước không có trong danh sách."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只经代理访问，用于 sing-box 和 mihomo 系客户端。Google DNS 支持 ECS，能为未列出的国内网站取回国内地址。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只經代理存取，用於 sing-box 和 mihomo 系用戶端。Google DNS 支援 ECS，能為未列出的國內網站取回國內位址。"
+          }
+        }
+      }
+    },
+    "规则匹配顺序已恢复为方案原始顺序，拖动排序现在只影响显示。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُعيد ترتيب مطابقة القواعد إلى الترتيب الأصلي للمخطط. السحب الآن يغيّر طريقة العرض فقط."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Reihenfolge der Regelzuordnung wurde auf die ursprüngliche Reihenfolge des Schemas zurückgesetzt. Ziehen ändert jetzt nur die Anzeige."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rule matching order has been restored to the scheme's original order. Dragging now only changes how groups are displayed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El orden de coincidencia de reglas se restauró al orden original del esquema. Arrastrar ahora solo cambia la visualización."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’ordre de correspondance des règles a été rétabli selon l’ordre d’origine du schéma. Le glisser-déposer ne modifie plus que l’affichage."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urutan pencocokan aturan telah dikembalikan ke urutan asli skema. Menyeret kini hanya mengubah tampilan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルールの照合順序をスキーム本来の順序に戻しました。ドラッグで変わるのは表示順だけになりました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "규칙 매칭 순서를 구성의 원래 순서로 되돌렸습니다. 이제 드래그는 표시 순서만 바꿉니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A ordem de correspondência das regras foi restaurada para a ordem original do esquema. Arrastar agora só muda a exibição."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Порядок сопоставления правил восстановлен в исходном порядке схемы. Перетаскивание теперь меняет только отображение."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "คืนลำดับการจับคู่กฎเป็นลำดับเดิมของแผนแล้ว ตอนนี้การลากจะเปลี่ยนเฉพาะลำดับการแสดงผล"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kural eşleştirme sırası şemanın özgün sırasına geri yüklendi. Sürükleme artık yalnızca görünümü değiştirir."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thứ tự khớp quy tắc đã được khôi phục về thứ tự gốc của phương án. Kéo thả giờ chỉ thay đổi cách hiển thị."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "规则匹配顺序已恢复为方案原始顺序，拖动排序现在只影响显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "規則比對順序已恢復為方案原始順序，拖動排序現在只影響顯示。"
+          }
+        }
+      }
+    },
+    "拖动排序只改变显示顺序，不影响分流。": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السحب يغيّر ترتيب العرض فقط ولا يؤثر في التوجيه."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ziehen ändert nur die Anzeigereihenfolge, nicht das Routing."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dragging only changes the display order; it does not affect routing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastrar solo cambia el orden de visualización; no afecta al enrutamiento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le glisser-déposer ne modifie que l’ordre d’affichage, pas le routage."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menyeret hanya mengubah urutan tampilan; tidak memengaruhi perutean."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドラッグで変わるのは表示順だけで、振り分けには影響しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "드래그는 표시 순서만 바꾸며 라우팅에는 영향을 주지 않습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastar só muda a ordem de exibição; não afeta o roteamento."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перетаскивание меняет только порядок отображения и не влияет на маршрутизацию."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การลากเปลี่ยนเฉพาะลำดับการแสดงผล ไม่มีผลต่อการกำหนดเส้นทาง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sürükleme yalnızca görüntüleme sırasını değiştirir; yönlendirmeyi etkilemez."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kéo thả chỉ thay đổi thứ tự hiển thị, không ảnh hưởng đến định tuyến."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖动排序只改变显示顺序，不影响分流。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖動排序只改變顯示順序，不影響分流。"
+          }
+        }
+      }
+    },
+    "节点链接": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "روابط العُقد"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Knoten-Links"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Node Links"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enlaces de nodos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liens de nœuds"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tautan node"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノードリンク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노드 링크"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Links de nós"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ссылки на узлы"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ลิงก์โหนด"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Düğüm bağlantıları"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liên kết nút"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "节点链接"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "節點連結"
+          }
+        }
+      }
+    },
+    "策略组": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مجموعات السياسات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richtliniengruppen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Policy Groups"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupos de políticas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groupes de stratégies"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grup kebijakan"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ポリシーグループ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "정책 그룹"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupos de políticas"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Группы политик"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "กลุ่มนโยบาย"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Politika grupları"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhóm chính sách"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "策略组"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "策略組"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

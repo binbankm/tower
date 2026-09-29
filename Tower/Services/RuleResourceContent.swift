@@ -29,13 +29,29 @@ enum RuleResourceContent {
         }.filter { !$0.isEmpty }
     }
 
+    /// Surge rejects the whole profile when a rule carries an option its type
+    /// does not take ("marked for pre-matching, but the rule type doesn't
+    /// support this"), so a list's options reach only the lines that accept
+    /// them (manual.nssurge.com/rules/overview.html).
+    static let preMatchingTypes: Set<String> = [
+        "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "DOMAIN-WILDCARD",
+        "IP-CIDR", "IP-CIDR6", "GEOIP", "IP-ASN", "SRC-IP", "DEST-PORT", "SRC-PORT",
+        "SUBNET", "CELLULAR-CARRIER", "CELLULAR-RADIO", "AND", "OR", "NOT"
+    ]
+    static let extendedMatchingTypes: Set<String> = [
+        "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "DOMAIN-WILDCARD", "URL-REGEX"
+    ]
+
     static func applying(_ options: [String], to line: String) -> String {
         guard let condition = RoutingRuleSyntax.condition(line) else { return line }
         let inherited = options.filter { option in
-            if option == "no-resolve" {
-                return ["IP-CIDR", "IP-CIDR6", "IP-ASN", "GEOIP"].contains(condition.type)
+            switch RoutingRuleCapabilities.optionKey(option) {
+            case "no-resolve": return ["IP-CIDR", "IP-CIDR6", "IP-ASN", "GEOIP"].contains(condition.type)
+            case "pre-matching": return preMatchingTypes.contains(condition.type)
+            case "extended-matching": return extendedMatchingTypes.contains(condition.type)
+            case "update-interval": return false
+            default: return true
             }
-            return !option.hasPrefix("update-interval=")
         }.filter { !condition.options.contains($0) }
         return ([line] + inherited).joined(separator: ",")
     }

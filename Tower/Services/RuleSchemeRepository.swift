@@ -88,6 +88,15 @@ struct RuleSchemeRepository {
             || bundledResourceURL(named: Self.bundledResourceName(for: url)) != nil
     }
 
+    /// Whether the lines behind a rule-list reference are on this device.
+    /// Downloads are local and a scheme can arrive through iCloud without
+    /// them; exporting then would silently leave the whole list out.
+    func hasRuleListContent(_ resource: RuleSchemeRuleset.Resource) -> Bool {
+        guard case .remote(let url) = resource else { return true }
+        return downloadStore?.hasCachedRules(for: url) == true
+            || bundledContent(named: Self.bundledResourceName(for: url)) != nil
+    }
+
     func hasDomainSetContent(_ resource: RuleSchemeRuleset.Resource) -> Bool {
         guard let url = resource.domainSetURL else { return true }
         return downloadStore?.hasCachedRules(for: url) == true

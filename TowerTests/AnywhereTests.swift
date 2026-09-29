@@ -52,4 +52,27 @@ final class AnywhereTests: XCTestCase {
         XCTAssertEqual(result.supportedNodeCount, 2)
         XCTAssertEqual(result.skippedNodeCount, 6)
     }
+
+    /// Fingerprints follow Anywhere's own Clash importer, and each skip says
+    /// which setting Anywhere cannot keep.
+    func testFingerprintsAndSpecificSkipReasons() throws {
+        let target = try XCTUnwrap(ClientTarget(rawValue: "anywhere"))
+        // Separate nodes: skip details are keyed by node identity.
+        func node(_ name: String) -> ProxyNode {
+            ProxyNode(kind: .anytls, name: name, server: "example.com", port: 443, password: "pw", tls: true, sni: "example.com", rawURI: "")
+        }
+        var chrome = node("chrome"); chrome.fingerprint = "chrome"
+        var ios = node("ios"); ios.fingerprint = "ios"
+        var random = node("random"); random.fingerprint = "random"
+        var qq = node("qq"); qq.fingerprint = "qq"
+        var insecure = node("insecure"); insecure.skipCertificateVerification = true
+        let result = ConfigurationGenerator().generateNodeSubscription(nodes: [chrome, ios, random, qq, insecure], target: target)
+        XCTAssertEqual(result.supportedNodeCount, 3)
+        XCTAssertTrue(result.content.contains("fp=chrome_133"), result.content)
+        XCTAssertTrue(result.content.contains("fp=chrome_120"), result.content)
+        XCTAssertFalse(result.content.contains("fp=random"), result.content)
+        let reasons = Dictionary(uniqueKeysWithValues: result.skippedNodes.map { ($0.name, $0.reason) })
+        XCTAssertTrue(reasons["qq"]?.contains("qq") == true, "\(reasons)")
+        XCTAssertTrue(reasons["insecure"]?.contains("跳过证书校验") == true, "\(reasons)")
+    }
 }

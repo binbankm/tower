@@ -31,7 +31,7 @@ Mihomo YAML 的锚点、别名、合并、跨行 flow 容器和尾随逗号已�
 | B12 Stash URL-REGEX 被误删 | Stash 与 Mihomo 分开判断；局域网自动识别也分开，不再将 Clash Mi 交给 Stash 生成器 |
 | B13 远程 QuanX 域名别名丢失 | HOST / HOST-SUFFIX / HOST-KEYWORD / HOST-WILDCARD 先转为公共域名规则，引用策略覆盖资源的策略 |
 | B15 丢失无提示、计数不准确 | 被跳过的规则给出规则与目标提示，并从计数扣除；REJECT 条件或内置策略不能表达时阻止生成可用配置 |
-| D01 自动添加 no-resolve | **保留用户要求的既有设计，不作为 Bug，也未撤回** |
+| D01 自动添加 no-resolve | 保留。2026-09-29 起，mihomo 系（不含 Karing 和「Clash」App）在 DNS 能经代理解析时，MATCH 前最后一条自动加的 `GEOIP` 不再带 `no-resolve`，见 RULE_EXPORT_AUDIT「D01 调整」 |
 
 保留原来的 ACL4SSR 仓库路径解析、任意数字检测间隔和局域网按钮动画修复。
 

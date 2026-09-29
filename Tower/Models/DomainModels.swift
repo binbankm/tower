@@ -1314,7 +1314,7 @@ enum ClientTarget: String, CaseIterable, Identifiable, Codable {
         case .quanx: "Quantumult X"
         case .hiddify: String(localized: "sing-box 内核")
         case .egern: "Egern YAML"
-        case .anywhere: "VLESS / Hysteria 2 / Trojan / AnyTLS / SS / SOCKS5"
+        case .anywhere: String(localized: "节点链接")
         case .v2box: "V2Ray / Xray"
         case .singBox: "sing-box JSON"
         case .clashMi: "Mihomo YAML"

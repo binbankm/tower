@@ -263,7 +263,9 @@ final class PolicyGroupGeneratorTests: XCTestCase {
         """
         let scheme = try RuleSchemeParser().parse(text: source, id: "missing-provider", name: "Missing", summary: "")
         let output = ConfigurationGenerator().generate(nodes: nodes, scheme: scheme, target: .clashMi)
-        let groups = try XCTUnwrap(output.content.components(separatedBy: "proxy-groups:").last)
+        // Only the source's own group: the hidden DNS group lists every node.
+        let groups = try XCTUnwrap(output.content.components(separatedBy: "proxy-groups:").last?
+            .components(separatedBy: "  - name: \"DNS 自动选择\"").first)
         XCTAssertTrue(groups.contains("DIRECT"), groups)
         XCTAssertFalse(groups.contains("- \"A\""), groups)
         XCTAssertFalse(output.diagnostics.isEmpty)
@@ -285,7 +287,8 @@ final class PolicyGroupGeneratorTests: XCTestCase {
             let scheme = RuleScheme(id: "case", name: "Case", summary: "", groups: [group],
                         rulesets: [.init(groupName: "Choice", resource: .inline("FINAL"))], isBundled: false)
             let output = ConfigurationGenerator().generate(nodes: nodes, scheme: scheme, target: .clashMi)
-            let groups = output.content.components(separatedBy: "proxy-groups:").last ?? ""
+            let groups = (output.content.components(separatedBy: "proxy-groups:").last ?? "")
+                .components(separatedBy: "  - name: \"DNS 自动选择\"").first ?? ""
             XCTAssertEqual(groups.contains("- \"A\""), shouldMatch, groups)
             XCTAssertEqual(groups.contains("DIRECT"), !shouldMatch, groups)
         }

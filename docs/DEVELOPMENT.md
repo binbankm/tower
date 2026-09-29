@@ -34,6 +34,30 @@ python3 Scripts/tests/update_acl4ssr_rules_test.py
 - 新文案必须覆盖 15 种语言。按检查脚本给出的 Xcode 提取目录运行本地化生成器，人工核对短标签和无障碍文本。不要删除 catalog 中的 stale 方案名。
 - 凭据文件保护与网络权限有平台差异；模拟器跳过项不能视为真机通过。
 
+## Tailscale 导出给本机内核联调
+
+`TailnetTests/testWritesProfilesForLocalCores` 默认跳过。设置输出目录后，它会把塔台实际生成的完整配置写成文件，用来交给本机的 mihomo、sing-box，或者传到手机上的客户端实测。环境变量要加 `TEST_RUNNER_` 前缀，才能传进测试进程：
+
+```sh
+TEST_RUNNER_TOWER_TAILNET_OUT="$PWD/.artifacts/tailnet" \
+TEST_RUNNER_TOWER_TAILNET_KEY="<Auth Key>" \
+TEST_RUNNER_TOWER_TAILNET_SUFFIX="<tailXXXX.ts.net>" \
+xcodebuild -project Tower.xcodeproj -scheme Tower -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -derivedDataPath .derived-data-sim \
+  -only-testing:TowerTests/TailnetTests/testWritesProfilesForLocalCores test
+```
+
+- `TOWER_TAILNET_OUT`（必填）：输出目录，需要事先建好。
+  - 会写出 `mihomo.yaml`、`stash.yaml`、`sing-box.json`、`surge.conf`、`surge-mac.conf`、`shadowrocket.yaml`。
+  - 每份另有一个 `.notes.txt`，内容是导出页「兼容性提示」里会显示的文字。
+- `TOWER_TAILNET_KEY`：Auth Key。不填时就是「没有 Key」的导出，Surge 永远不会写入 Key。
+- `TOWER_TAILNET_CONTROL`：控制服务器，例如自建 Headscale 的 HTTPS 地址。不填为官方。
+- `TOWER_TAILNET_SUBNET`：家里子网，默认 `192.168.1.0/24`。
+- `TOWER_TAILNET_SUFFIX`：MagicDNS 后缀。
+- `TOWER_TAILNET_NODES`：一份订阅内容文件的路径。不填时用测试里的假节点。要让手机上的客户端先连上控制服务器，需要填真实可用的节点。
+- 输出文件里有明文 Auth Key 和节点凭据：只能放在 `.artifacts/` 或私密目录，用完删除，不要提交。
+
 ## 真机增量安装
 
 连接并解锁一台已配对、开启开发者模式的 iPhone，然后：

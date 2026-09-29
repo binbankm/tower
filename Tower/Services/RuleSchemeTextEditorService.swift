@@ -125,9 +125,9 @@ struct RuleSchemeTextEditorService {
         in text: String
     ) throws {
         guard let settings else { return }
-        for value in settings.encryptedDNSServers {
+        for value in settings.encryptedDNSServers + settings.remoteDNSServers {
             guard let url = URL(string: value),
-                  ["https", "tls", "quic"].contains(url.scheme?.lowercased() ?? ""),
+                  ["https", "h3", "tls", "quic"].contains(url.scheme?.lowercased() ?? ""),
                   url.host != nil else {
                 throw RuleSchemeTextValidationError.invalidEncryptedDNS(
                     value: value,
@@ -225,6 +225,11 @@ struct RuleSchemeTextEditorService {
             if !settings.encryptedDNSServers.isEmpty {
                 lines.append(
                     "encrypted-dns-server = \(settings.encryptedDNSServers.joined(separator: ", "))"
+                )
+            }
+            if !settings.remoteDNSServers.isEmpty {
+                lines.append(
+                    "tower-remote-dns-server = \(settings.remoteDNSServers.joined(separator: ", "))"
                 )
             }
             if let url = settings.proxyTestURLString { lines.append("proxy-test-url = \(url)") }

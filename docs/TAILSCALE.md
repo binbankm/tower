@@ -151,6 +151,32 @@ Tailscale 在 sing-box 里是 **endpoint**，不是 outbound；MagicDNS 需要�
 
 策略本身不加入任何策略组。Surge 5.21+ / Stash 3.6+ 自带自动路由，这些规则与之重复但无害；Stash 3.4、mihomo、sing-box 必须靠它们。Stash 下 IP 类规则默认不会生效（见上文跳过列表），只有域名规则起作用。
 
+## 为什么塔台不能自动获取 Auth Key
+
+2026-09-28 评估过：能不能像 Surge 那样，在塔台里点一下登录就拿到 Auth Key，省掉去后台手动生成的步骤？结论是不做。
+
+**Surge 的交互登录不产生 Auth Key。** `interactive-login = true` 的意思是：Surge 自己运行 Tailscale 客户端，生成自己的设备密钥，再用浏览器授权这台设备。登录的结果是存在 Surge 沙盒里的设备身份，按配置段名保存，拿不出来。塔台就算自己走一遍同样的登录，得到的也只是「塔台」这台设备的身份，没法交给 Stash、mihomo 或 sing-box 用。每个客户端要么在自己的界面里登录，要么用配置里的 Auth Key。
+
+Tailscale 官方有两条能拿到 Key 的路，都不适合塔台：
+
+1. **[OAuth apps](https://tailscale.com/docs/features/oauth-apps/device-provisioning)**（授权码流程，2026-06 仍是 alpha）：用户同意授权后，换回来的 access token 本身就是 Auth Key。限制有三条：
+   - App 必须由某个 tailnet 的 Owner 或 Admin 注册，**只有同一个 tailnet 的用户能授权**。公开发布的塔台没法给所有用户提供一个「用 Tailscale 登录」按钮。
+   - 唯一的 scope 是 `auth_keys:create:once`。拿到的 Key **只能用一次，1 小时后过期**，也没有 refresh token。可是 Stash、Clash、sing-box 各自要注册一台设备，Key 又会写进导出的配置，客户端丢了状态之后要靠它重新注册。
+   - 不支持 Headscale。
+2. **[OAuth clients](https://tailscale.com/docs/features/oauth-clients) 或 API access token**（client credentials）：用户先在后台创建一个带 `auth_keys` 权限的凭据，贴进塔台，塔台再调 API 生成 Key。问题有三个：
+   - 步骤比直接生成一个 Key 还多。
+   - 塔台要长期保存一个能无限生成 Key 的凭据，风险远高于单个 Auth Key。
+   - OAuth client 生成的 Key 必须带 tag，设备会归 tag 所有，ACL 行为和用户自己的设备不同。
+
+   这也违背塔台「不代用户生成 Key、不修改账户」的原则。
+
+如果以后想降低手动填写的成本，可以考虑两件事：
+
+- 在 Auth Key 输入框旁边加一个链接，直接打开官方后台的 Keys 页面。填了 Headscale 地址时不显示。
+- 用户切回塔台时，如果剪贴板里是 `tskey-auth-` 开头的内容，就自动填进去，规则和添加面板读剪贴板一样。
+
+这两项用户暂时不要，没有排期。
+
 ## 已知问题与待确认
 
 1. **实测情况**：用官方 Tailscale 账户，塔台导出的 Surge 配置按 IP 和按名字都能访问家里 Mac；Stash 按名字能访问，按 IP 被默认跳过列表挡住。Clash Mi、sing-box MT 的塔台导出只在自建 Headscale 和本机内核上验证过。

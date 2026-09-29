@@ -1046,10 +1046,12 @@ private struct RuleCustomizationSheet: View {
                 }
             } header: {
                 HStack {
-                    Text("当前规则")
+                    Text("策略组")
                     Spacer()
                     Text("\(visibleGroups.count) 组")
                 }
+            } footer: {
+                Text("拖动排序只改变显示顺序，不影响分流。")
             }
         }
     }
@@ -1412,13 +1414,35 @@ private struct RuleSchemeNetworkSettingsEditor: View {
                             draft.encryptedDNSServers.remove(at: index)
                         }
                     }
-                    addRow(title: "添加加密 DNS") {
+                    addRow(title: "添加国内 DNS") {
                         draft.encryptedDNSServers.append("")
                     }
                 } header: {
-                    Text("加密 DNS")
+                    Text("国内 DNS（直连）")
                 } footer: {
-                    Text("支持 HTTPS、TLS 和 QUIC 地址；保存时会自动检查。")
+                    Text("解析国内和直连网站，也用来解析代理节点的域名。支持 HTTPS、TLS 和 QUIC 地址；保存时会自动检查。")
+                }
+
+                Section {
+                    ForEach(draft.remoteDNSServers.indices, id: \.self) { index in
+                        dnsRow(
+                            symbol: "network.badge.shield.half.filled",
+                            placeholder: "https://dns.google/dns-query",
+                            text: binding(
+                                for: index,
+                                in: \RuleSchemeNetworkSettingsDraft.remoteDNSServers
+                            )
+                        ) {
+                            draft.remoteDNSServers.remove(at: index)
+                        }
+                    }
+                    addRow(title: "添加远程 DNS") {
+                        draft.remoteDNSServers.append("")
+                    }
+                } header: {
+                    Text("远程 DNS（经代理）")
+                } footer: {
+                    Text("只经代理访问，用于 sing-box 和 mihomo 系客户端。Google DNS 支持 ECS，能为未列出的国内网站取回国内地址。")
                 }
 
                 Section("网络") {

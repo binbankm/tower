@@ -1,17 +1,299 @@
 # 当前交接
 
+## 接手入口（2026-09-28）
+
+给新接手的人（包括 Codex）先看这一段，再按需往下读。本文按时间倒序，越往下越旧；同一主题后面的段落可能已被前面的推翻，以靠前的为准。
+
+- **最近一次正式发布**：1.0.21（59），2026-09-18。工程里的 `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` 仍是 1.0.21 / 59，之后的改动全部未发布。发布前按 [RELEASING](RELEASING.md) 递增版本号。
+- **未发布的主要内容**（详见下面各段）：
+  - sing-box DNS 的国内提示（最新）。
+  - 空策略组、Anywhere AnyTLS 与参考转换器对比。
+  - 规则导入修复与拦截规则改为跳过。
+  - 分流规则导出审计修复。
+  - Tailscale 内网。
+  - SSH 与 TrustTunnel 两种新协议。
+  - 协议与导出格式审计第一轮（解析和各客户端字段修复）。
+  - MASQUE 在各客户端的补齐。
+  - iCloud 同步时机与存储瘦身。
+  - 地图和列表的性能与动画。
+  - 持续节点名称筛选。
+- **发布前必须处理**：
+  - `ProxyKind` 没有未知值兜底。旧版塔台（例如 Mac 上的 1.0.21）读到含 SSH、TrustTunnel 或 MASQUE 节点的快照，会整体解码失败。
+  - 旧版不认识新增字段（例如 `tailnets`、节点名称筛选），写回时会把它们丢掉。所以 Mac 版要和 iOS 一起更新，否则 iCloud 同步会丢字段或来回覆盖。
+- **已知失败的测试**：
+  - `CloudRecoveryInteractionTests` 和 `testPersistentExportNameFilter` 在未改动的 main 上同样失败，与近期改动无关。
+  - `testManualDoneDismissesKeyboard` 偶发失败。
+  - 本地服务器相关的 XCTest 偶有一次失败，单独重跑通过。
+- **容易误读的命名**：
+  - `ClientTarget.clash` 是 **Stash**，`.clashApple` 才是名为 Clash 的客户端。
+  - `.singBox` 是 sing-box MT。
+- **测试服务**：测试 VPS 上保留协议审计服务。Tailscale 的测试 Headscale 已删除，见 [LOCAL_TEST_INFRASTRUCTURE](LOCAL_TEST_INFRASTRUCTURE.md)。地址和凭据只在本机私密目录，不写进仓库。
+- **待办**：见 [TODO](TODO.md)。
+
+## 未发布：mihomo 子规则 SUB-RULE / sub-rules（issue #7，2026-09-29）
+
+- **问题**：[pengchujin/tower#7](https://github.com/pengchujin/tower/issues/7) 反馈 echs-top/proxy 的配置无法导入。实测 `mihomo.yaml` / `mihomo_smart.yaml` 能解析，但塔台把 `SUB-RULE,(条件),sub-telegram` 里的子规则名当成了策略组，所有客户端导出都报「规则目标不存在」。
+- **修复**：`RuleSchemeParser` 读取顶层 `sub-rules:`，把子规则按原顺序展开成普通规则：
+  - 子规则里每条 `条件X,策略` 写成 `AND,((外层条件),(条件X)),策略`。
+  - `MATCH,策略` 写成 `外层条件,策略`；外层条件是 `RULE-SET` 时走原来的远程规则集路径，选项放在策略名后面。
+  - 嵌套的 `SUB-RULE` 递归展开，最多 8 层；引用不存在的子规则或循环引用时拒绝导入。
+  - 子规则都不匹配时继续匹配下一条，展开后的顺序与此一致。
+  - Clash 规则的解析抽成 `appendClashRule`，普通规则路径不变。
+- **表达不了的部分**：`RULE-SET` 出现在 `AND` 里面（这份配置里是「列表 + QUIC」这一组）时，塔台的模型没有对应写法。这些规则保留在方案里，导出时按 CLAUDE.md #25 跳过，并在兼容性提示里逐条列出「无法转换规则」。
+- **实测**：
+  - echs-top/proxy 两份配置导入后，Clash Mi 导出通过 `mihomo -t`。
+  - Surge / sing-box / Loon / QuanX 仍然被阻止导出，原因是「代理QUIC」组默认用 mihomo 独有的 `PASS-RULE`（跳过本条、继续匹配），其他客户端没有等价写法；换成 REJECT 会扩大拦截范围。
+  - 这份模板的规则集全是 MRS，本来也只有 mihomo 系能用。
+- **测试**：新增 `SubRuleImportTests`，共 4 项。全量 1307 项 XCTest（0 失败），106 项 Swift Testing 通过。
+
+## 未发布：sing-box ECS 提示改用 1.14 新写法（2026-09-29）
+
+- 用户在 iPhone 上用 sing-box 实测时，列表外的国内网站确实走了直连，但 App 弹出「弃用警告」，告诉用户「配置文件已过时，请联系配置提供者」。原因是 ECS 提示那条 DNS 规则用了 1.14 起弃用的地址过滤写法。
+- `SingBoxDNSPolicy`：改为 `evaluate`（仅 A / AAAA，带 `client_subnet`），后面跟 `match_response` + `rule_set: tower-geoip-cn` + `respond`。严格保护下直连域名的投影规则是普通的 `route` 加 `client_subnet`，不受影响。
+- 官方 sing-box 目标从此要求 1.14 及以上。Hiddify 目标不加 ECS 提示，不受影响。
+- 验证：1303 项 XCTest（0 失败）。sing-box 1.14.2 `check` 无弃用警告，标准和严格保护实跑结果与改前一致。详见 RULE_EXPORT_AUDIT。
+- 真机（2026-09-29，用户）：iPhone 官方 sing-box 1.14 导入新配置后不再弹弃用警告，volcengine.com 仍然走 DIRECT。
+
+## 未发布：Codex 审查的四个问题（2026-09-29）
+
+审查报告和复现测试在本机 `.artifacts/codex-review/`，不在仓库里。四项都已确认、修复，复现测试已收进 `TowerTests/CodexReviewRegressionTests.swift`。
+
+- **P1：严格保护的 DNS 因策略组结构静默回退到国内解析**。
+  - 原因：mihomo 系要找一个「只含节点」的组给 `#组名` 用。像 `Proxy = select,Test,DIRECT` 这种每个组都带 DIRECT 的方案找不到，于是 `nameserver` 退回国内 DoH，远程 DNS 整个消失，严格路由却照开。
+  - 修复：有节点或订阅集合、但找不到可复用的组时，新增一个隐藏的 url-test 组「DNS 自动选择」（`dnsProxyGroupName`，`hidden: true`），DNS 经它走代理。
+  - 标准保护也用这个组，所以最后那条 GEOIP 同样能去掉 `no-resolve`。组名含 `#` / `&`、或只从订阅集合取节点的方案也由它兜住。
+  - 完全没有节点时仍保留国内解析和 `no-resolve`；这种情况本来也不能导出。
+- **P2：sing-box / Hiddify 把 `GEOIP` / `IP-ASN` 的 `src` 当成目的地址**。
+  - sing-box：国家和 ASN 规则集加 `rule_set_ip_cidr_match_source: true`（1.10+），`LAN` 用 `source_ip_is_private`。
+  - Hiddify（内联）：用 `source_ip_cidr`。
+- **P2：空组识别误删显式写了 DIRECT 的组**。以前根据「最终成员只剩 DIRECT」反推空组，把 `Domestic = DIRECT, OptionalNode(无匹配)` 也当成空组，从父组里删掉，父组的默认值因此从直连变成了代理。现在 `resolveGroups` 只记录「确实没有成员、由生成器补 DIRECT」的组（`injectedFallbacks`）。
+- **P2：Loon 通配符扩大拦截范围**。`*.example.com` 以前写成 `DOMAIN-SUFFIX,example.com`，会多拦 example.com 本身，违反 CLAUDE.md #25。现在写成 `AND,((DOMAIN-SUFFIX,example.com),(NOT,((DOMAIN,example.com))))`，依据是 Loon 3.1.7+ 的逻辑规则文档。
+- **验证**：
+  - 1303 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过。
+  - 真实节点导出的严格 / 标准 mihomo 配置通过 `mihomo -t`，sing-box 配置通过 `sing-box check`。
+  - Loon 只按文档写，没有客户端实测。
+
+## 未发布：首页底部弹动与节点图标忽而国旗忽而协议（2026-09-29）
+
+- **底部弹动**：首页外层 `LazyVStack` 里又嵌了「订阅」「自有节点」两个 `LazyVStack`。行高要等滚到附近才测量，接近底部时内容高度不断变化，页面就会弹一下。
+  - 两个内层改回普通 `VStack`。9 月 7 日真机测量时就撤回过内层 LazyVStack，后来又被加回来了。
+  - 订阅卡片展开后的节点列表仍保持懒加载：大机场有几百个节点。
+- **节点图标**：名字看不出国家的节点，要等行滚进屏幕、异步 IP 查询返回后才从协议图标变成国旗，所以同一列表里两种图标混在一起。
+  - 新增 `AppModel.seedKnownCountries(for:)`：服务器是 IP 字面量的，直接查离线库，同步完成、不联网；域名有未过期缓存的，直接用缓存。
+  - 调用时机：启动、添加订阅、刷新订阅、添加或编辑自有节点。
+  - IP 字面量走 `IPCountryLookupService.countryCode(forLiteralAddress:)`（nonisolated）。优先级不变：手动地区 → 节点名 → IP 库。
+  - 没有缓存的域名节点，第一次仍要等 DNS 查询完成。
+- **测试**：
+  - 新增 `NodeCountrySeedingTests`（3 项）。
+  - `ReviewFixTests` 里两项测主机缓存的用例改用域名 + 模拟解析：IP 字面量不再经过主机缓存。
+  - 全量：1298 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过。
+- **待真机确认**：首页滑到底不再弹动；自有节点的图标一打开就是国旗。
+
+## 未发布：拖动策略组不再改变规则优先级（issue #40，2026-09-29）
+
+- **问题**：[pengchujin/tower#40](https://github.com/pengchujin/tower/issues/40)。build 42（1.0.6）起，拖动策略组会把整张显示顺序写成 `rulePriorityOrder`，再按它重排全部规则。
+  - ACL4SSR 的策略组显示顺序和规则顺序完全不同：「🚀 节点选择」显示在第一，它的 `ProxyGFWlist` 在规则里排在 AI、奈飞等专用列表之后。
+  - 结果：哪怕只交换两个地区组，「节点选择」的大列表也会跳到最前，压过 AI、奈飞；「全球直连」「广告拦截」则掉到末尾。
+  - 用户通过搜索添加的规则会插到第一条冲突规则前面，拖动后也会被挪走。
+  - 默认没拖过的方案不受影响。
+- **修复**：
+  - `setRuleGroupOrder` 只写 `groupOrder`。
+  - `RuleScheme.customized` 不再按优先级重排：匹配顺序 = 来源顺序 + 添加的规则插到冲突规则前面。
+  - `AppModel.apply` 读到旧的 `rulePriorityOrder` 时清掉，每台设备只提示一次（`rulePriorityResetNoticeKey`）。旧版设备经 iCloud 同步回来的也会被清掉。
+  - 规则定制页的列表标题从「当前规则」改为「策略组」，底部加「拖动排序只改变显示顺序，不影响分流。」
+- 同时把 Anywhere 在客户端筛选里的副标题从一长串协议名改为「节点链接」。
+- **测试**：
+  - `testUserReorderChangesRulePriorityInEditorExportAndReload` 改为 `testGroupReorderChangesDisplayButNotRulePriority`。
+  - 新增 `testACL4SSRFullKeepsSourcePriorityAfterAnyDrag`、`testSavedRulePriorityIsClearedOnLoadWithOneNotice`。
+  - `testReorderingTwoAddedRuleGroupsSurvivesManualSave` 改为反向拖动后断言规则仍按添加顺序（后添加的先匹配）。
+  - 全量：1295 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过；`check_localization.sh` 通过（1110 条）。
+- **以后**：如果确实有人要调整优先级，按「策略组详情里的优先匹配开关」做：只把该组挪到与它重叠的规则前面，并先提示会让哪些组的规则失效。不要再做自由拖动。见 TODO。
+
+## 未发布：国内 / 远程 DNS 拆分与保护模式调整（2026-09-29）
+
+- 详见 [RULE_EXPORT_AUDIT](RULE_EXPORT_AUDIT.md#已实施2026-09-29用户确认其他的都改)。
+- 模型：
+  - `RuleSchemeNetworkSettings.remoteDNSServers` 为新字段，空值时用 `effectiveRemoteDNSServers` 回退到默认的 8.8.8.8 / 1.1.1.1 DoH。
+  - 新增 `supportsClientSubnet`，判断哪些服务器支持 ECS。
+  - Draft 新增 `missingRemoteDNS`。
+- 导入：
+  - Clash 的 `fallback`、以及 `nameserver` 里带 `#<代理组>` 的服务器归为远程 DNS。
+  - `#h3=true` 还原成 `h3://`。
+  - 文本编辑器写 / 读 `tower-remote-dns-server`。
+- 界面：「加密 DNS」改名为「国内 DNS（直连）」，新增「远程 DNS（经代理）」分区。
+- sing-box：
+  - 远程服务器从远程列表生成（`singBoxResolver`）。
+  - ECS 提示对所有「标准 / 严格」方案生效，不再只限默认 DNS。`chinaResolver` 优先用用户列表里支持 ECS 的服务器。
+  - 严格保护下，直连域名改为经 `remote-cn` 带中国子网查询。
+- mihomo 系：
+  - 标准保护去掉 `fallback` / `fallback-filter`，内置预设同步。
+  - 严格保护的 `nameserver` 写成 `…#<纯节点组>&ecs=…&ecs-override=true`（`clashStrictDNSTargets`，不含 Karing）。
+- 测试：
+  - 新增 `DNSSplitTests`，共 11 项。
+  - `testCustomResolversGetNoChinaHint` 改为 `testFollowSchemeGetsNoChinaHint`。
+  - `SingBoxModeTests` 现在允许末尾的 `tower-geoip-cn` 提示规则。
+  - 全量：1289 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过；`check_localization.sh` 通过（1106 条）。
+- 实测：
+  - 16 份配置全部通过 `mihomo -t` 和 `sing-box check`。
+  - mihomo 严格保护确认 DNS 经节点发出、带 ECS，列表外的国内网站拿到国内地址。
+  - 已知局限：少数国内权威 DNS 不理会 ECS，例如百度。
+  - 验收：远程 DNS 设置页、mihomo 标准和严格保护，Codex 在 Mac mini M2（FlClash / Clash Mi / Mihomo Party / 独立内核）测过，用户在 iPhone 上确认过（2026-09-29）。
+- 未改：
+  - 之后按用户决定调整了 D01：mihomo 系最后一条 GEOIP 去掉 `no-resolve`，标准保护也改为经代理 + ECS 解析，并加 `direct-nameserver`（`clashResolvesTerminalGeoIP`、`releasingTerminalGeoIP`），见 RULE_EXPORT_AUDIT「D01 调整」。
+  - sing-box 1.14 起弃用的 DNS 地址过滤写法，暂时保留，见 TODO。
+
+## 未发布：sing-box DNS 的国内提示（2026-09-29）
+
+- 详见 [RULE_EXPORT_AUDIT](RULE_EXPORT_AUDIT.md#sing-box-的-dns2026-09-29)。
+- `SingBoxDNSPolicy.apply` 新增参数 `chinaResolverHint`：在投影规则之后，追加 `rule_set: tower-geoip-cn` + `client_subnet` 的 DNS 规则，以及经代理的 Google DoH 服务器 `remote-cn`。内置方案和默认 DNS 的导入方案会开启它；用户自定义 DNS 的方案不开启。
+- `RoutingRuleCapabilities.singBoxCondition(_:localRuleSets:)`：sing-box MT 的 GEOIP / IP-ASN 改为引用内联规则集，由 `attachLocalRuleSets` 统一补上定义（`localRuleSetDefinitions` 会递归扫描路由规则和 DNS 规则）。Hiddify 不变。
+- 实测：列表外的国内网站从海外 CDN 变成国内地址，国外网站的结果不变；首次解析约多 70 ms。反证测试确认没有 DNS 泄露。
+- 测试：
+  - 新增 `testSingBoxAsksForChineseAnswersWithoutLeakingToTheLocalResolver`、`testCustomResolversGetNoChinaHint`。
+  - 更新了 GEOIP 相关断言（sing-box 改为规则集引用；`ImportedSchemeGeoIPTests` 改为只禁止旧的 `"geoip"` 字段）。
+  - 全量：1279 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过。
+- 未改：Hiddify 的 DNS 仍然没有分流（它的内核版本和导入行为要单独验证）。mihomo 系的 fallback 已在下一节去掉。自定义 DNS 不加提示的限制也已在下一节取消。
+
+## 未发布：空策略组、Anywhere AnyTLS 与参考转换器对比（2026-09-29）
+
+- 起因：用户反馈 Anywhere 把 139 个 AnyTLS 节点全部跳过，并要求检查回退策略、对比 subconverter / Sub-Store。结论见 [RULE_EXPORT_AUDIT](RULE_EXPORT_AUDIT.md#与参考转换器逐项对比2026-09-28-深夜)。
+- **空策略组**：`resolveGroups` 之后多一轮处理。没有可用节点的组仍然回退为 DIRECT，但父组不再引用它；父组因此变空时，逐层按同样方式回退。以前 ACL4SSR 的「🎥 奈飞视频」在没有奈飞节点时，默认会走直连。提示文字也换成了新的。
+- **Anywhere**：
+  - `AnywhereExport.unsupportedReason` 给出具体的跳过原因（跳过证书校验、证书固定、关闭 UDP、未知指纹、端口跳跃或插件、Reality / 传输方式），`skippedDetails` 会用它。
+  - 指纹映射改成和 Anywhere 上游 `ClashProxyParser.mapFingerprint` 一致：`chrome`→chrome_133、`firefox`→firefox_148、`ios`→chrome_120；`random` 不写（Anywhere 的默认指纹）。
+  - 带「跳过证书校验」的节点仍然跳过：Anywhere 总是校验证书，这类节点导出后会连不上（约束 12）。
+- **节点参数补齐**（与 Sub-Store 对比时发现）：
+  - sing-box 的非 Reality 节点也写 uTLS 指纹（以前全部丢失）。
+  - QuanX 支持 `vless … obfs=http`（sample.conf 有这种写法）。
+  - Egern 的 VLESS Reality over gRPC 写在 `transport.grpc.reality`（Egern 文档支持；9 月 27 日「只能配 TCP」的判断来自读文档，没有经过真机验证，已推翻）。
+  - Loon 的 Reality 写 `tls-profile`。
+- **没有改动的**：Loon 的 Hysteria2 固定写 `fast-open=true`（真机测试通过）。
+- **测试**：
+  - 新增 `NodeExportParityTests`（4 项）、`AnywhereTests.testFingerprintsAndSpecificSkipReasons`，以及 `RuleImportFidelityTests` 里的空组测试。
+  - `ProtocolAuditTests` 的 Egern 断言改成 `testEgernPairsRealityOnlyWithTCPAndGRPC`。
+  - 全量：1277 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过。
+  - 30 个节点的对比输出复验通过：mihomo 系、sing-box、Surge 全部通过官方校验。
+
+## 未发布：规则导入修复与拦截规则改为跳过（2026-09-28 晚）
+
+- 起因：用 10 份公开的真实配置（ACL4SSR、第三方 `.ini`、Loyalsoldier、Repcz、666OS、qichiyuhub、Stash 示例、两份 Surge）走完整的导入和导出流程，发现导入这一侧有 6 个问题和 1 个设计取舍。详见 [RULE_EXPORT_AUDIT](RULE_EXPORT_AUDIT.md#导入这一侧真实配置测试2026-09-28-晚)。
+- **拦截规则改为跳过**（用户决定）：以前只要有一条拦截规则转不过去，整份导出就被阻止；现在改为跳过，并在兼容性提示最前面插入「N 条拦截规则无法在 X 中表达，已跳过：这些请求不会被拦截」。不支持的内置策略（例如 `CELLULAR`）仍然阻止导出。
+- **MRS**：
+  - `RuleSchemeRuleset.isBinaryRuleSet`（`format: mrs` 或 `.mrs` 后缀）不进 `remoteRulesetURLs`，不下载。
+  - 规划器对 mihomo 系（不含 Karing）总是远程引用；其他目标记入 `Plan.unreadableResources`，每个规则集给一条提示。
+  - `RuleSchemeImportService.ruleListText` 拒绝带 NUL 字节的下载内容。
+- **导入**：
+  - `parseRuleset` 认识 subconverter 的五种类型前缀和末尾的更新间隔。
+  - Clash 导入把 `type: direct` / `reject` / `reject-drop` 的代理映射成内置策略（`builtinAliases`）。
+- **选项与策略**：
+  - `RuleResourceContent.applying` 按 Surge 手册，只把 `pre-matching` / `extended-matching` 加到支持它们的规则类型上。
+  - `FINAL` 的 `dns-failed` 和通知类参数在非 Surge 客户端上去掉并提示。
+  - `REJECT-DROP` 在 QuanX、Egern、sing-box 上换成 `REJECT`。
+- **改写**：
+  - Loon 的 `DOMAIN-WILDCARD,*.x` 改写成 `DOMAIN-SUFFIX,x`，不含通配符的改写成 `DOMAIN`。（2026-09-29 按 Codex 审查改为 `AND,((DOMAIN-SUFFIX,x),(NOT,((DOMAIN,x))))`，不再多匹配 x 本身。）
+  - sing-box 的 `IP-ASN` 用内置 ASN 库展开（`IPASNDatabase.cidrs(forASN:)`）。
+- **DNS**：Surge 的 `h3://` 在 mihomo 系写成 `https://…#h3=true`，在 Stash / Shadowrocket / Karing 写成 `https://`，在 sing-box 用 `h3` 类型；编辑器和网络设置也接受 `h3://`。
+- **本地化**：新增两条提示（MRS 跳过、拦截规则跳过汇总），15 种语言人工翻译，`check_localization.sh` 通过。
+- **测试**：
+  - 新增 `RuleImportFidelityTests`，共 9 项。
+  - 更新了 `RoutingResourceTests` 和 `LocalRoutingRuleEditorTests` 里原来「阻止导出」的断言。
+  - 全量：1271 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过。
+
+## 未发布：分流规则导出审计修复（2026-09-28）
+
+- 审计报告：[RULE_EXPORT_AUDIT](RULE_EXPORT_AUDIT.md)。待真机验证的项目在 [TODO](TODO.md#分流规则导出待真机验证2026-09-28)。
+- **Loon / Shadowrocket 改走 `RoutingRuleCapabilities`**：以前它们走 `mappedRule` 的逐字段拼接路径，现在和 mihomo、Surge、Stash 共用同一套条件树转换。`mappedRule` 的旧路径只剩 QuanX 在用。
+  - 选项一律写在策略名后面。Shadowrocket 保留 `no-resolve` / `extended-matching` / `pre-matching`，Loon 只保留 `no-resolve`。
+  - AND / OR / NOT 会做方言转换：Loon 用 `DEST-PORT`、`PROTOCOL`；Shadowrocket 用 `DST-PORT`，`PROTOCOL` 只能写在逻辑规则里。
+  - 规则类型只输出文档列出的（`RoutingRuleCapabilities.loon` / `.shadowrocket`）。`PROCESS-NAME`、`SUBNET`、`SRC-IP`、`RULE-SET,SYSTEM` 等跳过并提示。
+  - 带逗号的值只有 Surge 会保留，其他目标一律跳过。
+  - 规划器里两者的远程列表也按同一套白名单判断。
+- **Loon 过滤器**：`loonScheme` 只为有对应远程订阅的组登记「塔台筛选」过滤器。以前 ACL4SSR 全分组在默认设置下，8 个组会引用不存在的过滤器，这是 1.0.10 起就有的问题。
+- **远程规则集的顺序**：Loon 和 QuanX 总是先匹配本地规则、再匹配远程列表。所以 `RuleSetEmissionPlanner.plan` 会把排在某条本地规则前面的远程列表改成内联（用 `inlineFallbacks` 展开）。
+  - 实际效果：ACL4SSR 最后一条是本地的 `GEOIP,CN`，所以它在这两个客户端上总是全部内联。
+  - QuanX 仍保留 `filter_remote` 时，不再写 `host-keyword, .` 兜底，否则它会挡住远程列表的域名规则。
+- **来源 IP**：带 mihomo `src` 的规则，在 QuanX、Loon、Shadowrocket、Egern 上跳过并提示，不再退化成按目的地址匹配。
+- **sing-box / Hiddify 的 GEOIP**：用内置 IP 国家库展开成 `ip_cidr`（`IPCountryDatabase.cidrs(forCountry:)`，按国家缓存，先合并相邻区间再拆成 CIDR）；`LAN` / `PRIVATE` 转成 `ip_is_private`。
+  - 数据许可是 PDDL，不需要额外署名。
+  - ACL4SSR 全分组的 `GEOIP,CN` 约 1.16 万条，sing-box 配置因此从 570 KB 涨到 924 KB。
+  - 内置方案的 `includeGeoIPCN` 以前写成了 `ip_is_private`，现在改成 CN 的 CIDR（内置方案目前没有启用这个开关）。
+- **规则列表缺缓存**：任何远程 `RULE-SET` 在本机没有下载缓存时，都会提示「部分规则还没下载完成 · 刷新规则」并阻止导出。
+  - 规则缓存不随 iCloud 同步，第二台设备以前会静默丢掉这些列表。
+  - 按约束 16，不会自动联网补下载。
+- **内置拒绝策略**：`RoutingBuiltinPolicies.substitute(for:target:)` 在 `generate(scheme:)` 开头替换，并给出「已将内置策略 X 转换为 Y」的提示。
+  - `REJECT-TINYGIF` 在 Loon 上换成 `REJECT-IMG`，其他目标（包括 QuanX）换成 `REJECT`。QuanX 的 `reject-img` 只能用在重写规则里，分流里写它，客户端会报「未知策略或节点」并拒绝整份配置（手机实测）。
+  - `REJECT-NO-DROP` 换成 `REJECT`。
+  - Shadowrocket 原生支持这两个，保持原样。
+  - `CELLULAR` 这类 Surge 专属策略仍然阻止导出。
+- **只影响 Surge 的选项**：`RoutingRuleCapabilities.ignorableOptions`（`extended-matching`、`pre-matching`、`notification-*`、`always-capture`）在不支持的目标上直接去掉，并汇总成一条「已忽略当前客户端不支持的规则参数」。以前带这些选项的 REJECT 规则会阻止 Clash 系、Stash 和 sing-box 导出。
+- **Egern**：`egernRule` 改为基于条件树的递归实现。
+  - 补齐 `asn`、`domain_wildcard`、`domain_regex`、`user_agent`、`ip_cidr6`（即以前的 B11），以及 `and` / `or` / `not`（`not` 下面跟单个映射）。
+  - `protocol` 的值转成小写。
+  - `no_resolve` 只写在顶层的 IP 规则上。
+- **mihomo 系**：不再输出 `UID`。它只在 Linux / Android 上可用，在其他平台上会让整份配置加载失败。
+- **Stash**：不再输出文档里没有的 `SRC-PORT` 和 `IN-PORT`。
+- **本地化**：新增两条提示，15 种语言均为人工翻译，`check_localization.sh` 通过。
+- **测试**：
+  - 新增 `RuleExportAuditFixTests`，共 18 项。
+  - 按新行为更新了 `SurgeConfigurationImportTests`（补规则列表缓存）、`RuleSetGenerationTests`、`LocalRoutingRuleEditorTests`、`NativeRoutingRuleTests`。
+  - 复验方法同审计报告，临时生成测试已删除。
+  - 全量结果：1262 项 XCTest（6 项跳过、0 失败），106 项 Swift Testing 通过。
+
 ## 未发布：Tailscale 内网（2026-09-28）
 
-- 各客户端官方写法、塔台实现与已知问题见 [TAILSCALE](TAILSCALE.md)。
-- 目的：代理客户端开着时也能访问家里电脑和局域网。`TailnetConnection` 不是节点：它不进任何策略组、测速组或地区组（目的地不在 tailnet 里时会直接失败，不会回退直连），只接收置顶规则：`100.64.0.0/10`、`fd7a:115c:a1e0::/48`、MagicDNS 后缀和用户填写的子网。
-- 入口：设置 → 节点与配置 → Tailscale 内网（`TailnetSettingsView`）。字段：名称、控制服务器（空为官方，只收 HTTPS，可填 Headscale）、Auth Key（可选）、家里子网、MagicDNS 后缀、设备名。`tailnets` 随快照同步；Auth Key 只存本机钥匙串（`TailnetAuthKeyStore`，`ThisDeviceOnly`、不可同步），不进 state.json 和 iCloud；快照恢复时删除没有对应连接的孤立 Key。
-- 导出：`TailnetConfigurationWriter` 在生成后改写完整配置文本，内置方案和导入方案共用一处。Surge 写 `tailscale` 策略 + `[Tailscale <stableSlug>]`（无 Key 时 `interactive-login = true`）；Stash 写 `type: tailscale`（无 Key 在客户端里登录）；mihomo 系另加 `state-dir`、`udp`、`accept-routes`；sing-box MT 写 `tailscale` endpoint、`tailscale` DNS 服务器（仅在填了 MagicDNS 后缀时）和位于 sniff / hijack-dns 之后、`resolve` 之前的路由规则。`stableSlug` 取自连接 UUID，Surge 的交互登录状态和 mihomo / sing-box 的状态目录都挂在它上面；设备名按客户端加后缀（`tower-surge`、`tower-stash`……）。名称与现有节点 / 组重名时加序号。仅节点模式不写。
-- 不支持并在导出页「兼容性提示」说明：Shadowrocket（Clash YAML 和 Surge 格式都没有注册到控制服务器）、Loon、Quantumult X、Egern、Hiddify、Karing（源码里仍是 todo）。没有 Key 时为 Surge / Stash 提示在客户端登录，为 mihomo / sing-box 提示填 Key（它们只把登录链接写进日志）。
-- 实测：测试 VPS 自建 Headscale（带内置 DERP），Mac mini 以 userspace 模式加入并发布家里子网。手机 Surge、Stash 3.4、Clash Mi、sing-box MT 三项（tailnet IP、MagicDNS、家里子网）全部通过；Surge 与 Stash 重复导入两次，控制服务器上仍只有一台设备。本机 mihomo 1.19.31 与 sing-box 1.14.2 用塔台实际生成的完整配置连通；mihomo 冷启动后第一个请求会超时（官方文档说明的正常现象）。
-- 配置预览里 Auth Key 显示为等长圆点（`maskingTailnetAuthKeys`），「复制」仍拿完整配置。
-- 真实账户实测后调整：Auth Key 不写给 Surge（它按 Key 哈希存身份，写了会多注册一台设备），Surge 一律 `interactive-login`；Stash 目前无法在客户端登录（开发者说明 OAuth 仍在开发），改为必须写 Key。Stash 默认把 `100.64.0.0/10` 和私有网段放在跳过代理 / 跳过路由里，按 IP 访问不进 Stash，导出页提示用 MagicDNS 名字，没填后缀时明确警告。编辑页的 Auth Key 改为单个可查看（眼睛图标）、可原地修改或清空删除的输入框，打开时从钥匙串带出已保存的值。
-- 未做：用真实 Tailscale 账户的交互登录验收（需用户在手机上操作）、出口节点、Shadowrocket 格式。
-- 测试：`TailnetTests` 16 项（其中导出给本机内核的一项只在设置输出目录时运行），`TailnetInteractionTests` 覆盖设置里新增、校验子网和保存。1243 项 XCTest 与 106 项 Swift Testing 通过。设置卡片的 `node-export-settings-card` 标识会覆盖卡片内每一行的标识，界面测试只能按标签找行；`CloudRecoveryInteractionTests` 和 `testPersistentExportNameFilter` 在未改动的 main 上同样失败，与本次无关，`testManualDoneDismissesKeyboard` 偶发失败。
+- 各客户端官方写法、塔台实现、为什么不自动获取 Auth Key，见 [TAILSCALE](TAILSCALE.md)。
+- 目的：代理客户端开着时也能访问家里电脑和局域网。`TailnetConnection` 不是节点：
+  - 它不进任何策略组、测速组或地区组。目的地不在 tailnet 里时直接失败，不会回退直连。
+  - 它只接收置顶规则：`100.64.0.0/10`、`fd7a:115c:a1e0::/48`、MagicDNS 后缀和用户填写的子网。
+- 代码位置：
+  - 模型：`Tower/Models/TailnetConnection.swift`。
+  - 钥匙串：`Tower/Services/TailnetAuthKeyStore.swift`。测试和 UI 测试沙盒用 `InMemoryTailnetAuthKeyStore`。
+  - 导出：`Tower/Services/TailnetConfigurationWriter.swift`。
+  - 设置界面：`Tower/Features/Settings/TailnetSettingsView.swift`。
+  - AppModel 里的相关方法：`saveTailnet`、`deleteTailnet`、`reconcileTailnetAuthKeys`、`maskingTailnetAuthKeys`、`currentTailnetExports`。
+- 入口：设置 → 节点与配置 → Tailscale 内网。
+  - 字段：名称、控制服务器、Auth Key（可选）、家里子网、MagicDNS 后缀、设备名。控制服务器留空为官方 Tailscale，只收 HTTPS，可以填 Headscale。
+  - Auth Key 是单个输入框：打开时从钥匙串带出已保存的值并打码，点眼睛图标可查看，原地修改或清空后保存，即替换或删除。
+- 存储：
+  - `tailnets` 随快照同步。
+  - Auth Key 只存本机钥匙串（`ThisDeviceOnly`、不可同步），不进 state.json，也不进 iCloud。
+  - 快照恢复时，删除没有对应连接的孤立 Key。
+  - Key 计入配置缓存键：改 Key 会让导出重新生成。
+- 导出：`TailnetConfigurationWriter.apply` 在生成完整配置之后改写文本，内置方案和导入方案共用这一处。「仅节点」模式不写。
+
+  | Flavor | 目标 | 写法 | Auth Key |
+  | --- | --- | --- | --- |
+  | `.surge` | Surge、Surge Mac | `tailscale` 策略 + `[Tailscale <stableSlug>]` 段，固定 `interactive-login = true` | **永不写**：Surge 按 Key 的哈希保存身份，写了会在已交互登录的设备旁边再注册一台 |
+  | `.stash` | `.clash`（即 Stash） | `type: tailscale` | 写。Stash 的客户端内登录尚不可用（开发者说明 OAuth 仍在开发，实测确认） |
+  | `.mihomo` | Clash、Clash Verge、ClashMac、FlClash、Mihomo Party、Clash Mi | `type: tailscale`，另加 `state-dir`、`udp`、`accept-routes` | 写。没有 Key 时，登录链接只打印在日志里 |
+  | `.singBox` | sing-box MT | `tailscale` endpoint；填了 MagicDNS 后缀时再加 `tailscale` DNS 服务器；路由规则放在 sniff / hijack-dns 之后、`resolve` 之前 | 写 |
+  | 无 | Shadowrocket、Loon、QuanX、Hiddify、Egern、Karing | 跳过，在「兼容性提示」里说明 | — |
+  | 无 | V2Box、Anywhere | 仅节点客户端，不提示 | — |
+
+  - `stableSlug` 取自连接 UUID。Surge 的交互登录状态和 mihomo / sing-box 的状态目录都挂在它上面：**改了它，每次重新导入都会多一台设备**。
+  - 设备名按客户端加后缀（`tower-surge`、`tower-stash`……），让每个客户端注册成各自的设备。
+  - 策略名和现有节点或策略组重名时，加序号。
+- 兼容性提示（`notes`）：
+  - Surge 不提示，在客户端里登录是正常流程。
+  - 其他客户端没有 Key 时，提示在塔台里填写 Auth Key。
+  - Stash 总会再加一条：它默认把 `100.64.0.0/10` 和私有网段放在跳过代理 / 跳过路由列表里，按 IP 访问不会进 Stash，要用 MagicDNS 名字访问。没填后缀时，这条改成明确警告。
+- 配置预览：Auth Key 显示为等长圆点（`maskingTailnetAuthKeys`），「复制」仍然拿到完整配置。
+- 实测：
+  - 测试 VPS 自建 Headscale（带内置 DERP），Mac mini 以 userspace 模式加入并发布家里子网。手机上的 Surge、Stash 3.4、Clash Mi、sing-box MT 三项都通过：tailnet IP、MagicDNS、家里子网。
+  - Surge 和 Stash 重复导入两次，控制服务器上仍然只有一台设备。
+  - 本机 mihomo 1.19.31 和 sing-box 1.14.2 用塔台实际生成的完整配置连通。mihomo 冷启动后第一个请求会超时，官方文档说明这是正常现象。
+  - 官方 Tailscale 账户：Surge（交互登录）按 IP 和按名字都能访问家里 Mac；Stash（Auth Key）按名字能访问，按 IP 被默认跳过列表挡住。
+- 已评估、不做：
+  - 塔台代用户登录 Tailscale 并自动拿 Auth Key。原因见 [TAILSCALE](TAILSCALE.md#为什么塔台不能自动获取-auth-key)。
+- 未做：
+  - 出口节点（`exit-node`）。
+  - Shadowrocket 格式（官方没有公开字段）。
+  - 用官方账户验收 Clash Mi 和 sing-box MT。
+- 测试：
+  - `TailnetTests` 16 项。其中 `testWritesProfilesForLocalCores` 只在设置了输出目录时运行，用法见 [DEVELOPMENT](DEVELOPMENT.md#tailscale-导出给本机内核联调)。
+  - `TailnetInteractionTests` 覆盖在设置里新增连接、校验子网和保存。
+  - 2026-09-28 文档交接时复跑：1243 项 XCTest（6 项跳过、0 失败）和 106 项 Swift Testing 通过。
+  - 设置卡片的 `node-export-settings-card` 标识会覆盖卡片内每一行的标识，所以界面测试只能按标签找行。
 
 ## 未发布：新增 SSH 与 TrustTunnel（2026-09-28）
 

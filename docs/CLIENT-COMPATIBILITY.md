@@ -40,12 +40,26 @@ Surge Mac 6.7+ 和 Clash Verge 支持一键导入；旧版 Surge Mac 找不到�
 
 ## 规则与已知边界
 
+### QuanX 的手动策略组会记住上次的选择
+
+QuanX 的 `static` 策略组按名字记住用户上次选中的项，重新导入配置不会回到第一项。用户反馈「🚀 节点选择」默认是 DIRECT 时，先核对导出文件：塔台写的第一项是「♻️ 自动选择」。确认无误后，让用户在 QuanX 里手动选一次，之后重新导入会保持住（2026-09-29 真机确认）。
+
+### mihomo 系的 DNS
+
+- 标准保护：fake-ip；`proxy-server-nameserver` 用国内 DoH，不写 `fallback` / `fallback-filter`。走代理的域名不在本机解析。
+  - 支持 `#代理组` 的 mihomo 客户端：`nameserver` 经纯节点组、带中国子网查询远程 DNS，`direct-nameserver` 用国内 DoH。MATCH 前最后一条 `GEOIP` 不带 `no-resolve`，列表外的国内网站因此能直连。
+  - 其他 Clash 格式客户端：`nameserver` 用国内 DoH，GEOIP 保留 `no-resolve`。
+- 严格保护（Clash Mi / Verge / Mac / FlClash / Mihomo Party）：`nameserver` 改为远程列表中支持 ECS 的服务器，写成 `…#<纯节点组>&ecs=114.114.114.0/24&ecs-override=true`。`proxy-server-nameserver` 仍用国内 DoH，另加 TUN、`dns-hijack` 和 `strict-route`。Karing、Stash 和 Shadowrocket 的 Clash 格式没有文档说明支持该后缀，所以按标准保护写。「Clash」App 与 Stash 共用同一份文档，只加 TUN。
+- 跟随方案：不开 fake-ip，客户端会先在本机解析每个域名。
+- 依据：[mihomo DNS](https://wiki.metacubex.one/config/dns/)（`#代理组`、`&ecs=`、`ecs-override`、`proxy-server-nameserver`）。
+
 ### sing-box MT 的模式与 DNS
 
 重新导出的完整配置提供「规则判定 / 全局代理 / 直接连接」，默认「规则判定」，客户端可记住之后的选择。一份配置内切换，文件名保持塔台或用户自定义名称。规则判定沿用原方案；全局代理指向独立同名 selector，默认自动选择全部可用节点，也可手动选具体节点；此模式的 DNS 复制原解析器设置并跟随该 selector。直接连接的流量和 DNS 直连。不增加含 DIRECT 的全局候选；没有节点时全局代理拒绝连接。组名冲突使用数字后缀，保留用户原策略组。Hiddify 保持独立适配。
 
 - 标准保护：按本机缓存的域名规则顺序选择 DNS。仅 DIRECT 或成员全部直连的策略组使用直连加密 DNS，混合策略组和其他域名使用代理 DNS；IP 规则不用于推测 DNS 分流。DNS 接管先于模式规则。
-- 严格保护：规则判定模式的普通 DNS 统一经代理；代理失败不回退直连。主动切换直接连接后使用直连 DNS。
+- 代理 DNS 使用「远程 DNS（经代理）」列表，不再复用国内列表。ECS 提示用 1.14 的 `evaluate` + `match_response` + `respond` 写法，所以官方 sing-box 目标需要 1.14 及以上。标准和严格保护下，未列出的域名会先经代理向支持 ECS 的远程 DNS 带中国子网查询，结果是国内地址才采用（`remote-cn`）。
+- 严格保护：规则判定模式的普通 DNS 统一经代理，直连列表的域名也经 `remote-cn` 带中国子网查询；代理失败不回退直连。主动切换直接连接后使用直连 DNS。
 - 跟随方案：保留方案解析器，仍处理隧道自身 DNS，不额外强制接管所有 53 端口流量或启用严格路由。
 - 节点地址和解析器地址的启动解析独立于代理，防止循环依赖。自定义加密解析器使用域名时，允许配置的 bootstrap DNS 解析该解析器域名；规则文件下载也有独立的域名解析。
 
@@ -88,3 +102,21 @@ Shadowrocket 补充（2026-09-17）：[官方 2.2.38 更新记录](https://t.me/
 ShadowTLS 仅节点补充（2026-09-18）：不直接开放未经证实的 SIP003 插件 URI。Shadowrocket 采用 [Sub-Store 的节点列表输出](https://github.com/sub-store-org/Sub-Store/blob/07d94ef9e1970e98787dd0ab40dc3d454b06a5ba/backend/src/core/proxy-utils/producers/shadowrocket.js) 对应的 proxies-only YAML。Hiddify 根据 [JSON 订阅解析入口](https://github.com/hiddify/hiddify-core/blob/db74dfc/v2/config/parser.go) 接收 outbounds-only JSON，使用 [selector 构建逻辑](https://github.com/hiddify/hiddify-core/blob/db74dfc/v2/config/builder.go) 的 §hide§ 标记隐藏 ShadowTLS 辅助通道。两者都不附带塔台的规则或策略组；混合订阅中的普通节点保留，无 ShadowTLS 的列表保持原格式。沿用版本、TLS 参数和 TCP/UDP 能力限制。手机上的实际订阅导入及连接仍待用户验收。
 
 Karing 验收结论（2026-09-18）：官方示例虽有 ShadowTLS 字段，但用户真机测试无法连接，因此撤回实验性导出。文档示例及生成测试不等于客户端连通验证。根因未定位，暂不重新开放；其他客户端能力不受影响。
+
+### SSH 与 TrustTunnel（未发布）
+
+这两种协议没有分享链接格式，只能从 Clash YAML 导入（`type: ssh` / `trusttunnel`），或者手动添加。无法表达的组合会跳过并计数。详见 [HANDOFF](HANDOFF.md#未发布新增-ssh-与-trusttunnel2026-09-28)。
+
+| 导出目标 | SSH | TrustTunnel |
+| --- | --- | --- |
+| Surge / Surge Mac | 只导出密码登录，可固定服务器公钥；带私钥的跳过 | HTTP/2、HTTP/3 |
+| Stash | 导出；带服务器公钥的跳过 | 只导出 HTTP/3，HTTP/2 实测超时 |
+| Clash 系、Clash Mi | 导出 | 导出 |
+| Shadowrocket | 只导出密码登录；带私钥的跳过，实测会在认证前断开 | 导出 |
+| Egern | 导出；带私钥口令的跳过 | 跳过 |
+| sing-box MT、Hiddify、Karing | 导出 | 跳过 |
+| Loon、QuanX | 跳过 | 跳过 |
+
+### Tailscale 内网（未发布）
+
+只写进完整配置，不是节点，不进任何策略组。支持 Surge、Stash、Clash 系（mihomo）和 sing-box MT；Shadowrocket、Loon、QuanX、Egern、Hiddify、Karing 跳过并提示。Auth Key 只存本机钥匙串，会写给 Stash、mihomo 和 sing-box，永远不写给 Surge（Surge 在自己的策略编辑页里登录）。各客户端写法见 [TAILSCALE](TAILSCALE.md)。

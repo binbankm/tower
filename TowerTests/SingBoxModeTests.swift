@@ -170,7 +170,13 @@ struct SingBoxModeTests {
         #expect(rules[specific]["server"] as? String == "remote")
         #expect(rules[suffix]["server"] as? String == "local")
         #expect(rules.first { ($0["domain"] as? [String])?.contains("ad.invalid") == true }?["action"] as? String == "reject")
-        #expect(!rules.contains { $0["ip_cidr"] != nil || $0["rule_set"] != nil })
+        #expect(!rules.contains { $0["ip_cidr"] != nil })
+        // The one response filter is the Chinese-answer hint, and it runs
+        // only after every projected domain rule.
+        #expect(rules.filter { $0["rule_set"] != nil }.map { $0["action"] as? String } == ["respond"])
+        #expect(rules.last?["rule_set"] as? [String] == ["tower-geoip-cn"])
+        #expect(rules.last?["match_response"] as? Bool == true)
+        #expect(rules.dropLast().last?["action"] as? String == "evaluate")
     }
 
     @Test func strictModeKeepsRuleDNSOnProxyButAllowsExplicitDirectMode() throws {

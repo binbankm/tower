@@ -77,11 +77,15 @@ struct RoutingResourceTests {
         let scheme = try parse("[Proxy Group]\nOpenAI=select,Test\n[Rule]\nDEST-PORT,>=443,OpenAI\nFINAL,OpenAI")
         #expect(try generated(scheme, .clashMi).content.contains("DST-PORT,443-65535,OpenAI"))
     }
-    @Test func unsupportedRejectDoesNotProduceAnApparentlyUsableConfig() throws {
+    /// A reject the client cannot express is skipped, never broadened into a
+    /// domain-wide reject, and the first notice says requests go unblocked.
+    @Test func unsupportedRejectIsSkippedWithALeadingNotice() throws {
         let scheme = try parse("[Proxy Group]\nOpenAI=select,Test\n[Rule]\nAND,((PROTOCOL,QUIC),(DOMAIN-SUFFIX,openai.com)),REJECT\nFINAL,OpenAI")
         let result = try generated(scheme, .clashMi)
-        #expect(result.content.isEmpty)
-        #expect(!result.diagnostics.isEmpty)
+        #expect(!result.hasInvalidPolicyReferences)
+        #expect(!result.content.contains("openai.com"))
+        #expect(result.content.contains("MATCH,OpenAI"))
+        #expect(result.diagnostics.first?.contains("1 条拦截规则") == true)
     }
     @Test func loonRemoteRuleCanBeImportedAgain() throws {
         let scheme = try parse("[Proxy Group]\nOpenAI=select,Test\n[Rule]\nFINAL,OpenAI\n[Remote Rule]\nhttps://example.com/rules.list,policy=OpenAI,enabled=true")
@@ -98,11 +102,15 @@ struct RoutingResourceTests {
         #expect(result.content.contains("interval: 947"))
         #expect(!result.content.contains("OpenAI,\n"))
     }
-    @Test func unsupportedFinalFlagIsReportedInsteadOfChangingFallback() throws {
+    /// `dns-failed` only changes Surge's behavior around FINAL; other clients
+    /// keep the same fallback without it.
+    @Test func surgeOnlyFinalFlagIsDroppedWithANotice() throws {
         let scheme = try parse("[Proxy Group]\nOpenAI=select,Test\n[Rule]\nFINAL,OpenAI,dns-failed")
         let result = try generated(scheme, .clashMi)
-        #expect(result.content.isEmpty)
-        #expect(!result.diagnostics.isEmpty)
+        #expect(!result.hasInvalidPolicyReferences)
+        #expect(result.content.contains("MATCH,OpenAI\n"))
+        #expect(result.diagnostics.contains { $0.contains("dns-failed") })
+        #expect(try generated(scheme, .surge).content.contains("FINAL,OpenAI,dns-failed"))
     }
     @Test func warningCountExcludesRulesThatCannotBeEmitted() throws {
         let scheme = try parse("[Proxy Group]\nOpenAI=select,Test\n[Rule]\nURL-REGEX,^https://example.com,OpenAI\nFINAL,OpenAI")

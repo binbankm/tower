@@ -17,7 +17,8 @@ enum SingBoxDNSPolicy {
 
     static func apply(to configuration: inout [String: Any], nodeTags: [String],
                       preferredProxy: String?, domainRules: [[String: Any]],
-                      protection: RuleSchemeDNSProtectionMode, ipv6Enabled: Bool? = nil) {
+                      protection: RuleSchemeDNSProtectionMode, ipv6Enabled: Bool? = nil,
+                      chinaResolverHint: Bool = false, chinaResolver: [String: Any]? = nil) {
         guard var outbounds = configuration["outbounds"] as? [[String: Any]],
               var route = configuration["route"] as? [String: Any],
               var routeRules = route["rules"] as? [[String: Any]],
@@ -100,11 +101,34 @@ enum SingBoxDNSPolicy {
                 }
             }
         }
-        dns["servers"] = servers
         let fallback = proxy == nil ? "local" : "remote"
         let finalGroup = route["final"] as? String ?? "DIRECT"
         let directFinal = defaultsToDirect(finalGroup)
         dns["final"] = protection != .strict && directFinal ? "local" : fallback
+        // A domain no list mentions went to the remote resolver through the
+        // proxy, whose answer points at a CDN near the exit: Chinese sites got
+        // US/JP/SG edges and then missed the China IP rule. sing-box's own
+        // "without DNS leaks" recipe asks the remote resolver again with a
+        // Chinese client subnet and keeps the answer only if it is a Chinese
+        // address; otherwise the query falls through to `final` unchanged.
+        // Nothing reaches the local resolver, so the lookup is not leaked.
+        // Cloudflare ignores ECS, so the default resolver here is Google's.
+        // Measured 2026-09-29: unlisted sites moved from US/JP/SG to CN
+        // answers, foreign answers were unchanged, cold lookups ~70 ms slower.
+        var chinaTag: String?
+        if chinaResolverHint, protection != .followScheme, let proxy, dns["final"] as? String == "remote",
+           !IPCountryDatabase.cidrs(forCountry: "CN").isEmpty {
+            let tag = availableTag("remote-cn", used: Set(servers.compactMap { $0["tag"] as? String }))
+            var server = chinaResolver ?? [
+                "type": "https", "server": "8.8.8.8", "server_port": 443, "path": "/dns-query",
+                "tls": ["enabled": true, "server_name": "dns.google"]
+            ]
+            server["tag"] = tag
+            server["detour"] = proxy
+            servers.append(server)
+            chinaTag = tag
+        }
+        dns["servers"] = servers
         var dnsRules: [[String: Any]] = [
             ["clash_mode": directMode, "action": "route", "server": "local"],
             globalDNSTag.map { ["clash_mode": globalMode, "action": "route", "server": $0] }
@@ -122,8 +146,32 @@ enum SingBoxDNSPolicy {
                 let direct = (rule["outbound"] as? String).map { defaultsToDirect($0) } ?? false
                 projected["action"] = "route"
                 projected["server"] = protection != .strict && direct ? "local" : fallback
+                // Strict mode keeps direct names off the domestic resolver
+                // but still wants the Chinese CDN edge for them.
+                if protection == .strict, direct, let chinaTag {
+                    projected["server"] = chinaTag
+                    projected["client_subnet"] = chinaClientSubnet
+                }
             }
             dnsRules.append(projected)
+        }
+        if let chinaTag {
+            // sing-box 1.14 response matching: ask, then answer with the
+            // result only if it is Chinese; anything else falls through to
+            // `final`. The older form (a `rule_set` address filter on a route
+            // rule) behaves the same but is deprecated for removal in 1.16,
+            // and the official apps pop up "your profile is outdated" for it.
+            // Only address queries: other types never match a CIDR set and
+            // would just be asked twice.
+            dnsRules.append([
+                "query_type": ["A", "AAAA"],
+                "action": "evaluate", "server": chinaTag, "client_subnet": chinaClientSubnet
+            ])
+            dnsRules.append([
+                "match_response": true,
+                "rule_set": [RoutingRuleCapabilities.localGeoIPPrefix + "cn"],
+                "action": "respond"
+            ])
         }
         dns["rules"] = dnsRules
         if protection == .followScheme,
@@ -162,6 +210,10 @@ enum SingBoxDNSPolicy {
         configuration["dns"] = dns
         configuration["inbounds"] = inbounds
     }
+
+    /// Any Chinese address works; the resolver only needs to believe the
+    /// client is in China. The sing-box manual uses the same 114 DNS range.
+    static let chinaClientSubnet = "114.114.114.0/24"
 
     static func domainRules(from entries: [RuleSetEmissionPlanner.InlineRule]) -> [[String: Any]] {
         let fields = ["DOMAIN": "domain", "DOMAIN-SUFFIX": "domain_suffix", "DOMAIN-KEYWORD": "domain_keyword"]

@@ -216,8 +216,7 @@ struct RuleSchemeImportService {
                         do {
                             let data = try await fetch(url)
                             guard !Self.looksLikeWebPage(data) else { throw RuleImportError.receivedWebPage }
-                            guard let content = String(data: data, encoding: .utf8)
-                                ?? String(data: data, encoding: .isoLatin1) else { throw RuleSchemeParseError.notReadableText }
+                            guard let content = Self.ruleListText(data) else { throw RuleSchemeParseError.notReadableText }
                             try Task.checkCancellation()
                             try store.store(content, for: url, generation: generation)
                             return (url, nil)
@@ -308,10 +307,17 @@ struct RuleSchemeImportService {
         return failed
     }
 
+    /// A rule list is text. Binary payloads (a compressed MRS set served
+    /// under an unexpected name, an archive) used to decode as Latin-1 and
+    /// turn into thousands of garbage rules that broke the exported profile.
+    static func ruleListText(_ data: Data) -> String? {
+        guard !data.contains(0) else { return nil }
+        return String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
+    }
+
     private func download(_ url: URL, generation: UUID) async -> Bool {
         guard let payload = try? await fetch(url),
-              let content = String(data: payload, encoding: .utf8)
-                ?? String(data: payload, encoding: .isoLatin1) else {
+              let content = Self.ruleListText(payload) else {
             return false
         }
         do {

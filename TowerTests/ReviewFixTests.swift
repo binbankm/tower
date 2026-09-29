@@ -242,13 +242,16 @@ final class ReviewFixTests: XCTestCase {
     @MainActor
     func testRefreshReusesFreshHostCountryBeforePublishingNewNodeIDs() async throws {
         let url = "https://provider.example.com/sub"
-        let old = makeNode(name: "Premium", server: "203.0.113.5")
-        let fresh = makeNode(name: "Premium renamed", server: "203.0.113.5")
+        // A host name: literal addresses are answered from the database
+        // directly and never need this cache.
+        let old = makeNode(name: "Premium", server: "premium.example.com")
+        let fresh = makeNode(name: "Premium renamed", server: "premium.example.com")
         let stateURL = temporaryStateURL()
         defer { try? FileManager.default.removeItem(at: stateURL) }
         let store = PersistenceStore(fileURL: stateURL)
         let first = AppModel(persistence: store, subscriptionService: ScriptedFetcher(nodesByURL: [url: [old]]),
-            ipCountryLookupService: makeIPCountryService(range: 0xCB00_7100...0xCB00_71FF, code: "SG"), arguments: [])
+            ipCountryLookupService: makeIPCountryService(range: 0xCB00_7100...0xCB00_71FF, code: "SG",
+                                                         resolvingTo: "203.0.113.5"), arguments: [])
         try await first.addSubscription(name: "机场", urlString: url)
         await first.resolveIPCountries(for: first.nodes)
         let model = AppModel(persistence: store, subscriptionService: ScriptedFetcher(nodesByURL: [url: [fresh]]), arguments: [])
@@ -392,7 +395,8 @@ final class ReviewFixTests: XCTestCase {
 
     /// A two-record offline database, so the lookup path can be exercised
     /// without a network and without the 10 MB bundled table.
-    private func makeIPCountryService(range: ClosedRange<UInt32>, code: String) -> IPCountryLookupService {
+    private func makeIPCountryService(range: ClosedRange<UInt32>, code: String,
+                                      resolvingTo address: String? = nil) -> IPCountryLookupService {
         var record = Data()
         for value in [range.lowerBound, range.upperBound] {
             record.append(contentsOf: [
@@ -402,7 +406,8 @@ final class ReviewFixTests: XCTestCase {
         }
         record.append(contentsOf: Array(code.utf8))
         return IPCountryLookupService(
-            database: IPCountryDatabase(ipv4Data: record, ipv6Data: Data())
+            database: IPCountryDatabase(ipv4Data: record, ipv6Data: Data()),
+            resolver: address.map { address in { _ in [address] } }
         )
     }
 
@@ -458,7 +463,7 @@ final class ReviewFixTests: XCTestCase {
         let stateURL = temporaryStateURL()
         defer { try? FileManager.default.removeItem(at: stateURL) }
         let store = PersistenceStore(fileURL: stateURL)
-        let host = "203.0.113.5"
+        let host = "drift.example.com"
         let node = makeNode(name: "会漂移的域名", server: host)
 
         try store.save(AppSnapshot(
@@ -474,7 +479,8 @@ final class ReviewFixTests: XCTestCase {
             persistence: store,
             ipCountryLookupService: makeIPCountryService(
                 range: 0xCB00_7100...0xCB00_71FF,
-                code: "ZZ"
+                code: "ZZ",
+                resolvingTo: "203.0.113.5"
             ),
             arguments: []
         )

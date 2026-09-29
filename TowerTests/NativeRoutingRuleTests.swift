@@ -53,9 +53,18 @@ final class NativeRoutingRuleTests: XCTestCase {
     }
 
     func testAllMihomoLeafTypesRemainInMihomoOutput() throws {
-        let leaves = ["DOMAIN-REGEX,^api.*com$", "IP-SUFFIX,8.8.8.8/24", "SRC-GEOIP,CN", "SRC-IP-ASN,13335", "SRC-IP-CIDR,192.168.0.0/16", "SRC-IP-SUFFIX,192.168.1.1/8", "DST-PORT,443", "NETWORK,UDP", "IN-TYPE,SOCKS", "IN-USER,test", "IN-NAME,entry", "REMATCH-NAME,route", "PROCESS-PATH,/usr/bin/curl", "PROCESS-PATH-WILDCARD,/usr/*/curl", "PROCESS-PATH-REGEX,.*bin/curl", "PROCESS-NAME-WILDCARD,*curl*", "PROCESS-NAME-REGEX,curl$", "UID,1001", "DSCP,4"]
+        let leaves = ["DOMAIN-REGEX,^api.*com$", "IP-SUFFIX,8.8.8.8/24", "SRC-GEOIP,CN", "SRC-IP-ASN,13335", "SRC-IP-CIDR,192.168.0.0/16", "SRC-IP-SUFFIX,192.168.1.1/8", "DST-PORT,443", "NETWORK,UDP", "IN-TYPE,SOCKS", "IN-USER,test", "IN-NAME,entry", "REMATCH-NAME,route", "PROCESS-PATH,/usr/bin/curl", "PROCESS-PATH-WILDCARD,/usr/*/curl", "PROCESS-PATH-REGEX,.*bin/curl", "PROCESS-NAME-WILDCARD,*curl*", "PROCESS-NAME-REGEX,curl$", "DSCP,4"]
         let result = output(try parse(leaves.map { $0 + ",OpenAI" } + ["MATCH,OpenAI"]), .clashMi)
         for leaf in leaves { XCTAssertTrue(result.content.contains(leaf + ",OpenAI"), leaf) }
+    }
+
+    /// mihomo implements UID only on Linux and Android; elsewhere the rule
+    /// fails the whole profile, so it is left out with a notice.
+    func testUIDRuleIsLeftOutOfMihomoProfiles() throws {
+        let result = output(try parse(["UID,1001,OpenAI", "DOMAIN,api.example,OpenAI", "MATCH,OpenAI"]), .clashMi)
+        XCTAssertFalse(result.content.contains("UID,1001"), result.content)
+        XCTAssertTrue(result.content.contains("DOMAIN,api.example,OpenAI"), result.content)
+        XCTAssertTrue(result.diagnostics.contains { $0.contains("UID,1001") }, "\(result.diagnostics)")
     }
 
     func testSurgeNativeTypesAndOptionsStayNative() throws {
