@@ -30,6 +30,24 @@
 - **测试服务**：测试 VPS 上保留协议审计服务。Tailscale 的测试 Headscale 已删除，见 [LOCAL_TEST_INFRASTRUCTURE](LOCAL_TEST_INFRASTRUCTURE.md)。地址和凭据只在本机私密目录，不写进仓库。
 - **待办**：见 [TODO](TODO.md)。
 
+## 1.0.22（60）已发布 GitHub 与 Mac 包（2026-09-29）
+
+- 下面标为「未发布」、日期在 2026-09-18 之后的各节都已包含在本版：Tailscale、SSH / TrustTunnel / MASQUE、协议审计、iCloud 与性能、规则导出审计、DNS 拆分、issue #40 / #7、Codex 审查四项、首页修复等。
+- 用户可见的更新日志见 `docs/RELEASE-NOTES-1.0.22-60.md`，同时也是 GitHub Release 的说明。
+- 提交：
+  - `4aba1e6`：本轮工作。
+  - `7753bda`：ACL4SSR `bd00af4` 的 MRS / SRS 产物。上游只更新了 GFWList，塔台用到的规则产物与上一版逐字节相同。
+  - `c912f26`：版本号、固定到 `7753bda` 的规则清单、更新日志。
+  - 均已推送。
+- 规则：`--verify-published` 远端 77 个产物全部校验通过；`--check-latest` 显示已是上游最新。
+- 测试：TowerTests 1307 项（6 项跳过、0 失败），Swift Testing 106 项通过；本地化检查和发布脚本测试通过。
+- Mac 包：
+  - 本机 M4 正式版 Xcode 27.1 归档通用包（arm64 + x86_64），Developer ID 公证后取回。stapler、严格签名、Gatekeeper 和 DMG 挂载核对都通过。
+  - DMG SHA-256：`53a076dd1f929069c6dcdb3ce9cdd5ab3b246ab06c2bcd51cd0753be0dc8e20a`。从公开链接回下载后哈希一致。
+- GitHub Release `v1.0.22` 已公开，附 DMG 与 SHA256SUMS.txt，并标为 Latest。README 的 Mac 下载按钮已指向新版。
+- Homebrew：tap 更新到 1.0.22（60），`brew style` / `brew audit` 通过，本机 `brew upgrade` 后的签名与 Gatekeeper 验证通过，已推送。
+- 未做：iOS TestFlight 上传（本次只要求推送代码和发布 GitHub 版本）。
+
 ## 未发布：mihomo 子规则 SUB-RULE / sub-rules（issue #7，2026-09-29）
 
 - **问题**：[pengchujin/tower#7](https://github.com/pengchujin/tower/issues/7) 反馈 echs-top/proxy 的配置无法导入。实测 `mihomo.yaml` / `mihomo_smart.yaml` 能解析，但塔台把 `SUB-RULE,(条件),sub-telegram` 里的子规则名当成了策略组，所有客户端导出都报「规则目标不存在」。
