@@ -14,9 +14,13 @@ struct SubscriptionsView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 22) {
+                // Keep the page's card layout alive across bottom overscroll.
+                // Recycling these List-backed cards during rebound can interrupt
+                // the native scroll animation. Expanded node lists stay lazy.
+                VStack(spacing: 12) {
                     if TowerPlatform.isMac {
                         macHeader
+                            .padding(.bottom, 10)
                         if isMacMapExpanded {
                             NodeMapOverview(nodes: model.enabledNodes) {
                                 proxy.scrollTo(SubscriptionScrollTarget.selectedRegionNodes)
@@ -25,20 +29,24 @@ struct SubscriptionsView: View {
                             .frame(maxWidth: .infinity)
                             .transition(.opacity)
                             .accessibilityIdentifier("inline-node-map")
+                            .padding(.bottom, 10)
                         }
                         if !model.subscriptions.isEmpty || !model.localNodes.isEmpty {
                             MacSubscriptionSummary { metric in
                                 sourceManagementRoute = metric.managementRoute
                             }
+                            .padding(.bottom, 10)
                         }
                     } else {
                         SubscriptionOverviewCard { metric in
                             sourceManagementRoute = metric.managementRoute
                         }
+                        .padding(.bottom, 10)
                         NodeMapOverview(nodes: model.enabledNodes) {
                             proxy.scrollTo(SubscriptionScrollTarget.selectedRegionNodes)
                         }
                         .equatable()
+                        .padding(.bottom, 10)
                     }
 
                     if model.subscriptions.isEmpty && model.localNodes.isEmpty {
@@ -56,7 +64,7 @@ struct SubscriptionsView: View {
                                 PrivacyBadge()
                                 Spacer()
                                 Button("继续选择规则", systemImage: "arrow.right") {
-                                    model.selectedTab = .rules
+                                    model.tabSelection = .rules
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .controlSize(.large)
@@ -64,7 +72,7 @@ struct SubscriptionsView: View {
                             }
                         } else {
                             Button {
-                                model.selectedTab = .rules
+                                model.tabSelection = .rules
                             } label: {
                                 PrimaryActionLabel(title: "继续选择规则", symbol: "arrow.right")
                             }
@@ -198,24 +206,24 @@ struct SubscriptionsView: View {
             }
             .id(SubscriptionScrollTarget.subscriptions)
             .accessibilityIdentifier("subscriptions-section")
+            .padding(.bottom, 10)
         }
     }
 
     @ViewBuilder
     private var localNodesSection: some View {
         if !model.localNodes.isEmpty {
-            VStack(spacing: 12) {
-                SectionHeading(title: "自有节点", detail: String(localized: "\(model.localNodes.count) 个"))
-                ForEach(model.localNodes) { node in
-                    LocalNodeCard(node: node) {
-                        editingLocalNode = node
-                    } onDelete: {
-                        pendingDeletion = .node(node)
-                    }
+            SectionHeading(title: "自有节点", detail: String(localized: "\(model.localNodes.count) 个"))
+                .id(SubscriptionScrollTarget.localNodes)
+                .accessibilityIdentifier("local-nodes-section")
+            ForEach(model.localNodes) { node in
+                LocalNodeCard(node: node) {
+                    editingLocalNode = node
+                } onDelete: {
+                    pendingDeletion = .node(node)
                 }
+                .padding(.bottom, node.id == model.localNodes.last?.id ? 10 : 0)
             }
-            .id(SubscriptionScrollTarget.localNodes)
-            .accessibilityIdentifier("local-nodes-section")
         }
     }
 }

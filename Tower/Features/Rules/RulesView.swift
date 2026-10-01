@@ -89,9 +89,9 @@ struct RulesView: View {
             ForEach(schemes) { scheme in
                 RuleSchemeCard(
                     scheme: scheme,
-                    previewScheme: model.customizableScheme(for: scheme),
+                    previewScheme: model.rulesPageSummaries[scheme.id]?.preview ?? scheme,
                     isSelected: model.selectedPresetID == scheme.id,
-                    ruleCount: model.ruleCount(for: scheme),
+                    ruleCount: model.rulesPageSummaries[scheme.id]?.count,
                     isRefreshing: false,
                     isReady: true,
                     onCustomize: { customizationScheme = scheme },
@@ -104,11 +104,11 @@ struct RulesView: View {
             if let selfConfigurationScheme = model.selfConfigurationScheme {
                 RuleSchemeCard(
                     scheme: selfConfigurationScheme,
-                    previewScheme: model.customizableScheme(for: selfConfigurationScheme),
+                    previewScheme: model.rulesPageSummaries[selfConfigurationScheme.id]?.preview ?? selfConfigurationScheme,
                     isSelected: model.selectedPresetID == selfConfigurationScheme.id,
-                    ruleCount: model.ruleCount(for: selfConfigurationScheme),
+                    ruleCount: model.rulesPageSummaries[selfConfigurationScheme.id]?.count,
                     isRefreshing: model.importingSchemeIDs.contains(selfConfigurationScheme.id),
-                    isReady: model.isSchemeReady(selfConfigurationScheme),
+                    isReady: model.rulesPageSummaries[selfConfigurationScheme.id]?.isReady ?? true,
                     onCustomize: { customizationScheme = selfConfigurationScheme },
                     onSelect: { model.selectScheme(selfConfigurationScheme) },
                     onRefresh: { Task { await model.refreshScheme(selfConfigurationScheme) } },
@@ -143,11 +143,11 @@ struct RulesView: View {
                 ForEach(schemes) { scheme in
                     RuleSchemeCard(
                         scheme: scheme,
-                        previewScheme: model.customizableScheme(for: scheme),
+                        previewScheme: model.rulesPageSummaries[scheme.id]?.preview ?? scheme,
                         isSelected: model.selectedPresetID == scheme.id,
-                        ruleCount: model.ruleCount(for: scheme),
+                        ruleCount: model.rulesPageSummaries[scheme.id]?.count,
                         isRefreshing: model.importingSchemeIDs.contains(scheme.id),
-                        isReady: model.isSchemeReady(scheme),
+                        isReady: model.rulesPageSummaries[scheme.id]?.isReady ?? true,
                         onCustomize: { customizationScheme = scheme },
                         onSelect: { model.selectScheme(scheme) },
                         onRefresh: { Task { await model.refreshScheme(scheme) } },
@@ -175,6 +175,7 @@ struct RulesView: View {
 
 private struct RulesOverviewCard: View {
     @Environment(AppModel.self) private var model
+    @ScaledMetric(relativeTo: .caption) private var ruleCountWidth = 100
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -201,7 +202,8 @@ private struct RulesOverviewCard: View {
             }
 
             HStack(spacing: 14) {
-                overviewLabel(String(localized: "\(ruleCount.formatted()) 条"), symbol: "list.bullet.rectangle")
+                overviewLabel(String(localized: "\(ruleCount.map { $0.formatted() } ?? "—") 条"), symbol: "list.bullet.rectangle")
+                    .frame(minWidth: ruleCountWidth, alignment: .leading)
                 overviewLabel(String(localized: "\(groupCount) 组"), symbol: "square.stack.3d.up")
                 Spacer(minLength: 0)
                 overviewLabel(sourceName, symbol: "shippingbox")
@@ -229,13 +231,13 @@ private struct RulesOverviewCard: View {
     private var tintName: String {
         model.selectedScheme == nil ? model.selectedPreset.tintName : "indigo"
     }
-    private var ruleCount: Int {
-        if let scheme = model.selectedScheme { return model.ruleCount(for: scheme) }
-        return model.currentRuleCount
+    private var ruleCount: Int? {
+        if let scheme = model.selectedScheme { return model.rulesPageSummaries[scheme.id]?.count }
+        return model.rulesPagePresetCounts[model.selectedPreset.id]
     }
     private var groupCount: Int {
         guard let scheme = model.selectedScheme else { return model.selectedPreset.assignments.count }
-        return model.customizableScheme(for: scheme).groups.count
+        return (model.rulesPageSummaries[scheme.id]?.preview ?? scheme).groups.count
     }
     private var sourceName: String {
         guard let scheme = model.selectedScheme else { return String(localized: "本机规则") }
@@ -375,7 +377,7 @@ private struct RuleSchemeCard: View {
     let scheme: RuleScheme
     let previewScheme: RuleScheme
     let isSelected: Bool
-    let ruleCount: Int
+    let ruleCount: Int?
     let isRefreshing: Bool
     let isReady: Bool
     let onCustomize: () -> Void
@@ -399,7 +401,7 @@ private struct RuleSchemeCard: View {
                                     .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.leading)
                                     .fixedSize(horizontal: false, vertical: true)
-                                Text("\(ruleCount.formatted()) 条 · \(previewScheme.groups.count) 个策略组")
+                                Text("\(ruleCount.map { $0.formatted() } ?? "—") 条 · \(previewScheme.groups.count) 个策略组")
                                     .font(.caption)
                                     .foregroundStyle(.tertiary)
                                 if !isReady {
@@ -743,7 +745,7 @@ private struct RuleCustomizationSheet: View {
                         Button {
                             toggleRuleGroupEmojiVisibilityAfterMenuDismiss()
                         } label: {
-                            Label("显示策略组 Emoji", systemImage: "face.smiling")
+                            Label(model.ruleGroupEmojisAreEnabled(for: scheme) ? "隐藏 Emoji" : "显示 Emoji", systemImage: "face.smiling")
                         }
                         .menuActionDismissBehavior(.enabled)
                         Button {

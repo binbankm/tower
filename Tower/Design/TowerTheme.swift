@@ -484,16 +484,10 @@ struct TaskModalSurface: ViewModifier {
 /// in the outer scroll view, outside both swipe translation and row self-sizing.
 struct CardSwipeDeletion: ViewModifier {
     let onDelete: (() -> Void)?
+    @State private var isNearScrollViewport = true
 
-    // Development-only A/B control for device scroll profiling, like
-    // `--disable-tab-haptics`. Release builds always keep swipe deletion.
-    //
-    // Simulator A/B (2026-09-27, 40 local nodes): scrolling that region costs
-    // ~70% more CPU instructions with swipe deletion, almost all of it the
-    // per-card List; dropping the hidden sizing copy after measuring saved
-    // only ~3% and lagged height changes by a frame, so it was not kept.
-    // A custom pan was tried before and removed (it dragged expanded content
-    // and pushed the button off screen). Measure on a device before changing.
+    // Development-only A/B control for device scroll profiling.
+    // Release builds always retain the system's native swipe actions.
     private static var isDisabledForProfiling: Bool {
         #if DEBUG
         ProcessInfo.processInfo.arguments.contains("--disable-card-swipe")
@@ -506,43 +500,33 @@ struct CardSwipeDeletion: ViewModifier {
     func body(content: Content) -> some View {
         if let onDelete, !Self.isDisabledForProfiling {
             // The invisible copy supplies the controls' intrinsic height, including
-            // Dynamic Type. The native list never measures the expanded details.
+            // Dynamic Type. Keep this measurement alive even for distant cards so
+            // scrolling/rebound never changes the page's content height.
+            // The native row never measures the expanded details.
             content.hidden().accessibilityHidden(true)
                 // The sizing copy observes the same model as the visible row;
                 // without this its haptics and lookups would run a second time.
                 .environment(\.isSwipeSizingCopy, true)
                 .overlay {
-                    List {
-                        content
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                deleteButton(onDelete)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                deleteButton(onDelete)
-                            }
+                    // Preheat a screen above and below the viewport; distant
+                    // row hosts need not participate in sheet-dismissal layout.
+                    if isNearScrollViewport {
+                        CardSwipeRow(content: content, onDelete: onDelete)
                     }
-                    .listStyle(.plain)
-                    .scrollDisabled(true)
-                    .scrollContentBackground(.hidden)
-                    .scrollIndicators(.hidden)
-                    .contentMargins(.all, 0, for: .scrollContent)
-                    .environment(\.defaultMinListRowHeight, 0)
                 }
                 .clipped()
+                .onGeometryChange(for: Bool?.self) { geometry in
+                    guard let viewport = geometry.bounds(of: .scrollView) else { return true }
+                    // Keep the last visibility through transient zero-size layouts.
+                    guard viewport.width > 0, viewport.height > 0 else { return nil }
+                    let preheatedViewport = viewport.insetBy(dx: 0, dy: -viewport.height)
+                    return preheatedViewport.intersects(CGRect(origin: .zero, size: geometry.size))
+                } action: { isNear in
+                    if let isNear { isNearScrollViewport = isNear }
+                }
         } else {
             content
         }
     }
 
-    private func deleteButton(_ onDelete: @escaping () -> Void) -> some View {
-        // A destructive swipe action removes the native row before confirmation.
-        // Only the alert commits deletion; cancellation must leave the card intact.
-        Button(action: onDelete) {
-            Label("删除", systemImage: "trash")
-        }
-        .tint(.red)
-    }
 }

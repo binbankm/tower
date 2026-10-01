@@ -83,7 +83,7 @@ struct AppRootView: View {
     private var mainInterface: some View {
         @Bindable var model = model
 
-        return TabView(selection: $model.selectedTab) {
+        return TabView(selection: $model.tabSelection) {
             NavigationStack {
                 SubscriptionsView()
             }
@@ -101,6 +101,9 @@ struct AppRootView: View {
             }
             .tabItem { Label(AppTab.export.title, systemImage: AppTab.export.symbol) }
             .tag(AppTab.export)
+        }
+        .task(id: model.ruleSchemePresentationRevision) {
+            await model.prepareRulesPage()
         }
         .tint(.accentColor)
         .background { TabSelectionFeedback() }

@@ -28,7 +28,19 @@ struct SettingsView: View {
                 }
                 .buttonStyle(ResponsivePressButtonStyle())
                 .accessibilityIdentifier("replay-onboarding")
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionHeading(title: "订阅与提醒")
+                    RenewalReminderSection()
+                    Divider()
+                    AutoRefreshSection()
+                }
+                .padding(17).towerCard()
                 NodeAndExportSettingsCard(configurationNameDraft: $configurationNameDraft)
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionHeading(title: "连接")
+                    TailnetSettingsRow()
+                }
+                .padding(17).towerCard()
                 ConfigurationManagementCard(configurationNameDraft: $configurationNameDraft)
                 SettingsFooter()
             }
@@ -372,14 +384,6 @@ private struct NodeAndExportSettingsCard: View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeading(title: "节点与配置", detail: String(localized: "默认保持原始订阅"))
 
-            RenewalReminderSection()
-
-            Divider()
-
-            AutoRefreshSection()
-
-            Divider()
-
             Toggle(isOn: appendNameBinding) {
                 SettingsRowLabel(
                     symbol: "tag.fill",
@@ -425,10 +429,6 @@ private struct NodeAndExportSettingsCard: View {
                 )
             }
             .accessibilityIdentifier("embed-remote-subscription-links-toggle")
-
-            Divider()
-
-            TailnetSettingsRow()
 
             Divider()
 

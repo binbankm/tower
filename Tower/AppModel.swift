@@ -67,7 +67,42 @@ final class AppModel {
     /// What snapshots carry for older builds: the value loaded, not the browsing.
     @ObservationIgnored private var snapshotSelectedTarget: ClientTarget = .surge
     var isReplayingMacOnboarding = false
-    var selectedTab: AppTab = .subscriptions
+    var selectedTab: AppTab = .subscriptions {
+        didSet {
+            pendingRulesNavigation?.cancel()
+            pendingRulesNavigation = nil
+            isRulesNavigationPending = false
+        }
+    }
+    private var isRulesNavigationPending = false
+    @ObservationIgnored private var pendingRulesNavigation: Task<Void, Never>?
+
+    /// A cold rules page must have its final statistics before it is visible.
+    /// Keep the current tab interactive while the shared background work finishes.
+    var tabSelection: AppTab {
+        get {
+            _ = isRulesNavigationPending
+            return selectedTab
+        }
+        set {
+            pendingRulesNavigation?.cancel()
+            pendingRulesNavigation = nil
+            isRulesNavigationPending = false
+            guard newValue == .rules, !isRulesPagePrepared else {
+                selectedTab = newValue
+                return
+            }
+            isRulesNavigationPending = true
+            pendingRulesNavigation = Task { [weak self] in
+                guard let self else { return }
+                while !Task.isCancelled && !self.isRulesPagePrepared {
+                    await self.prepareRulesPage()
+                }
+                guard !Task.isCancelled else { return }
+                self.selectedTab = .rules
+            }
+        }
+    }
     var refreshingSourceIDs: Set<UUID> = []
     var subscriptionRefreshProgress: SubscriptionRefreshProgress?
     @ObservationIgnored private var presentedSubscriptionRefreshTask: Task<Void, Never>?
@@ -422,7 +457,17 @@ final class AppModel {
         rulePresentationInputs = presentation
         ruleCountInputs = presentation.counts
     }
-    private var ruleSchemePresentationRevision = 0
+    private(set) var ruleSchemePresentationRevision = 0
+    private var preparedRulesPageRevision: Int?
+    private typealias PreparedRulesPage = (
+        [String: RuleScheme], [String: RuleScheme], [String: Int],
+        [String: RuleSchemePageSummary], [String: Int]
+    )
+    @ObservationIgnored private var rulesPagePreparation: (revision: Int, task: Task<PreparedRulesPage, Error>)?
+
+    var isRulesPagePrepared: Bool { preparedRulesPageRevision == ruleSchemePresentationRevision }
+    private(set) var rulesPageSummaries: [String: RuleSchemePageSummary] = [:]
+    private(set) var rulesPagePresetCounts: [String: Int] = [:]
     @ObservationIgnored private var customizableSchemeCache: [String: RuleScheme] = [:]
     @ObservationIgnored private var materializedSchemeCache: [String: RuleScheme] = [:]
     /// Test-visible instrumentation proving that selection-only renders reuse
@@ -527,7 +572,17 @@ final class AppModel {
         #else
         self.persistence = persistence
         #endif
+        #if DEBUG
+        if let run = ProcessInfo.processInfo.environment["TOWER_UI_TEST_RUN"], let id = UUID(uuidString: run),
+           ProcessInfo.processInfo.environment["TOWER_UI_TEST_RULES_SYNC"] == "1" {
+            self.cloudSync = CloudSyncStore(fileURL: FileManager.default.temporaryDirectory
+                .appendingPathComponent("tower-rules-sync-\(id.uuidString)/cloud.json"))
+        } else {
+            self.cloudSync = cloudSync
+        }
+        #else
         self.cloudSync = cloudSync
+        #endif
         #if DEBUG
         if let run = ProcessInfo.processInfo.environment["TOWER_UI_TEST_RUN"], UUID(uuidString: run) != nil,
            ProcessInfo.processInfo.environment["TOWER_REFRESH_UI_TEST"] == "1" {
@@ -589,6 +644,10 @@ final class AppModel {
             selectedTab = tab
         }
 
+        #if DEBUG
+        startRulesSyncUIFixtureIfRequested()
+        #endif
+
         if renewalRemindersEnabled {
             Task { [weak self] in
                 await self?.synchronizeRenewalReminders(showFailure: false)
@@ -621,6 +680,7 @@ final class AppModel {
     }
 
     func ruleCount(for scheme: RuleScheme) -> Int {
+        _ = ruleSchemePresentationRevision
         if let cached = schemeRuleCountCache[scheme.id] { return cached }
         let count = effectiveScheme(scheme).rulesets.reduce(0) {
             $0 + schemeRepository.lines(for: $1.resource).count
@@ -671,12 +731,8 @@ final class AppModel {
         if let cached = customizableSchemeCache[scheme.id] {
             return cached
         }
-        let customized = scheme.customized(
-            enabledRuleGroupNames: nil,
-            customRuleFlows: customRuleFlows,
-            groupCustomization: ruleSchemeCustomizations[scheme.id],
-            resolvedRuleLines: resolvedRuleLines(for: scheme)
-        )
+        let input = rulePresentation(for: scheme)
+        let customized = input.materialize(preview: true, resolvedLines: input.resolveLines(using: schemeRepository))
         ruleSchemeMaterializationCount += 1
         customizableSchemeCache[scheme.id] = customized
         return customized
@@ -1402,41 +1458,110 @@ final class AppModel {
         if let cached = materializedSchemeCache[scheme.id] {
             return cached
         }
-        let customization = ruleSchemeCustomizations[scheme.id]
-        let fixed = Set(scheme.protectedRuleGroupNames)
-            .intersection(scheme.selectableRuleGroupNames)
-            .map { customization?.renamedGroupName($0) ?? $0 }
-        let enabledGroups = selectedRuleGroups[scheme.id].map { $0.union(fixed) }
-        let materialized = scheme.customized(
-            enabledRuleGroupNames: enabledGroups,
-            customRuleFlows: customRuleFlows,
-            groupCustomization: customization,
-            resolvedRuleLines: resolvedRuleLines(for: scheme)
-        )
+        let input = rulePresentation(for: scheme)
+        let materialized = input.materialize(preview: false, resolvedLines: input.resolveLines(using: schemeRepository))
         ruleSchemeMaterializationCount += 1
         materializedSchemeCache[scheme.id] = materialized
         return materialized
     }
 
     private func invalidateRuleSchemePresentationCaches() {
+        rulesPagePreparation?.task.cancel()
+        rulesPagePreparation = nil
         customizableSchemeCache.removeAll(keepingCapacity: true)
         materializedSchemeCache.removeAll(keepingCapacity: true)
+        schemeRuleCountCache.removeAll(keepingCapacity: true)
         // Cache hits must still participate in SwiftUI observation. Otherwise
         // a rule removed from the model can remain in the editor's visible draft.
         ruleSchemePresentationRevision &+= 1
     }
 
-    private func resolvedRuleLines(for scheme: RuleScheme) -> [URL: [String]] {
-        let customURLs = customRuleFlows.compactMap { flow -> URL? in
-            guard flow.schemeID == scheme.id, flow.isEnabled else { return nil }
-            return flow.remoteRuleURL
+    private func rulePresentation(for scheme: RuleScheme) -> RuleSchemePresentation {
+        RuleSchemePresentation(scheme: scheme, customization: ruleSchemeCustomizations[scheme.id],
+                               flows: customRuleFlows, selectedGroups: selectedRuleGroups[scheme.id])
+    }
+
+    #if DEBUG
+    /// Reproduce a sync finishing after statistics have already become visible.
+    /// The matching initializer branch injects a disposable local cloud store.
+    private func startRulesSyncUIFixtureIfRequested() {
+        let environment = ProcessInfo.processInfo.environment
+        guard UUID(uuidString: environment["TOWER_UI_TEST_RUN"] ?? "") != nil,
+              environment["TOWER_UI_TEST_RULES_SYNC"] == "1" else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            while self.selectedTab != .rules {
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            }
+            do { try await Task.sleep(for: .seconds(2)) } catch { return }
+            self.iCloudSyncEnabled = true
+            await self.synchronizeWithCloud()
+            print("Rules sync UI fixture completed: success=\(self.cloudSyncIssue == nil)")
         }
-        var seen = Set<URL>()
-        return Dictionary(uniqueKeysWithValues: (scheme.remoteRulesetURLs + customURLs).compactMap {
-            url in
-            guard seen.insert(url).inserted else { return nil }
-            return (url, schemeRepository.lines(for: .remote(url)))
-        })
+    }
+    #endif
+
+    /// Cards read display-only summaries, never trigger file parsing. Keep the
+    /// previous summaries visible until a still-current snapshot can replace them.
+    func prepareRulesPage() async {
+        guard !Task.isCancelled, !isRulesPagePrepared else { return }
+        let revision = ruleSchemePresentationRevision
+        let task: Task<PreparedRulesPage, Error>
+        if let preparation = rulesPagePreparation, preparation.revision == revision {
+            task = preparation.task
+        } else {
+            let inputs = ruleSchemes.map { rulePresentation(for: $0) }
+            let repository = schemeRepository
+            let legacyPreset = selectedScheme == nil ? selectedPreset : nil
+            let presetRepository = ruleRepository
+            task = Task.detached(priority: .userInitiated) {
+                #if DEBUG
+                // Expose the cold preparation interval only to isolated UI tests.
+                let environment = ProcessInfo.processInfo.environment
+                if UUID(uuidString: environment["TOWER_UI_TEST_RUN"] ?? "") != nil,
+                   environment["TOWER_UI_TEST_SLOW_RULES"] == "1" {
+                    try await Task.sleep(for: .seconds(8))
+                }
+                #endif
+                var previews: [String: RuleScheme] = [:]
+                var effective: [String: RuleScheme] = [:]
+                var counts: [String: Int] = [:]
+                var summaries: [String: RuleSchemePageSummary] = [:]
+                for input in inputs {
+                    try Task.checkCancellation()
+                    let lines = input.resolveLines(using: repository)
+                    let preview = input.materialize(preview: true, resolvedLines: lines)
+                    let scheme = input.selectedGroups == nil
+                        ? preview : input.materialize(preview: false, resolvedLines: lines)
+                    previews[input.scheme.id] = preview
+                    effective[input.scheme.id] = scheme
+                    let count = scheme.rulesets.reduce(0) {
+                        $0 + repository.lines(for: $1.resource).count
+                    }
+                    counts[input.scheme.id] = count
+                    summaries[input.scheme.id] = RuleSchemePageSummary(
+                        preview: preview, count: count,
+                        isReady: scheme.remoteRulesetURLs.allSatisfy { repository.hasLocalRules(for: $0) }
+                    )
+                }
+                let presetCounts = legacyPreset.map { [$0.id: presetRepository.count(for: $0)] } ?? [:]
+                return (previews, effective, counts, summaries, presetCounts)
+            }
+            rulesPagePreparation = (revision, task)
+        }
+        // One caller disappearing must not cancel preparation needed by another.
+        // Input invalidation cancels the shared worker instead.
+        let result = try? await task.value
+        guard let result, !Task.isCancelled, revision == ruleSchemePresentationRevision,
+              !isRulesPagePrepared else { return }
+        customizableSchemeCache = result.0
+        materializedSchemeCache = result.1
+        schemeRuleCountCache = result.2
+        rulesPageSummaries = result.3
+        rulesPagePresetCounts = result.4
+        ruleSchemeMaterializationCount += result.0.count * 2
+        preparedRulesPageRevision = revision
+        rulesPagePreparation = nil
     }
 
     func effectiveScheme(_ scheme: RuleScheme) -> RuleScheme {
@@ -3793,6 +3918,8 @@ final class AppModel {
     /// Shared by launch and by an iCloud pull so a synced snapshot cannot be
     /// applied differently from a local one.
     private func apply(_ snapshot: AppSnapshot) {
+        let previousRuleInputs = currentRulePresentationInputs()
+        let previousPresetID = selectedPresetID
         cancelLatencyTests()
         ruleOperationGeneration = UUID()
         cancelRuleImport()
@@ -3815,8 +3942,6 @@ final class AppModel {
         for operation in sourceRefreshOperations.values { operation.task.cancel() }
         sourceRefreshOperations.removeAll()
         refreshingSourceIDs.removeAll()
-        schemeRuleCountCache.removeAll(keepingCapacity: true)
-        invalidateRuleSchemePresentationCaches()
         // The moment this snapshot's edits became current. Without it a launch
         // left `lastLocalEditAt` nil, so the next foreground sync compared
         // `.distantPast` against iCloud and took the remote copy unconditionally
@@ -3972,7 +4097,20 @@ final class AppModel {
            let fallback = visibleClientOrder.first {
             selectedTarget = fallback
         }
-        // Rule caches were emptied above; these are the inputs they now follow.
+        // A foreground cloud sync applies snapshots even when rules did not
+        // change. Invalidating here unconditionally erased visible statistics
+        // a second or two after entering Rules, then published them again.
+        if currentRulePresentationInputs() != previousRuleInputs
+            || (selectedScheme == nil && selectedPresetID != previousPresetID) {
+            invalidateRuleSchemePresentationCaches()
+            // Keep display-only values until the replacement is ready. Removed
+            // schemes must not retain summaries; export uses the invalidated
+            // semantic caches and therefore sees the new rules immediately.
+            let retainedIDs = Set(ruleSchemes.map(\.id))
+            if rulesPageSummaries.keys.contains(where: { !retainedIDs.contains($0) }) {
+                rulesPageSummaries = rulesPageSummaries.filter { retainedIDs.contains($0.key) }
+            }
+        }
         recordRuleInputs()
     }
 

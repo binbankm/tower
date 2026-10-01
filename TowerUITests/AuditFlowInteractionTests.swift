@@ -290,6 +290,25 @@ final class AuditFlowInteractionTests: XCTestCase {
         measureScrolling(app)
     }
 
+    func testHomeBottomOverscrollSettles() {
+        let app = launchPerformanceFixture()
+        let next = app.buttons["continue-to-rules"]
+        for _ in 0..<35 where !next.isHittable { app.swipeUp() }
+        XCTAssertTrue(next.isHittable)
+        app.swipeUp()
+        let restingY = next.frame.midY
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.72))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.38))
+        for _ in 0..<3 {
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.2)
+            XCTAssertEqual(next.frame.midY, restingY, accuracy: 3, "Bottom overscroll must return to the same content extent")
+        }
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "home-bottom-after-overscroll"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     func testPerformanceAuditExpandedNodes() {
         let app = launchPerformanceFixture()
         let expand = app.buttons["展开 云帆机场 的节点"]
@@ -510,7 +529,7 @@ final class AuditFlowInteractionTests: XCTestCase {
         app.buttons["onboarding-skip"].tap()
         XCTAssertTrue(replay.waitForExistence(timeout: 3))
         app.swipeUp()
-        app.swipeDown()
+        for _ in 0..<4 where !replay.isHittable { app.swipeDown() }
         XCTAssertTrue(replay.isHittable)
     }
 
@@ -560,7 +579,9 @@ final class AuditFlowInteractionTests: XCTestCase {
         // Test focus/dismissal without synthetic typing through that keyboard;
         // draft text entry is covered independently by the cancellation test.
         let done = app.buttons["完成"]
-        XCTAssertTrue(done.isHittable)
+        // Focus can return before the keyboard toolbar finishes appearing.
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: done)
+        waitForExpectations(timeout: 5)
         done.tap()
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: done)
         waitForExpectations(timeout: 3)

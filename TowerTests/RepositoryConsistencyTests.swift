@@ -198,9 +198,9 @@ final class RepositoryConsistencyTests: XCTestCase {
         let cardSource = String(source[cardStart.lowerBound..<editorStart.lowerBound])
 
         XCTAssertEqual(
-            source.components(separatedBy: "previewScheme: model.customizableScheme(for:").count - 1,
+            source.components(separatedBy: "previewScheme: model.rulesPageSummaries[").count - 1,
             3,
-            "每类规则卡片都必须从 AppModel 获取实时定制结果"
+            "每类规则卡片都必须读取 AppModel 后台准备的展示摘要，不能在 body 中同步解析"
         )
         XCTAssertTrue(cardSource.contains("let previewScheme: RuleScheme"))
         XCTAssertTrue(cardSource.contains("ForEach(previewScheme.groups"))
@@ -477,7 +477,7 @@ final class RepositoryConsistencyTests: XCTestCase {
         let emojiSource = String(source[componentStart.lowerBound..<componentEnd.lowerBound])
 
         XCTAssertTrue(
-            sheetSource.contains("Label(\"显示策略组 Emoji\", systemImage: \"face.smiling\")")
+            sheetSource.contains(#"model.ruleGroupEmojisAreEnabled(for: scheme) ? "隐藏 Emoji" : "显示 Emoji""#)
         )
         XCTAssertFalse(menuSource.contains("Toggle("))
         XCTAssertTrue(menuSource.contains("toggleRuleGroupEmojiVisibilityAfterMenuDismiss()"))
@@ -585,7 +585,7 @@ final class RepositoryConsistencyTests: XCTestCase {
         let overviewSource = String(source[overviewStart.lowerBound..<nextViewStart.lowerBound])
 
         XCTAssertTrue(
-            overviewSource.contains("model.customizableScheme(for: scheme).groups.count"),
+            overviewSource.contains("(model.rulesPageSummaries[scheme.id]?.preview ?? scheme).groups.count"),
             "顶部总览必须与下载卡片和展开详情一样，统计方案的全部策略组"
         )
         XCTAssertFalse(
@@ -606,32 +606,19 @@ final class RepositoryConsistencyTests: XCTestCase {
         XCTAssertFalse(cardSource.contains("} preview:"), "不替换成自定义摘要预览")
     }
 
-    /// Renewal reminders and automatic refresh both answer "what should Tower
-    /// do with my subscriptions", so they live inside the node-and-export card
-    /// rather than as separate cards, and ahead of its export options.
-    ///
-    /// Compares positions only within a single construct. An earlier version
-    /// compared across structs and against a property declaration rather than
-    /// its use, which measured where the source happens to sit rather than
-    /// what the screen shows.
-    func testSubscriptionBehaviourSitsAtTheTopOfTheNodeCard() throws {
+    /// Subscription behavior, node/export options, and connections have distinct groups.
+    func testSubscriptionBehaviourHasOneGroupBeforeNodeAndExportSettings() throws {
         let source = try sourceText("Tower/Features/Settings/SettingsView.swift")
-
-        let cardBodyStart = try XCTUnwrap(source.range(of: #"SectionHeading(title: "节点与配置""#))
-        let cardBody = String(source[cardBodyStart.lowerBound...])
-
-        let reminder = try XCTUnwrap(cardBody.range(of: "RenewalReminderSection()"))
-        let refresh = try XCTUnwrap(cardBody.range(of: "AutoRefreshSection()"))
-        // The use, not the computed property that backs it.
-        let exportOption = try XCTUnwrap(cardBody.range(of: "Toggle(isOn: appendNameBinding)"))
-
+        let bodyStart = try XCTUnwrap(source.range(of: "struct SettingsView: View"))
+        let bodyEnd = try XCTUnwrap(source.range(of: "private struct ConfigurationManagementCard"))
+        let body = String(source[bodyStart.lowerBound..<bodyEnd.lowerBound])
+        let reminder = try XCTUnwrap(body.range(of: "RenewalReminderSection()"))
+        let refresh = try XCTUnwrap(body.range(of: "AutoRefreshSection()"))
+        let nodeCard = try XCTUnwrap(body.range(of: "NodeAndExportSettingsCard("))
         XCTAssertLessThan(reminder.lowerBound, refresh.lowerBound)
-        XCTAssertLessThan(refresh.lowerBound, exportOption.lowerBound)
-
-        // Neither may reappear as a card of its own, or the settings screen
-        // would show the same switch twice.
-        XCTAssertFalse(source.contains("RenewalReminderCard()"), source)
-        XCTAssertFalse(source.contains("AutoRefreshCard()"), source)
+        XCTAssertLessThan(refresh.lowerBound, nodeCard.lowerBound)
+        XCTAssertEqual(source.components(separatedBy: "RenewalReminderSection()").count - 1, 1)
+        XCTAssertEqual(source.components(separatedBy: "AutoRefreshSection()").count - 1, 1)
     }
 
     /// LAN sharing is an export destination, so Settings must not duplicate a
