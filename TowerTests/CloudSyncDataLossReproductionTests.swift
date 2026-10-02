@@ -4,6 +4,27 @@ import XCTest
 /// Empty devices must not publish destructive replacement snapshots.
 @MainActor
 final class CloudSyncDataLossReproductionTests: XCTestCase {
+    func testRecoveryPublishesOnlyTheFinalListAfterCloudReturns() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let cloud = DelayedRecoveryStore()
+        let model = AppModel(persistence: PersistenceStore(fileURL: folder.appendingPathComponent("local.json")), cloudSync: cloud, arguments: [])
+        model.setConfigurationName("Local first")
+        let load = Task { await model.loadCloudRecoveryCopies() }
+        for _ in 0..<10_000 {
+            if await cloud.isWaiting { break }
+            await Task.yield()
+        }
+        let waiting = await cloud.isWaiting
+        XCTAssertTrue(waiting)
+        XCTAssertTrue(model.isLoadingCloudRecoveryCopies)
+        XCTAssertTrue(model.cloudRecoveryCopies.isEmpty, "Do not expose a provisional version before cloud history is known")
+        await cloud.finish()
+        await load.value
+        XCTAssertFalse(model.isLoadingCloudRecoveryCopies)
+        XCTAssertEqual(model.cloudRecoveryCopies.first?.snapshot.configurationName, "Local first")
+    }
+
     func testUntouchedEmptyMacDownloadsPopulatedPhoneSnapshot() async throws {
         try await runEmptyMacScenario(editBeforeEnabling: false)
     }
@@ -138,4 +159,18 @@ final class CloudSyncDataLossReproductionTests: XCTestCase {
         await phone.setICloudSyncEnabled(false)
         await mac.setICloudSyncEnabled(false)
     }
+}
+
+private actor DelayedRecoveryStore: CloudSnapshotSyncing {
+    nonisolated let isAccountAvailable = false
+    private var continuation: CheckedContinuation<[CloudRecoveryCopy], Never>?
+    var isWaiting: Bool { continuation != nil }
+    func recoveryCopies() async throws -> [CloudRecoveryCopy] {
+        await withCheckedContinuation { continuation = $0 }
+    }
+    func finish() { continuation?.resume(returning: []); continuation = nil }
+    func download() async throws -> AppSnapshot? { nil }
+    func upload(_ snapshot: AppSnapshot) async throws {}
+    func removeRemoteSnapshot() async throws {}
+    func commit(_ snapshot: AppSnapshot, replacing expected: AppSnapshot?) async throws {}
 }

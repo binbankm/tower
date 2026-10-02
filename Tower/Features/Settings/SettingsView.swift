@@ -1127,24 +1127,38 @@ private struct CloudRecoveryView: View {
     @State private var didLoad = false
 
     var body: some View {
-        List(model.cloudRecoveryCopies) { copy in
-            Button {
-                selectedCopy = copy
-                confirmsRestore = true
-            } label: {
-                VStack(alignment: .leading) {
-                    if let date = copy.snapshot.updatedAt, date > .distantPast {
-                        Text(date, style: .date)
-                        Text(date, style: .time)
-                    }
-                    Text("\(copy.snapshot.nodes.count) 个节点 · \(copy.snapshot.importedSchemes?.count ?? 0) 个规则方案")
-                        .font(.caption).foregroundStyle(.secondary)
+        List {
+            if !didLoad || model.isLoadingCloudRecoveryCopies {
+                HStack {
+                    Spacer()
+                    ProgressView("正在加载备份…")
+                    Spacer()
                 }
+                .listRowBackground(Color.clear)
+                .accessibilityIdentifier("recovery-loading")
+            } else {
+                ForEach(model.cloudRecoveryCopies) { copy in
+                    Button {
+                        selectedCopy = copy
+                        confirmsRestore = true
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            if copy.id == "current-local" {
+                                Text("当前使用").font(.headline)
+                            } else if let date = copy.snapshot.updatedAt, date > .distantPast {
+                                Text("配置修改时间").font(.caption).foregroundStyle(.secondary)
+                                Text(date.formatted(date: .numeric, time: .standard))
+                            }
+                            Text("\(copy.snapshot.nodes.count) 个节点 · \(copy.snapshot.importedSchemes?.count ?? 0) 个规则方案")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                if model.cloudRecoveryCopies.isEmpty { Text("暂无同步备份") }
             }
         }
         .navigationTitle("恢复同步备份")
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
-        .overlay { if model.cloudRecoveryCopies.isEmpty { Text("暂无同步备份") } }
         .alert("恢复这份配置？", isPresented: $confirmsRestore, presenting: selectedCopy) { copy in
             Button("恢复", role: .destructive) {
                 Task { await model.restoreCloudCopy(copy); await model.loadCloudRecoveryCopies() }

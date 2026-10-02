@@ -22,7 +22,7 @@ from typing import NamedTuple
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-ACL4SSR_REVISION = "75f0101039d71724b6e998b34604c2e053580e0c"
+ACL4SSR_REVISION = "7ec917109533597bd7f646cf2c01ad8f1db6c88d"
 RAW_BASE = "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR"
 LATEST_REVISION_URL = "https://api.github.com/repos/ACL4SSR/ACL4SSR/commits/master"
 MIHOMO_VERSION = "v1.19.30"

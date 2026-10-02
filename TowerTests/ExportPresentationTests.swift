@@ -34,6 +34,36 @@ final class ExportPresentationTests: XCTestCase {
     }
 
     @MainActor
+    func testPreviewAccessibilityPreservesFullPlainTextAndTracksUpdates() {
+        let preview = AccessibleConfigurationPreview(isScrollEnabled: true)
+        let content = String(repeating: "🇯🇵 node = ss, 192.0.2.1, 443\n", count: 5000)
+        preview.render(content, spans: [])
+        XCTAssertTrue(preview.isAccessibilityElement)
+        XCTAssertTrue(preview.accessibilityTraits.contains(.staticText))
+        XCTAssertTrue(preview.textView.accessibilityElementsHidden)
+        XCTAssertEqual(preview.accessibilityLabel, content)
+        XCTAssertEqual(preview.textView.text, content)
+        XCTAssertTrue(preview.textView.isSelectable)
+        preview.render("replacement", spans: [])
+        XCTAssertEqual(preview.accessibilityLabel, "replacement")
+        XCTAssertEqual(preview.textView.text, "replacement")
+    }
+
+    @MainActor
+    func testPreviewAccessibilityScrollRespectsContentBounds() {
+        let preview = AccessibleConfigurationPreview(isScrollEnabled: true)
+        preview.frame = CGRect(x: 0, y: 0, width: 320, height: 400)
+        preview.layoutIfNeeded()
+        preview.textView.contentSize = CGSize(width: 320, height: 1200)
+        XCTAssertFalse(preview.accessibilityScroll(.up))
+        XCTAssertTrue(preview.accessibilityScroll(.down))
+        XCTAssertEqual(preview.textView.contentOffset.y, 320)
+        XCTAssertTrue(preview.accessibilityScroll(.up))
+        XCTAssertEqual(preview.textView.contentOffset.y, 0)
+        XCTAssertFalse(preview.accessibilityScroll(.left))
+    }
+
+    @MainActor
     func testConfigurationEditorUsesGitHubStyleLineNumbersAndUnwrappedCode() {
         let editor = ConfigurationEditorTextViewFactory.make()
 

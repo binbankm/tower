@@ -28,7 +28,9 @@ final class AuditFlowInteractionTests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
         save.tap()
-        XCTAssertTrue(app.staticTexts["筛选持续生效"].waitForExistence(timeout: 5))
+        let filterSummary = app.buttons["node-name-export-filter"]
+        expectation(for: NSPredicate(format: "label CONTAINS %@", "IEPL"), evaluatedWith: filterSummary)
+        waitForExpectations(timeout: 5)
         app.terminate(); app.launch()
         openFilter()
         XCTAssertTrue(app.textFields.matching(NSPredicate(format: "value == %@", "IEPL")).firstMatch.waitForExistence(timeout: 5))
@@ -151,7 +153,11 @@ final class AuditFlowInteractionTests: XCTestCase {
         let initialY = tabs.frame.minY
         for _ in 0..<3 {
             search.tap()
-            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+            // Device keyboards can be hosted by an extension outside app.keyboards.
+            expectation(for: NSPredicate { _, _ in
+                app.keyboards.firstMatch.exists || search.debugDescription.contains("Keyboard Focused")
+            }, evaluatedWith: search)
+            waitForExpectations(timeout: 5)
             XCTAssertTrue(app.navigationBars.staticTexts["批量管理"].exists)
             let cancel = app.buttons["关闭"].firstMatch
             XCTAssertTrue(cancel.waitForExistence(timeout: 5))
@@ -481,6 +487,7 @@ final class AuditFlowInteractionTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["先添加订阅或节点"].waitForExistence(timeout: 3))
         swipeEnd.press(forDuration: 0.05, thenDragTo: swipeStart)
         XCTAssertTrue(app.staticTexts["你的订阅，一处打理"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["Karing"].exists)
         let introduction = XCTAttachment(screenshot: app.screenshot())
         introduction.name = "用途介绍"
         introduction.lifetime = .keepAlways

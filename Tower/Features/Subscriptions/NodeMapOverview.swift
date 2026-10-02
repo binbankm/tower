@@ -589,12 +589,6 @@ struct ExpandableNodeRow: View {
                     Button("设置地区") { showsCountryPicker = true }
                         .font(.caption.weight(.semibold))
                         .frame(minHeight: 44)
-                    if let measurement = model.nodeLatencies[node.id] {
-                        NodeDetailLine(
-                            label: "测试方式",
-                            value: measurement.method?.rawValue ?? measurement.errorMessage ?? String(localized: "不可达")
-                        )
-                    }
 
                     Button {
                         Task { await model.testLatency(node) }

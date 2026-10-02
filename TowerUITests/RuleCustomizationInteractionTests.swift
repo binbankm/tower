@@ -421,7 +421,8 @@ final class RuleCustomizationInteractionTests: XCTestCase {
         XCTAssertTrue(inputs.firstMatch.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["删除关键词 Japan"].exists, "Deleted keyword must stay deleted when reopening from the same list")
         XCTAssertFalse(app.buttons["node-filter-options"].exists)
-        XCTAssertTrue(app.switches["忽略大小写"].exists)
+        // Keyword mode now ignores case without a separate toggle.
+        XCTAssertTrue(app.buttons["node-filter-match-style"].exists)
         XCTAssertTrue(app.buttons["切换到正则表达式"].exists)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Reopened after deleting Japan"; shot.lifetime = .keepAlways
@@ -474,7 +475,8 @@ final class RuleCustomizationInteractionTests: XCTestCase {
         let add = app.buttons["node-keyword-add"]
         for _ in 0..<6 { if add.isHittable { break }; app.swipeUp() }
         add.tap()
-        let empty = inputs.matching(NSPredicate(format: "value == '' OR value == %@", "关键词")).firstMatch
+        // iOS may omit value entirely for an empty, focused TextField.
+        let empty = inputs.matching(NSPredicate(format: "value == nil OR value == '' OR value == %@", "关键词")).firstMatch
         XCTAssertTrue(empty.waitForExistence(timeout: 5))
         empty.tap()
         empty.typeText("Hong Kong [A+B]")

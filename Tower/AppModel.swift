@@ -230,6 +230,8 @@ final class AppModel {
     private let persistence: PersistenceStore
     var cloudSyncIssue: String?
     var cloudRecoveryCopies: [CloudRecoveryCopy] = []
+    var isLoadingCloudRecoveryCopies = false
+    @ObservationIgnored private var cloudRecoveryLoadID = UUID()
     @ObservationIgnored private var performedForegroundOpenWork = false
     private let cloudSync: any CloudSnapshotSyncing
     @ObservationIgnored private var cloudSyncGeneration = UUID()
@@ -3869,19 +3871,37 @@ final class AppModel {
     }
 
     func loadCloudRecoveryCopies() async {
-        // A merge conflict can precede the first replacement backup. Keep the
-        // current local version selectable too, not only cloud history.
-        let current = CloudRecoveryCopy(id: "current-local", snapshot: currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast))
-        do {
-            let local = try persistence.recoveryCopies()
-            let history = local + (try await cloudSync.recoveryCopies())
-            cloudRecoveryCopies = CloudRecoveryCopy.unique(([current] + history.sorted {
-                ($0.snapshot.updatedAt ?? .distantPast) > ($1.snapshot.updatedAt ?? .distantPast)
-            })).prefix(CloudSnapshotJournal.retentionLimit).map { $0 }
-        } catch {
-            cloudSyncIssue = error.localizedDescription
-            cloudRecoveryCopies = Array(CloudRecoveryCopy.unique([current] + ((try? persistence.recoveryCopies()) ?? [])).prefix(CloudSnapshotJournal.retentionLimit))
+        let loadID = UUID()
+        cloudRecoveryLoadID = loadID
+        isLoadingCloudRecoveryCopies = true
+        defer {
+            if cloudRecoveryLoadID == loadID { isLoadingCloudRecoveryCopies = false }
         }
+        // Do not publish partial history: deduplication can replace a local
+        // row with a cloud version carrying a different modification date.
+        let current = CloudRecoveryCopy(id: "current-local", snapshot: currentSnapshot(updatedAt: lastLocalEditAt ?? .distantPast))
+        let store = persistence
+        let local = await Task.detached(priority: .userInitiated) {
+            (try? store.recoveryCopies()) ?? []
+        }.value
+        guard !Task.isCancelled, cloudRecoveryLoadID == loadID else { return }
+        var remote: [CloudRecoveryCopy] = []
+        do {
+            remote = try await cloudSync.recoveryCopies()
+        } catch {
+            guard !Task.isCancelled, cloudRecoveryLoadID == loadID else { return }
+            cloudSyncIssue = error.localizedDescription
+        }
+        let history = local + remote
+        let copies = await Task.detached(priority: .userInitiated) {
+            Array(CloudRecoveryCopy.unique([current] + history.sorted {
+                let left = $0.snapshot.updatedAt ?? .distantPast
+                let right = $1.snapshot.updatedAt ?? .distantPast
+                return left == right ? $0.id < $1.id : left > right
+            }).prefix(CloudSnapshotJournal.retentionLimit))
+        }.value
+        guard !Task.isCancelled, cloudRecoveryLoadID == loadID else { return }
+        cloudRecoveryCopies = copies
     }
 
     /// Explicit selection is the only operation allowed to resolve conflicting
