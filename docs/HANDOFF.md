@@ -1,5 +1,13 @@
 # 当前交接
 
+## 1.0.23（61）Mac 直接分发补充（2026-10-02）
+
+- 用户补充要求更新 GitHub Release 和 Homebrew。复用发布源码 `48889b4` 的 Mac 通用归档，完成 Developer ID 签名、Apple 公证与票据取回；严格签名、stapler、Gatekeeper、arm64 / x86_64 和 DMG 挂载版本检查通过。
+- DMG：`Tower-1.0.23-61-macOS-universal.dmg`，SHA-256：`100bd0156d7609752f6a276683cef6b9c7a574b472f3cb97f972d7119f3a6f3a`。
+- GitHub Release `v1.0.23` 已公开并设为 Latest，附 DMG 与 SHA256SUMS.txt；公开链接回下载 SHA-256 一致。README 下载入口已更新，Homebrew tap 提交 `c31ab30` 已推送，cask 版本为 `1.0.23,61`。
+- 本机未安装 Homebrew；cask Ruby 语法检查通过，不能宣称本机 brew style / audit / upgrade 已验证。cask 仅改版本、构建号与哈希，保留原兼容语法。
+- 首次公证上传因 S3 网络超时失败；临时延长公证上传超时后成功，相关临时设置已删除恢复。原始日志和包位于忽略目录及本机 Builds，未纳入公开仓库。
+
 ## 1.0.23（61）双平台上传（2026-10-02）
 
 - 发布源码 `48889b4` 已推送 `origin/main`。正式 Xcode 26.6（17F113）自动签名完成 iOS / Mac Catalyst Release 归档，两端均为 `com.jzb.tower`、1.0.23（61）；签名验证通过，Mac 包包含 arm64 / x86_64。
